@@ -90,6 +90,33 @@
         .status-completed { background-color: #f6ffed; color: #52c41a; }
         .status-failed { background-color: #fff1f0; color: #f5222d; }
     </style>
+    <style>
+        .loading {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        .loading::after {
+            content: '';
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            margin-left: 4px;
+            border: 2px solid #fff;
+            border-top-color: transparent;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        @keyframes dots {
+            0%, 20% { content: '.'; }
+            40% { content: '..'; }
+            60% { content: '...'; }
+            80%, 100% { content: ''; }
+        }
+    </style>
 </head>
 <body>
     <h1>天翼云盘自动转存系统</h1>
@@ -266,25 +293,36 @@
         // 创建任务
         document.getElementById('taskForm').addEventListener('submit', async (e) => {
             e.preventDefault();
-            const accountId = document.getElementById('accountId').value;
-            const shareLink = document.getElementById('shareLink').value;
-            const videoType = document.getElementById('videoType').value;
-            const totalEpisodes = document.getElementById('totalEpisodes').value;
-            const targetFolderId = document.getElementById('targetFolderId').value;
-
-            const response = await fetch('/api/tasks', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ accountId, shareLink, videoType, totalEpisodes, targetFolderId })
-            });
-
-            const data = await response.json();
-            if (data.success) {
-                document.getElementById('taskForm').reset();
-                await executeTask(data.data.id);
-                fetchTasks();
-            } else {
-                alert('任务创建失败: ' + data.error);
+            const submitBtn = e.target.querySelector('button[type="submit"]');
+            submitBtn.classList.add('loading');
+            submitBtn.disabled = true;
+        
+            try {
+                const accountId = document.getElementById('accountId').value;
+                const shareLink = document.getElementById('shareLink').value;
+                const videoType = document.getElementById('videoType').value;
+                const totalEpisodes = document.getElementById('totalEpisodes').value;
+                const targetFolderId = document.getElementById('targetFolderId').value;
+        
+                const response = await fetch('/api/tasks', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ accountId, shareLink, videoType, totalEpisodes, targetFolderId })
+                });
+        
+                const data = await response.json();
+                if (data.success) {
+                    document.getElementById('taskForm').reset();
+                    await executeTask(data.data.id);
+                    fetchTasks();
+                } else {
+                    alert('任务创建失败: ' + data.error);
+                }
+            } catch (error) {
+                alert('任务创建失败: ' + error.message);
+            } finally {
+                submitBtn.classList.remove('loading');
+                submitBtn.disabled = false;
             }
         });
 
@@ -324,10 +362,25 @@
 
         // 立即执行任务
         async function executeTask(id) {
-            const response = await fetch(`/api/tasks/${id}/execute`, {
-                method: 'POST'
-            });
-            alert('任务已开始执行');
+            const executeBtn = document.querySelector(`button[onclick="executeTask(${id})"]`);
+            executeBtn.classList.add('loading');
+            executeBtn.disabled = true;
+        
+            try {
+                const response = await fetch(`/api/tasks/${id}/execute`, {
+                    method: 'POST'
+                });
+                if (response.ok) {
+                    alert('任务执行完成');
+                } else {
+                    alert('任务执行失败');
+                }
+            } catch (error) {
+                alert('任务执行失败: ' + error.message);
+            } finally {
+                executeBtn.classList.remove('loading');
+                executeBtn.disabled = false;
+            }
         }
 
         // 定时刷新数据
