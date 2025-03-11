@@ -33,8 +33,6 @@ class Cloud189Service {
 
     // 获取分享目录下的文件列表
     async listShareDir(shareId, fileId, shareMode) {
-        console.log("========== 开始获取文件列表 ============")
-        console.log(shareId, fileId, shareMode)
         const response = await this.client.request.get('https://cloud.189.cn/api/open/share/listShareDir.action', {
             searchParams: {
                 shareId,
@@ -44,7 +42,7 @@ class Cloud189Service {
                 descending: true,
                 shareMode: shareMode,
                 pageNum: 1,
-                pageSize: 60
+                pageSize: 1000
             },
             headers: {
                 'Accept': 'application/json;charset=UTF-8'
@@ -55,7 +53,6 @@ class Cloud189Service {
 
     // 递归获取所有文件列表
     async getAllShareFiles(shareId, fileId, shareMode) {
-        console.log("========== 开始获取文件列表 ============")
         const result = await this.listShareDir(shareId, fileId, shareMode);
         if (!result || (!result.fileListAO.folderList && !result.fileListAO.fileList)) {
             return [];
@@ -77,7 +74,7 @@ class Cloud189Service {
         const response = await this.client.request('https://cloud.189.cn/api/open/file/searchFiles.action', {
             searchParams: {
                 folderId: '-11',
-                pageSize: '60',
+                pageSize: '1000',
                 pageNum: '1',
                 recursive: 1,
                 mediaType: 0,
@@ -99,7 +96,7 @@ class Cloud189Service {
                 orderBy: 'lastOpTime',
                 descending: true,
                 pageNum: 1,
-                pageSize: 60
+                pageSize: 1000
             },
             headers: {
                 'Accept': 'application/json;charset=UTF-8'

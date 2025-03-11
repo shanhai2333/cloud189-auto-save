@@ -89,6 +89,33 @@
         .status-processing { background-color: #fff7e6; color: #fa8c16; }
         .status-completed { background-color: #f6ffed; color: #52c41a; }
         .status-failed { background-color: #fff1f0; color: #f5222d; }
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        .loading {
+            position: relative;
+            pointer-events: none;
+        }
+        .loading::after {
+            content: '';
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            margin-left: 8px;
+            border: 2px solid #fff;
+            border-top-color: transparent;
+            border-radius: 50%;
+            animation: button-loading-spinner 1s linear infinite;
+        }
+        @keyframes button-loading-spinner {
+            from {
+                transform: rotate(0turn);
+            }
+            to {
+                transform: rotate(1turn);
+            }
+        }
     </style>
 </head>
 <body>
@@ -265,28 +292,62 @@
         // 创建任务
         document.getElementById('taskForm').addEventListener('submit', async (e) => {
             e.preventDefault();
-            const accountId = document.getElementById('accountId').value;
-            const shareLink = document.getElementById('shareLink').value;
-            const videoType = document.getElementById('videoType').value;
-            const totalEpisodes = document.getElementById('totalEpisodes').value;
-            const targetFolderId = document.getElementById('targetFolderId').value;
+            const submitButton = e.target.querySelector('button[type="submit"]');
+            submitButton.disabled = true;
+            submitButton.classList.add('loading');
 
-            const response = await fetch('/api/tasks', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ accountId, shareLink, videoType, totalEpisodes, targetFolderId })
-            });
+            try {
+                const accountId = document.getElementById('accountId').value;
+                const shareLink = document.getElementById('shareLink').value;
+                const videoType = document.getElementById('videoType').value;
+                const totalEpisodes = document.getElementById('totalEpisodes').value;
+                const targetFolderId = document.getElementById('targetFolderId').value;
 
-            const data = await response.json();
-            if (data.success) {
-                alert('任务创建成功');
-                document.getElementById('taskForm').reset();
-                executeTask(data.data.id);
-                fetchTasks();
-            } else {
-                alert('任务创建失败: ' + data.error);
+                const response = await fetch('/api/tasks', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ accountId, shareLink, videoType, totalEpisodes, targetFolderId })
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    document.getElementById('taskForm').reset();
+                    await executeTask(data.data.id);
+                    fetchTasks();
+                } else {
+                    alert('任务创建失败: ' + data.error);
+                }
+            } catch (error) {
+                alert('任务创建失败: ' + error.message);
+            } finally {
+                submitButton.disabled = false;
+                submitButton.classList.remove('loading');
             }
         });
+
+        // 立即执行任务
+        async function executeTask(id) {
+            const button = document.querySelector(`button[onclick="executeTask(${id})"]`);
+            button.disabled = true;
+            button.classList.add('loading');
+
+            try {
+                const response = await fetch(`/api/tasks/${id}/execute`, {
+                    method: 'POST'
+                });
+                const data = await response.json();
+                if (data.success) {
+                    alert('任务执行完成');
+                } else {
+                    alert('任务执行失败: ' + data.error);
+                }
+            } catch (error) {
+                alert('任务执行失败: ' + error.message);
+            } finally {
+                button.disabled = false;
+                button.classList.remove('loading');
+            }
+        }
 
         // 删除账号
         async function deleteAccount(id) {
@@ -320,14 +381,6 @@
             } else {
                 alert('任务删除失败: ' + data.error);
             }
-        }
-
-        // 立即执行任务
-        async function executeTask(id) {
-            const response = await fetch(`/api/tasks/${id}/execute`, {
-                method: 'POST'
-            });
-            alert('任务已开始执行');
         }
 
         // 定时刷新数据
@@ -413,35 +466,6 @@
         currentFolderId = folder.id;
         loadFolderNodes(folder.id);
     }
-
-    // 修改表单提交事件
-    document.getElementById('taskForm').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const accountId = document.getElementById('accountId').value;
-        const shareLink = document.getElementById('shareLink').value;
-        const targetFolderId = document.getElementById('targetFolderId').value;
-
-        if (!targetFolderId) {
-            alert('请选择保存目录');
-            return;
-        }
-
-        const response = await fetch('/api/tasks', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ accountId, shareLink, targetFolderId })
-        });
-
-        const data = await response.json();
-        if (data.success) {
-            alert('任务创建成功');
-            document.getElementById('taskForm').reset();
-            executeTask(data.data.id);
-            fetchTasks();
-        } else {
-            alert('任务创建失败: ' + data.error);
-        }
-    });
 </script>
     <!-- 添加目录选择弹窗 -->
     <div id="folderModal" class="modal">

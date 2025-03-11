@@ -61,10 +61,8 @@ class TaskService {
     async processTask(task) {
         let saveResults = [];
         try {
-            await this.logTaskEvent(task.id, '开始执行', 'info', '任务开始执行');
             const account = await this.accountRepo.findOneBy({ id: task.accountId });
             if (!account) {
-                await this.logTaskEvent(task.id, '账号验证', 'error', '账号不存在');
                 throw new Error('账号不存在');
             }
 
@@ -82,19 +80,16 @@ class TaskService {
             }
 
             if (!shareCode) {
-                await this.logTaskEvent(task.id, '解析分享链接', 'error', '无效的分享链接');
                 console.log("无效的分享链接: " + task.shareLink);
                 throw new Error('无效的分享链接');
             }
             console.log("分享链接Code: " + shareCode);
             const shareInfo = await cloud189.getShareInfo(shareCode);
             if (!shareInfo || !shareInfo.shareId) {
-                await this.logTaskEvent(task.id, '获取分享信息', 'error', '获取分享信息失败');
                 console.log("获取分享信息失败: " + JSON.stringify(shareInfo))
                 throw new Error('获取分享信息失败');
             }
             console.log("获取分享信息: " + JSON.stringify(shareInfo))
-            await this.logTaskEvent(task.id, '获取分享信息', 'success', '获取分享信息成功', { fileName: shareInfo.fileName });
 
             // 如果任务没有资源名称，使用分享文件名填充
             if (!task.resourceName) {
@@ -102,13 +97,19 @@ class TaskService {
                 await this.taskRepo.save(task);
             }
 
+             // 获取分享文件列表并进行增量转存
+             const shareFiles = await cloud189.getAllShareFiles(shareInfo.shareId, shareInfo.fileId, shareInfo.shareMode);
+             if (!shareFiles || shareFiles.length === 0) {
+                 console.log("获取文件列表失败: " + JSON.stringify(shareFiles))
+                 throw new Error('获取文件列表失败');
+             }
+
             let existingFiles = new Set();
             let targetFolderId = task.targetFolderId;
 
             // 如果存在realFolderId，直接获取文件夹内容
             if (task.realFolderId) {
                 console.log("======== 文件已存在，直接获取文件夹内容 ========")
-                await this.logTaskEvent(task.id, '获取文件列表', 'info', '开始获取文件夹内容');
                 const folderFiles = await this.getAllFolderFiles(cloud189, task.realFolderId);
                 existingFiles = new Set(
                     folderFiles
@@ -116,17 +117,15 @@ class TaskService {
                         .map(file => file.md5)
                 );
                 targetFolderId = task.realFolderId;
-                task.currentEpisodes = folderFiles.length;
             } else {
                 // 搜索个人网盘是否存在
-                await this.logTaskEvent(task.id, '搜索文件', 'info', '开始搜索文件', { fileName: shareInfo.fileName });
                 const searchFileName = shareInfo.fileName.replace(/\s*\([^)]*\)\s*/g, '').trim();
                 const searchResult = await cloud189.searchFiles(searchFileName);
+
 
                 // 如果文件不存在，直接转存
                 if (!searchResult || !searchResult.fileList || searchResult.fileList.length === 0) {
                     console.log("========= 文件不存在，直接转存 ========")
-                    await this.logTaskEvent(task.id, '创建转存任务', 'info', '开始创建转存任务', { fileName: shareInfo.fileName });
                     const fileId = shareInfo.fileId;
                     const fileName = shareInfo.fileName;
                     const isFolder = shareInfo.isFolder?1:0;
@@ -136,18 +135,17 @@ class TaskService {
                         targetFolderId,
                         shareInfo.shareId
                     );
-                    console.log("转存任务创建成功: " + JSON.stringify(shareInfo))
-                    await this.logTaskEvent(task.id, '创建转存任务', 'success', '转存任务创建成功');
-                    
-                    saveResults.push(`转存${shareInfo.fileName}资源成功, 文件名为: \n > <font color="warning">${fileName}</font>\n`);
+                                        
+                    saveResults.push(`转存 ${shareInfo.fileName} 共${shareFiles.length}集, 文件夹名为: \n > <font color="warning">${fileName}</font>\n`);
 
                     // 如果是电影或临时目录，直接标记为完成
-                    if (task.videoType === 'movie' || task.videoType ==='temp') {
+                    if (task.videoType === 'movie' || task.videoType ==='temp' || task.totalEpisodes == shareFiles.length) {
                         task.status = 'completed';
                     } else {
                         task.status = 'processing';
                     }
                     task.lastCheckTime = new Date();
+                    task.currentEpisodes = shareFiles.length
                     await this.taskRepo.save(task);
                     return saveResults.join('\n');
                 }
@@ -180,15 +178,6 @@ class TaskService {
                 }
             }
 
-            // 获取分享文件列表并进行增量转存
-            const shareFiles = await cloud189.getAllShareFiles(shareInfo.shareId, shareInfo.fileId, shareInfo.shareMode);
-            if (!shareFiles || shareFiles.length === 0) {
-                console.log("获取文件列表失败: " + JSON.stringify(shareFiles))
-                await this.logTaskEvent(task.id, '获取文件列表', 'error', '获取文件列表失败');
-                throw new Error('获取文件列表失败');
-            }
-            await this.logTaskEvent(task.id, '获取文件列表', 'success', '获取文件列表成功', { fileCount: shareFiles.length });
-
             const newFiles = shareFiles
                 .filter(file => !file.isFolder && !existingFiles.has(file.md5));
 
@@ -212,7 +201,7 @@ class TaskService {
                 task.status = 'processing';
                 task.lastFileUpdateTime = new Date();
                 task.currentEpisodes += newFiles.length;
-            } else if (task.lastFileUpdateTime) {
+            } else if (task.lastCheckTime) {
                 // 检查是否超过3天没有新文件
                 const now = new Date();
                 const lastUpdate = new Date(task.lastFileUpdateTime);
@@ -220,11 +209,12 @@ class TaskService {
                 if (daysDiff >= 3) {
                     task.status = 'completed';
                 }
+                console.log("====== ${task.resourceName} 没有增量剧集 =======")
             }
-
             // 检查是否达到总数
             if (task.totalEpisodes && task.currentEpisodes >= task.totalEpisodes) {
                 task.status = 'completed';
+                console.log(`======= ${task.resourceName} 已完结 ========`)
             }
 
             task.lastCheckTime = new Date();
@@ -232,10 +222,10 @@ class TaskService {
             return saveResults.join('\n');
 
         } catch (error) {
+            console.log(error)
             task.status = 'failed';
             task.lastError = error.message;
             await this.taskRepo.save(task);
-            await this.logTaskEvent(task.id, '任务执行', 'error', error.message);
             return '';
         }
     }
