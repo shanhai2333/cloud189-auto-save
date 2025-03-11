@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>天翼云盘自动转存系统</title>
+    <link rel="stylesheet" href="modal.css">
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .tabs {
+            display: flex;
+            border-bottom: 2px solid #eee;
+            margin-bottom: 20px;
+        }
+        .tab {
+            padding: 10px 20px;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            margin-bottom: -2px;
+        }
+        .tab.active {
+            border-bottom-color: #1890ff;
+            color: #1890ff;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #666;
+        }
+        input, select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #1890ff;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #40a9ff;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+        th {
+            background-color: #fafafa;
+            font-weight: 500;
+        }
+        .status-badge {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+        .status-pending { background-color: #e6f7ff; color: #1890ff; }
+        .status-processing { background-color: #fff7e6; color: #fa8c16; }
+        .status-completed { background-color: #f6ffed; color: #52c41a; }
+        .status-failed { background-color: #fff1f0; color: #f5222d; }
+    </style>
+</head>
+<body>
+    <h1>天翼云盘自动转存系统</h1>
+    
+    <div class="container">
+        <div class="tabs">
+            <div class="tab" data-tab="account">账号管理</div>
+            <div class="tab active" data-tab="task">任务管理</div>
+        </div>
+
+        <div id="accountTab" class="tab-content">
+            <form id="accountForm">
+                <div class="form-group">
+                    <label for="username">用户名</label>
+                    <input type="text" id="username" required>
+                </div>
+                <div class="form-group">
+                    <label for="password">密码</label>
+                    <input type="password" id="password" required>
+                </div>
+                <button type="submit">添加账号</button>
+            </form>
+            <table id="accountTable">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>用户名</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+
+        <div id="taskTab" class="tab-content active">
+            <form id="taskForm">
+                <div class="form-group">
+                    <label for="accountId">选择账号</label>
+                    <select id="accountId" required></select>
+                </div>
+                <div class="form-group">
+                    <label for="shareLink">分享链接</label>
+                    <input type="text" id="shareLink" required>
+                </div>
+                <div class="form-group">
+                    <label for="videoType">视频类型</label>
+                    <select id="videoType" required>
+                        <option value="电影">电影</option>
+                        <option value="电视剧">电视剧</option>
+                        <option value="动漫">动漫</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="targetFolder">保存目录</label>
+                    <div class="tree-select">
+                        <input type="text" id="targetFolder" readonly required>
+                        <input type="hidden" id="targetFolderId" required>
+                        <div class="tree-select-dropdown"></div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="totalEpisodes">总集数</label>
+                    <input type="number" id="totalEpisodes" min="0">
+                </div>
+                <button type="submit">创建任务</button>
+            </form>
+            <div class="table-container">
+                <table id="taskTable">
+                    <thead>
+                        <tr>
+                            <th>操作</th>
+                            <th>资源名称</th>
+                            <th>账号ID</th>
+                            <th>视频类型</th>
+                            <th>首次保存目录</th>
+                            <th>更新目录</th>
+                            <th>更新数/总数</th>
+                            <th>状态</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 选项卡切换
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                tab.classList.add('active');
+                document.getElementById(tab.dataset.tab + 'Tab').classList.add('active');
+            });
+        });
+
+        // 获取所有账号
+        async function fetchAccounts() {
+            const response = await fetch('/api/accounts');
+            const data = await response.json();
+            if (data.success) {
+                const tbody = document.querySelector('#accountTable tbody');
+                const select = document.querySelector('#accountId');
+                tbody.innerHTML = '';
+                select.innerHTML = '';
+                
+                data.data.forEach(account => {
+                    tbody.innerHTML += `
+                        <tr>
+                            <td>${account.id}</td>
+                            <td>${account.username}</td>
+                            <td><button onclick="deleteAccount(${account.id})">删除</button></td>
+                        </tr>
+                    `;
+                    select.innerHTML += `
+                        <option value="${account.id}">${account.username}</option>
+                    `;
+                });
+            }
+        }
+
+        // 获取所有任务
+        async function fetchTasks() {
+            const response = await fetch('/api/tasks');
+            const data = await response.json();
+            if (data.success) {
+                const tbody = document.querySelector('#taskTable tbody');
+                tbody.innerHTML = '';
+                
+                data.data.forEach(task => {
+                    tbody.innerHTML += `
+                        <tr>
+                            <td>
+                                <button onclick="deleteTask(${task.id})">删除</button>
+                                <button onclick="executeTask(${task.id})">执行</button>
+                            </td>
+                            <td><a href="${task.shareLink}" target="_blank">${task.resourceName || '未知'}</a></td>
+                            <td>${task.accountId}</td>
+                            <td>${task.videoType}</td>
+                            <td>${task.targetFolderId}</td>
+                            <td>${task.realFolderId || '未知'}</td>
+                            <td>${task.currentEpisodes || 0}/${task.totalEpisodes || '未知'}</td>
+                            <td><span class="status-badge status-${task.status}">${task.status}</span></td>
+                        </tr>
+                    `;
+                });
+            }
+        }
+
+        // 添加账号
+        document.getElementById('accountForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+
+            const response = await fetch('/api/accounts', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, password })
+            });
+
+            const data = await response.json();
+            if (data.success) {
+                alert('账号添加成功');
+                document.getElementById('accountForm').reset();
+                fetchAccounts();
+            } else {
+                alert('账号添加失败: ' + data.error);
+            }
+        });
+
+        // 创建任务
+        document.getElementById('taskForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const accountId = document.getElementById('accountId').value;
+            const shareLink = document.getElementById('shareLink').value;
+            const videoType = document.getElementById('videoType').value;
+            const totalEpisodes = document.getElementById('totalEpisodes').value;
+            const targetFolderId = document.getElementById('targetFolderId').value;
+
+            const response = await fetch('/api/tasks', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ accountId, shareLink, videoType, totalEpisodes, targetFolderId })
+            });
+
+            const data = await response.json();
+            if (data.success) {
+                alert('任务创建成功');
+                document.getElementById('taskForm').reset();
+                executeTask(data.data.id);
+                fetchTasks();
+            } else {
+                alert('任务创建失败: ' + data.error);
+            }
+        });
+
+        // 删除账号
+        async function deleteAccount(id) {
+            if (!confirm('确定要删除这个账号吗？')) return;
+
+            const response = await fetch(`/api/accounts/${id}`, {
+                method: 'DELETE'
+            });
+
+            const data = await response.json();
+            if (data.success) {
+                alert('账号删除成功');
+                fetchAccounts();
+            } else {
+                alert('账号删除失败: ' + data.error);
+            }
+        }
+
+        // 删除任务
+        async function deleteTask(id) {
+            if (!confirm('确定要删除这个任务吗？')) return;
+
+            const response = await fetch(`/api/tasks/${id}`, {
+                method: 'DELETE'
+            });
+
+            const data = await response.json();
+            if (data.success) {
+                alert('任务删除成功');
+                fetchTasks();
+            } else {
+                alert('任务删除失败: ' + data.error);
+            }
+        }
+
+        // 立即执行任务
+        async function executeTask(id) {
+            const response = await fetch(`/api/tasks/${id}/execute`, {
+                method: 'POST'
+            });
+            alert('任务已开始执行');
+        }
+
+        // 定时刷新数据
+        fetchAccounts();
+        fetchTasks();
+        setInterval(() => {
+            fetchAccounts();
+            fetchTasks();
+        }, 30000); // 每30秒刷新一次
+    </script>
+
+<script>
+    // 树状选择器实现
+    let currentFolderId = '-11';
+    let selectedFolderId = '';
+    let selectedFolderName = '';
+
+    // 初始化树状选择器
+    const treeSelect = document.querySelector('.tree-select');
+    const treeDropdown = treeSelect.querySelector('.tree-select-dropdown');
+    const folderInput = document.getElementById('targetFolder');
+    const folderIdInput = document.getElementById('targetFolderId');
+
+    // 点击输入框时显示下拉框
+    folderInput.addEventListener('click', () => {
+        treeDropdown.classList.add('show');
+        if (!treeDropdown.children.length) {
+            loadFolderNodes('-11');
+        }
+    });
+
+    // 点击其他地方时隐藏下拉框
+    document.addEventListener('click', (e) => {
+        if (!treeSelect.contains(e.target)) {
+            treeDropdown.classList.remove('show');
+        }
+    });
+
+    // 加载目录节点
+    async function loadFolderNodes(folderId) {
+        try {
+            const accountId = document.getElementById('accountId').value;
+            if (!accountId) {
+                alert('请先选择账号');
+                return;
+            }
+
+            const response = await fetch(`/api/folders/${accountId}?folderId=${folderId}`);
+            const data = await response.json();
+            if (data.success) {
+                renderFolderNodes(data.data);
+            } else {
+                alert('获取目录失败: ' + data.error);
+            }
+        } catch (error) {
+            console.error('加载目录失败:', error);
+            alert('加载目录失败');
+        }
+    }
+
+    // 渲染目录节点
+    function renderFolderNodes(nodes) {
+        treeDropdown.innerHTML = '';
+        nodes.forEach(node => {
+            const nodeElement = document.createElement('div');
+            nodeElement.className = 'tree-node';
+            nodeElement.innerHTML = `
+                <span class="icon">📁</span>
+                <span class="name">${node.name}</span>
+            `;
+            nodeElement.addEventListener('click', () => selectFolder(node));
+            treeDropdown.appendChild(nodeElement);
+        });
+    }
+
+    // 选择目录
+    function selectFolder(folder) {
+        selectedFolderId = folder.id;
+        selectedFolderName = folder.name;
+        folderInput.value = folder.name;
+        folderIdInput.value = folder.id;
+        treeDropdown.classList.remove('show');
+        currentFolderId = folder.id;
+        loadFolderNodes(folder.id);
+    }
+
+    // 修改表单提交事件
+    document.getElementById('taskForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const accountId = document.getElementById('accountId').value;
+        const shareLink = document.getElementById('shareLink').value;
+        const targetFolderId = document.getElementById('targetFolderId').value;
+
+        if (!targetFolderId) {
+            alert('请选择保存目录');
+            return;
+        }
+
+        const response = await fetch('/api/tasks', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ accountId, shareLink, targetFolderId })
+        });
+
+        const data = await response.json();
+        if (data.success) {
+            alert('任务创建成功');
+            document.getElementById('taskForm').reset();
+            executeTask(data.data.id);
+            fetchTasks();
+        } else {
+            alert('任务创建失败: ' + data.error);
+        }
+    });
+</script>
+    <!-- 添加目录选择弹窗 -->
+    <div id="folderModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">选择保存目录</h3>
+            </div>
+            <div class="modal-body">
+                <div id="folderTree" class="folder-tree"></div>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-btn modal-btn-default" onclick="closeFolderModal()">取消</button>
+                <button class="modal-btn modal-btn-primary" onclick="confirmFolderSelection()">确定</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 目录选择弹窗相关函数
+        const folderModal = document.getElementById('folderModal');
+        const folderTree = document.getElementById('folderTree');
+        let selectedNode = null;
+
+        // 显示目录选择弹窗
+        function showFolderModal() {
+            folderModal.style.display = 'block';
+            if (!folderTree.children.length) {
+                loadFolderNodes('-11');
+            }
+        }
+
+        // 关闭目录选择弹窗
+        function closeFolderModal() {
+            folderModal.style.display = 'none';
+        }
+
+        // 确认目录选择
+        function confirmFolderSelection() {
+            if (selectedNode) {
+                document.getElementById('targetFolder').value = selectedNode.name;
+                document.getElementById('targetFolderId').value = selectedNode.id;
+                closeFolderModal();
+            } else {
+                alert('请选择一个目录');
+            }
+        }
+
+        // 渲染目录节点
+        function renderFolderNodes(nodes, parentElement = folderTree) {
+            parentElement.innerHTML = '';
+            nodes.forEach(node => {
+                const item = document.createElement('div');
+                item.className = 'folder-tree-item';
+                item.innerHTML = `
+                    <span class="folder-icon">📁</span>
+                    <span class="folder-name">${node.name}</span>
+                    <span class="expand-icon">▶</span>
+                `;
+
+                const children = document.createElement('div');
+                children.className = 'folder-children';
+                item.appendChild(children);
+
+                item.addEventListener('click', async (e) => {
+                    e.stopPropagation();
+                    if (!item.classList.contains('expanded')) {
+                        const response = await fetch(`/api/folders/${document.getElementById('accountId').value}?folderId=${node.id}`);
+                        const data = await response.json();
+                        if (data.success) {
+                            renderFolderNodes(data.data, children);
+                        }
+                    }
+                    item.classList.toggle('expanded');
+                    selectFolder(node, item);
+                });
+
+                parentElement.appendChild(item);
+            });
+        }
+
+        // 选择目录
+        function selectFolder(node, element) {
+            if (selectedNode) {
+                const prevSelected = document.querySelector('.folder-tree-item.selected');
+                if (prevSelected) {
+                    prevSelected.classList.remove('selected');
+                }
+            }
+            selectedNode = node;
+            element.classList.add('selected');
+        }
+
+        // 修改目录选择触发方式
+        document.getElementById('targetFolder').addEventListener('click', (e) => {
+            e.preventDefault();
+            const accountId = document.getElementById('accountId').value;
+            if (!accountId) {
+                alert('请先选择账号');
+                return;
+            }
+            showFolderModal();
+        });
+
+        // 点击其他地方关闭弹窗
+        window.addEventListener('click', (e) => {
+            if (e.target === folderModal) {
+                closeFolderModal();
+            }
+        });
+    </script>
+</body>
+</html>
