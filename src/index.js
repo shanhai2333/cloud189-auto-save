@@ -80,6 +80,21 @@ AppDataSource.initialize().then(() => {
         }
     });
 
+    app.put('/api/tasks/:id', async (req, res) => {
+        try {
+            const taskId = parseInt(req.params.id);
+            const { videoType, realFolderId, currentEpisodes, totalEpisodes, status } = req.body;
+            const task = await taskRepo.findOneBy({ id: taskId });
+            if (!task) throw new Error('任务不存在');
+            
+            const updates = { videoType, realFolderId, currentEpisodes, totalEpisodes, status };
+            const updatedTask = await taskService.updateTask(taskId, updates);
+            res.json({ success: true, data: updatedTask });
+        } catch (error) {
+            res.json({ success: false, error: error.message });
+        }
+    });
+
     app.post('/api/tasks/:id/execute', async (req, res) => {
         try {
             const task = await taskRepo.findOneBy({ id: parseInt(req.params.id) });

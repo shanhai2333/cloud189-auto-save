@@ -89,33 +89,6 @@
         .status-processing { background-color: #fff7e6; color: #fa8c16; }
         .status-completed { background-color: #f6ffed; color: #52c41a; }
         .status-failed { background-color: #fff1f0; color: #f5222d; }
-        button:disabled {
-            background-color: #ccc;
-            cursor: not-allowed;
-        }
-        .loading {
-            position: relative;
-            pointer-events: none;
-        }
-        .loading::after {
-            content: '';
-            display: inline-block;
-            width: 12px;
-            height: 12px;
-            margin-left: 8px;
-            border: 2px solid #fff;
-            border-top-color: transparent;
-            border-radius: 50%;
-            animation: button-loading-spinner 1s linear infinite;
-        }
-        @keyframes button-loading-spinner {
-            from {
-                transform: rotate(0turn);
-            }
-            to {
-                transform: rotate(1turn);
-            }
-        }
     </style>
 </head>
 <body>
@@ -253,6 +226,7 @@
                             <td>
                                 <button onclick="deleteTask(${task.id})">删除</button>
                                 <button onclick="executeTask(${task.id})">执行</button>
+                                <button onclick="showEditTaskModal(${task.id}, '${task.videoType}', '${task.realFolderId || ''}', ${task.currentEpisodes || 0}, ${task.totalEpisodes || 0}, '${task.status}')">修改</button>
                             </td>
                             <td><a href="${task.shareLink}" target="_blank">${task.resourceName || '未知'}</a></td>
                             <td>${task.accountId}</td>
@@ -292,62 +266,27 @@
         // 创建任务
         document.getElementById('taskForm').addEventListener('submit', async (e) => {
             e.preventDefault();
-            const submitButton = e.target.querySelector('button[type="submit"]');
-            submitButton.disabled = true;
-            submitButton.classList.add('loading');
+            const accountId = document.getElementById('accountId').value;
+            const shareLink = document.getElementById('shareLink').value;
+            const videoType = document.getElementById('videoType').value;
+            const totalEpisodes = document.getElementById('totalEpisodes').value;
+            const targetFolderId = document.getElementById('targetFolderId').value;
 
-            try {
-                const accountId = document.getElementById('accountId').value;
-                const shareLink = document.getElementById('shareLink').value;
-                const videoType = document.getElementById('videoType').value;
-                const totalEpisodes = document.getElementById('totalEpisodes').value;
-                const targetFolderId = document.getElementById('targetFolderId').value;
+            const response = await fetch('/api/tasks', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ accountId, shareLink, videoType, totalEpisodes, targetFolderId })
+            });
 
-                const response = await fetch('/api/tasks', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ accountId, shareLink, videoType, totalEpisodes, targetFolderId })
-                });
-
-                const data = await response.json();
-                if (data.success) {
-                    document.getElementById('taskForm').reset();
-                    await executeTask(data.data.id);
-                    fetchTasks();
-                } else {
-                    alert('任务创建失败: ' + data.error);
-                }
-            } catch (error) {
-                alert('任务创建失败: ' + error.message);
-            } finally {
-                submitButton.disabled = false;
-                submitButton.classList.remove('loading');
+            const data = await response.json();
+            if (data.success) {
+                document.getElementById('taskForm').reset();
+                await executeTask(data.data.id);
+                fetchTasks();
+            } else {
+                alert('任务创建失败: ' + data.error);
             }
         });
-
-        // 立即执行任务
-        async function executeTask(id) {
-            const button = document.querySelector(`button[onclick="executeTask(${id})"]`);
-            button.disabled = true;
-            button.classList.add('loading');
-
-            try {
-                const response = await fetch(`/api/tasks/${id}/execute`, {
-                    method: 'POST'
-                });
-                const data = await response.json();
-                if (data.success) {
-                    alert('任务执行完成');
-                } else {
-                    alert('任务执行失败: ' + data.error);
-                }
-            } catch (error) {
-                alert('任务执行失败: ' + error.message);
-            } finally {
-                button.disabled = false;
-                button.classList.remove('loading');
-            }
-        }
 
         // 删除账号
         async function deleteAccount(id) {
@@ -381,6 +320,14 @@
             } else {
                 alert('任务删除失败: ' + data.error);
             }
+        }
+
+        // 立即执行任务
+        async function executeTask(id) {
+            const response = await fetch(`/api/tasks/${id}/execute`, {
+                method: 'POST'
+            });
+            alert('任务已开始执行');
         }
 
         // 定时刷新数据
@@ -578,3 +525,100 @@
     </script>
 </body>
 </html>
+
+<!-- 修改任务弹窗 -->
+<div id="editTaskModal" class="modal">
+    <div class="modal-content">
+        <h2>修改任务</h2>
+        <form id="editTaskForm">
+            <input type="hidden" id="editTaskId">
+            <div class="form-group">
+                <label for="editVideoType">视频类型</label>
+                <select id="editVideoType" required>
+                    <option value="电影">电影</option>
+                    <option value="电视剧">电视剧</option>
+                    <option value="动漫">动漫</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="editRealFolderId">更新目录</label>
+                <input type="text" id="editRealFolderId">
+            </div>
+            <div class="form-group">
+                <label for="editCurrentEpisodes">更新数</label>
+                <input type="number" id="editCurrentEpisodes" min="0">
+            </div>
+            <div class="form-group">
+                <label for="editTotalEpisodes">总数</label>
+                <input type="number" id="editTotalEpisodes" min="0">
+            </div>
+            <div class="form-group">
+                <label for="editStatus">状态</label>
+                <select id="editStatus" required>
+                    <option value="pending">待处理</option>
+                    <option value="processing">处理中</option>
+                    <option value="completed">已完成</option>
+                    <option value="failed">失败</option>
+                </select>
+            </div>
+            <div class="form-actions">
+                <button type="submit">保存</button>
+                <button type="button" onclick="closeEditTaskModal()">取消</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+
+// 显示修改任务弹窗
+function showEditTaskModal(id, videoType, realFolderId, currentEpisodes, totalEpisodes, status) {
+    document.getElementById('editTaskId').value = id;
+    document.getElementById('editVideoType').value = videoType;
+    document.getElementById('editRealFolderId').value = realFolderId;
+    document.getElementById('editCurrentEpisodes').value = currentEpisodes;
+    document.getElementById('editTotalEpisodes').value = totalEpisodes;
+    document.getElementById('editStatus').value = status;
+    document.getElementById('editTaskModal').style.display = 'block';
+}
+
+// 关闭修改任务弹窗
+function closeEditTaskModal() {
+    document.getElementById('editTaskModal').style.display = 'none';
+}
+
+// 提交修改任务表单
+document.getElementById('editTaskForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const id = document.getElementById('editTaskId').value;
+    const videoType = document.getElementById('editVideoType').value;
+    const realFolderId = document.getElementById('editRealFolderId').value;
+    const currentEpisodes = document.getElementById('editCurrentEpisodes').value;
+    const totalEpisodes = document.getElementById('editTotalEpisodes').value;
+    const status = document.getElementById('editStatus').value;
+
+    try {
+        const response = await fetch(`/api/tasks/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                videoType,
+                realFolderId,
+                currentEpisodes: parseInt(currentEpisodes),
+                totalEpisodes: parseInt(totalEpisodes),
+                status
+            })
+        });
+
+        if (response.ok) {
+            closeEditTaskModal();
+            await fetchTasks();
+        } else {
+            const error = await response.json();
+            alert(error.message || '修改任务失败');
+        }
+    } catch (error) {
+        alert('修改任务失败：' + error.message);
+    }
+});
+</script>

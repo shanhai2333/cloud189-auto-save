@@ -139,12 +139,13 @@ class TaskService {
                     saveResults.push(`转存 ${shareInfo.fileName} 共${shareFiles.length}集, 文件夹名为: \n > <font color="warning">${fileName}</font>\n`);
 
                     // 如果是电影或临时目录，直接标记为完成
-                    if (task.videoType === 'movie' || task.videoType ==='temp' || task.totalEpisodes == shareFiles.length) {
+                    if (task.videoType === 'movie' || task.videoType ==='temp' || (task.totalEpisodes && task.totalEpisodes == shareFiles.length)) {
                         task.status = 'completed';
                     } else {
                         task.status = 'processing';
                     }
                     task.lastCheckTime = new Date();
+                    task.lastFileUpdateTime = new Date();
                     task.currentEpisodes = shareFiles.length
                     await this.taskRepo.save(task);
                     return saveResults.join('\n');
@@ -201,7 +202,7 @@ class TaskService {
                 task.status = 'processing';
                 task.lastFileUpdateTime = new Date();
                 task.currentEpisodes += newFiles.length;
-            } else if (task.lastCheckTime) {
+            } else if (task.lastFileUpdateTime) {
                 // 检查是否超过3天没有新文件
                 const now = new Date();
                 const lastUpdate = new Date(task.lastFileUpdateTime);
@@ -247,6 +248,36 @@ class TaskService {
                 { status: 'processing' }
             ]
         });
+    }
+
+    // 更新任务
+    async updateTask(taskId, updates) {
+        const task = await this.taskRepo.findOneBy({ id: taskId });
+        if (!task) throw new Error('任务不存在');
+
+        // 只允许更新特定字段
+        const allowedFields = ['videoType', 'realFolderId', 'currentEpisodes', 'totalEpisodes', 'status'];
+        for (const field of allowedFields) {
+            if (updates[field] !== undefined) {
+                task[field] = updates[field];
+            }
+        }
+
+        // 验证状态值
+        const validStatuses = ['pending', 'processing', 'completed', 'failed'];
+        if (!validStatuses.includes(task.status)) {
+            throw new Error('无效的状态值');
+        }
+
+        // 验证数值字段
+        if (task.currentEpisodes !== null && task.currentEpisodes < 0) {
+            throw new Error('更新数不能为负数');
+        }
+        if (task.totalEpisodes !== null && task.totalEpisodes < 0) {
+            throw new Error('总数不能为负数');
+        }
+
+        return await this.taskRepo.save(task);
     }
 }
 
