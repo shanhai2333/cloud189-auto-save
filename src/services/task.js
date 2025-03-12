@@ -201,7 +201,7 @@ class TaskService {
                 saveResults.push(`${shareInfo.fileName}更新${taskInfoList.length}集: \n ${fileNameList.join("\n")}`);
                 task.status = 'processing';
                 task.lastFileUpdateTime = new Date();
-                task.currentEpisodes += newFiles.length;
+                task.currentEpisodes = existingFiles.size + newFiles.length;
             } else if (task.lastFileUpdateTime) {
                 // 检查是否超过3天没有新文件
                 const now = new Date();
@@ -210,7 +210,8 @@ class TaskService {
                 if (daysDiff >= 3) {
                     task.status = 'completed';
                 }
-                console.log("====== ${task.resourceName} 没有增量剧集 =======")
+                task.currentEpisodes = existingFiles.size;
+                console.log(`====== ${task.resourceName} 没有增量剧集 =======`)
             }
             // 检查是否达到总数
             if (task.totalEpisodes && task.currentEpisodes >= task.totalEpisodes) {
@@ -220,7 +221,7 @@ class TaskService {
 
             task.lastCheckTime = new Date();
             await this.taskRepo.save(task);
-            return saveResults.join('\n');
+            return saveResults.join('\n\n');
 
         } catch (error) {
             console.log(error)
