@@ -5,13 +5,16 @@ FROM node:16.19.0-slim
 WORKDIR /home
 
 # 复制package.json和yarn.lock
-COPY package.json yarn.lock ./
+COPY package.json yarn.lock tsconfig.json ./
 
 # 更换为国内镜像源
-RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.aliyun.com/g' /etc/apk/repositories
+RUN sed -i 's/deb.debian.org/mirrors.aliyun.com/g' /etc/apt/sources.list && \
+    sed -i 's/security.debian.org/mirrors.aliyun.com/g' /etc/apt/sources.list
 
 # 安装必要的依赖项
-RUN apk add --update --no-cache ca-certificates
+RUN apt-get update && \
+    apt-get install -y ca-certificates && \
+    rm -rf /var/lib/apt/lists/*
 
 # 安装依赖
 RUN yarn install
@@ -24,9 +27,6 @@ RUN mkdir -p /home/data
 
 # 暴露端口
 EXPOSE 3000
-
-# 设置挂载点
-VOLUME ["/home/data/database.sqlite", "/home/.env"]
 
 # 启动命令
 CMD ["yarn", "start"]

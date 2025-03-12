@@ -55,7 +55,7 @@ docker run -d \
   -p 3000:3000 \
   --restart unless-stopped \
   --name cloud189 \
-  cloud189_auto_save
+  cloud189-auto-save
 ```
 
 ### 访问系统
