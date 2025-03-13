@@ -89,6 +89,17 @@
         .status-processing { background-color: #fff7e6; color: #fa8c16; }
         .status-completed { background-color: #f6ffed; color: #52c41a; }
         .status-failed { background-color: #fff1f0; color: #f5222d; }
+        .ellipsis {
+            max-width: 150px;
+            text-overflow: ellipsis;
+            display: block;
+        }
+        a:visited {
+            color: #1890ff; 
+        }
+        .delete-btn {
+            background-color: #fa8c16;
+        }
     </style>
     <style>
         .loading {
@@ -229,7 +240,7 @@
                         <tr>
                             <td>${account.id}</td>
                             <td>${account.username}</td>
-                            <td><button onclick="deleteAccount(${account.id})">删除</button></td>
+                            <td><button class="delete-btn" onclick="deleteAccount(${account.id})">删除</button></td>
                         </tr>
                     `;
                     select.innerHTML += `
@@ -251,11 +262,11 @@
                     tbody.innerHTML += `
                         <tr>
                             <td>
-                                <button onclick="deleteTask(${task.id})">删除</button>
+                                <button class="delete-btn" onclick="deleteTask(${task.id})">删除</button>
                                 <button onclick="executeTask(${task.id})">执行</button>
                                 <button onclick="showEditTaskModal(${task.id}, '${task.videoType}', '${task.realFolderId || ''}', ${task.currentEpisodes || 0}, ${task.totalEpisodes || 0}, '${task.status}')">修改</button>
                             </td>
-                            <td><a href="${task.shareLink}" target="_blank">${task.resourceName || '未知'}</a></td>
+                            <td><a href="${task.shareLink}" target="_blank" class='ellipsis' title="${task.shareFolderName ? (task.resourceName + '/' + task.shareFolderName) : task.resourceName || '未知'}"">${task.shareFolderName?(task.resourceName + '/' + task.shareFolderName): task.resourceName || '未知'}</a></td>
                             <td>${task.accountId}</td>
                             <td>${task.videoType}</td>
                             <td>${task.targetFolderId}</td>
