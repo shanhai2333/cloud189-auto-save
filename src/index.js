@@ -83,11 +83,8 @@ AppDataSource.initialize().then(() => {
     app.put('/api/tasks/:id', async (req, res) => {
         try {
             const taskId = parseInt(req.params.id);
-            const { videoType, realFolderId, currentEpisodes, totalEpisodes, status } = req.body;
-            const task = await taskRepo.findOneBy({ id: taskId });
-            if (!task) throw new Error('任务不存在');
-            
-            const updates = { videoType, realFolderId, currentEpisodes, totalEpisodes, status };
+            const { resourceName, videoType, realFolderId, currentEpisodes, totalEpisodes, status, shareFolderName, shareFolderId } = req.body;
+            const updates = { resourceName, videoType, realFolderId, currentEpisodes, totalEpisodes, status, shareFolderName, shareFolderId };
             const updatedTask = await taskService.updateTask(taskId, updates);
             res.json({ success: true, data: updatedTask });
         } catch (error) {
@@ -122,6 +119,34 @@ AppDataSource.initialize().then(() => {
             const cloud189 = Cloud189Service.getInstance(account);
             const folders = await cloud189.getFolderNodes(folderId);
             res.json({ success: true, data: folders });
+        } catch (error) {
+            res.status(500).json({ success: false, error: error.message });
+        }
+    });
+
+    // 根据分享链接获取文件目录
+    app.get('/api/share/folders/:accountId', async (req, res) => {
+        try {
+            const shareLink = req.query.shareLink;
+            const accountId = req.params.accountId;
+            const account = await accountRepo.findOneBy({ id: accountId });
+            if (!account) {
+                throw new Error('账号不存在');
+            }
+            const cloud189 = Cloud189Service.getInstance(account);
+            const shareInfo = await taskService.parseShareLink(cloud189, shareLink);
+            if (!shareInfo || !shareInfo.shareId) throw new Error('获取分享信息失败');
+            if (req.query.folderId == -11) {
+                // 返回顶级目录
+                res.json({success: true, data: [{id: shareInfo.fileId, name: shareInfo.fileName}]});
+                return 
+            }
+            // 查询分享目录
+            const shareDir = await cloud189.listShareDir(shareInfo.shareId, req.query.folderId, shareInfo.shareMode);
+            if (!shareDir || !shareDir.fileListAO) {
+                res.json({ success: true, data: [] });    
+            }
+            res.json({ success: true, data: shareDir.fileListAO.folderList });
         } catch (error) {
             res.status(500).json({ success: false, error: error.message });
         }

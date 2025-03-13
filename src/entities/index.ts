@@ -77,8 +77,6 @@ export class Task {
     @Column('text', { nullable: true })
     pathType!: string;
 
-
-
     @CreateDateColumn()
     createdAt!: Date;
 

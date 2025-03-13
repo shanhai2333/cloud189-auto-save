@@ -127,6 +127,9 @@
             60% { content: '...'; }
             80%, 100% { content: ''; }
         }
+        #folderModal {
+            z-index: 9999;
+        }
     </style>
 </head>
 <body>
@@ -264,7 +267,7 @@
                             <td>
                                 <button class="delete-btn" onclick="deleteTask(${task.id})">删除</button>
                                 <button onclick="executeTask(${task.id})">执行</button>
-                                <button onclick="showEditTaskModal(${task.id}, '${task.videoType}', '${task.realFolderId || ''}', ${task.currentEpisodes || 0}, ${task.totalEpisodes || 0}, '${task.status}')">修改</button>
+                                <button onclick="showEditTaskModal(${task.id}, '${task.videoType}', '${task.realFolderId || ''}', ${task.currentEpisodes || 0}, ${task.totalEpisodes || 0}, '${task.status}','${task.shareLink}','${task.shareFolderId}','${task.shareFolderName}', '${task.resourceName}')">修改</button>
                             </td>
                             <td><a href="${task.shareLink}" target="_blank" class='ellipsis' title="${task.shareFolderName ? (task.resourceName + '/' + task.shareFolderName) : task.resourceName || '未知'}"">${task.shareFolderName?(task.resourceName + '/' + task.shareFolderName): task.resourceName || '未知'}</a></td>
                             <td>${task.accountId}</td>
@@ -407,190 +410,27 @@
         }, 30000); // 每30秒刷新一次
     </script>
 
+<script src="/folderSelector.js"></script>
 <script>
-    // 树状选择器实现
-    let currentFolderId = '-11';
-    let selectedFolderId = '';
-    let selectedFolderName = '';
-
-    // 初始化树状选择器
-    const treeSelect = document.querySelector('.tree-select');
-    const treeDropdown = treeSelect.querySelector('.tree-select-dropdown');
-    const folderInput = document.getElementById('targetFolder');
-    const folderIdInput = document.getElementById('targetFolderId');
-
-    // 点击输入框时显示下拉框
-    folderInput.addEventListener('click', () => {
-        treeDropdown.classList.add('show');
-        if (!treeDropdown.children.length) {
-            loadFolderNodes('-11');
+    // 初始化目录选择器
+    const folderSelector = new FolderSelector({
+        onSelect: ({ id, name }) => {
+            document.getElementById('targetFolder').value = name;
+            document.getElementById('targetFolderId').value = id;
         }
     });
 
-    // 点击其他地方时隐藏下拉框
-    document.addEventListener('click', (e) => {
-        if (!treeSelect.contains(e.target)) {
-            treeDropdown.classList.remove('show');
+    // 修改目录选择触发方式
+    document.getElementById('targetFolder').addEventListener('click', (e) => {
+        e.preventDefault();
+        const accountId = document.getElementById('accountId').value;
+        if (!accountId) {
+            alert('请先选择账号');
+            return;
         }
+        folderSelector.show(accountId);
     });
-
-    // 加载目录节点
-    async function loadFolderNodes(folderId) {
-        try {
-            const accountId = document.getElementById('accountId').value;
-            if (!accountId) {
-                alert('请先选择账号');
-                return;
-            }
-
-            const response = await fetch(`/api/folders/${accountId}?folderId=${folderId}`);
-            const data = await response.json();
-            if (data.success) {
-                renderFolderNodes(data.data);
-            } else {
-                alert('获取目录失败: ' + data.error);
-            }
-        } catch (error) {
-            console.error('加载目录失败:', error);
-            alert('加载目录失败');
-        }
-    }
-
-    // 渲染目录节点
-    function renderFolderNodes(nodes) {
-        treeDropdown.innerHTML = '';
-        nodes.forEach(node => {
-            const nodeElement = document.createElement('div');
-            nodeElement.className = 'tree-node';
-            nodeElement.innerHTML = `
-                <span class="icon">📁</span>
-                <span class="name">${node.name}</span>
-            `;
-            nodeElement.addEventListener('click', () => selectFolder(node));
-            treeDropdown.appendChild(nodeElement);
-        });
-    }
-
-    // 选择目录
-    function selectFolder(folder) {
-        selectedFolderId = folder.id;
-        selectedFolderName = folder.name;
-        folderInput.value = folder.name;
-        folderIdInput.value = folder.id;
-        treeDropdown.classList.remove('show');
-        currentFolderId = folder.id;
-        loadFolderNodes(folder.id);
-    }
 </script>
-    <!-- 添加目录选择弹窗 -->
-    <div id="folderModal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3 class="modal-title">选择保存目录</h3>
-            </div>
-            <div class="modal-body">
-                <div id="folderTree" class="folder-tree"></div>
-            </div>
-            <div class="modal-footer">
-                <button class="modal-btn modal-btn-default" onclick="closeFolderModal()">取消</button>
-                <button class="modal-btn modal-btn-primary" onclick="confirmFolderSelection()">确定</button>
-            </div>
-        </div>
-    </div>
-
-    <script>
-        // 目录选择弹窗相关函数
-        const folderModal = document.getElementById('folderModal');
-        const folderTree = document.getElementById('folderTree');
-        let selectedNode = null;
-
-        // 显示目录选择弹窗
-        function showFolderModal() {
-            folderModal.style.display = 'block';
-            if (!folderTree.children.length) {
-                loadFolderNodes('-11');
-            }
-        }
-
-        // 关闭目录选择弹窗
-        function closeFolderModal() {
-            folderModal.style.display = 'none';
-        }
-
-        // 确认目录选择
-        function confirmFolderSelection() {
-            if (selectedNode) {
-                document.getElementById('targetFolder').value = selectedNode.name;
-                document.getElementById('targetFolderId').value = selectedNode.id;
-                closeFolderModal();
-            } else {
-                alert('请选择一个目录');
-            }
-        }
-
-        // 渲染目录节点
-        function renderFolderNodes(nodes, parentElement = folderTree) {
-            parentElement.innerHTML = '';
-            nodes.forEach(node => {
-                const item = document.createElement('div');
-                item.className = 'folder-tree-item';
-                item.innerHTML = `
-                    <span class="folder-icon">📁</span>
-                    <span class="folder-name">${node.name}</span>
-                    <span class="expand-icon">▶</span>
-                `;
-
-                const children = document.createElement('div');
-                children.className = 'folder-children';
-                item.appendChild(children);
-
-                item.addEventListener('click', async (e) => {
-                    e.stopPropagation();
-                    if (!item.classList.contains('expanded')) {
-                        const response = await fetch(`/api/folders/${document.getElementById('accountId').value}?folderId=${node.id}`);
-                        const data = await response.json();
-                        if (data.success) {
-                            renderFolderNodes(data.data, children);
-                        }
-                    }
-                    item.classList.toggle('expanded');
-                    selectFolder(node, item);
-                });
-
-                parentElement.appendChild(item);
-            });
-        }
-
-        // 选择目录
-        function selectFolder(node, element) {
-            if (selectedNode) {
-                const prevSelected = document.querySelector('.folder-tree-item.selected');
-                if (prevSelected) {
-                    prevSelected.classList.remove('selected');
-                }
-            }
-            selectedNode = node;
-            element.classList.add('selected');
-        }
-
-        // 修改目录选择触发方式
-        document.getElementById('targetFolder').addEventListener('click', (e) => {
-            e.preventDefault();
-            const accountId = document.getElementById('accountId').value;
-            if (!accountId) {
-                alert('请先选择账号');
-                return;
-            }
-            showFolderModal();
-        });
-
-        // 点击其他地方关闭弹窗
-        window.addEventListener('click', (e) => {
-            if (e.target === folderModal) {
-                closeFolderModal();
-            }
-        });
-    </script>
 </body>
 </html>
 
@@ -601,12 +441,26 @@
         <form id="editTaskForm">
             <input type="hidden" id="editTaskId">
             <div class="form-group">
+                <label for="editResourceName">资源名</label>
+                <div class="tree-select">
+                    <input type="text" id="editResourceName" required>
+                </div>
+            </div>
+            <div class="form-group">
                 <label for="editVideoType">视频类型</label>
                 <select id="editVideoType" required>
                     <option value="电影">电影</option>
                     <option value="电视剧">电视剧</option>
                     <option value="动漫">动漫</option>
                 </select>
+            </div>
+            <div class="form-group">
+                <label for="shareFolderId">源目录(分享链接中的目录)</label>
+                <div class="tree-select">
+                    <input type="text" id="shareFolder" readonly required>
+                    <input type="hidden" id="shareFolderId" required>
+                    <div class="tree-select-dropdown"></div>
+                </div>
             </div>
             <div class="form-group">
                 <label for="editRealFolderId">更新目录</label>
@@ -620,6 +474,7 @@
                 <label for="editTotalEpisodes">总数</label>
                 <input type="number" id="editTotalEpisodes" min="0">
             </div>
+            <input type="hidden" name="shareLink" id="shareLink">
             <div class="form-group">
                 <label for="editStatus">状态</label>
                 <select id="editStatus" required>
@@ -638,15 +493,41 @@
 </div>
 
 <script>
+let shareFolderSelector = new FolderSelector({
+    apiUrl: "/api/share/folders",
+    onSelect: ({ id, name }) => {
+        document.getElementById('shareFolder').value = name;
+        document.getElementById('shareFolderId').value = id;
+    },
+    buildParams: (accountId, folderId) => {
+        const shareLink = document.getElementById('shareLink').value;
+        return `${accountId}?folderId=${folderId}&shareLink=${shareLink}`;
+    }
+});
+
+// 修改目录选择触发方式
+document.getElementById('shareFolder').addEventListener('click', (e) => {
+    e.preventDefault();
+    const accountId = document.getElementById('accountId').value;
+    if (!accountId) {
+        alert('请先选择账号');
+        return;
+    }
+    shareFolderSelector.show(accountId);
+});
 
 // 显示修改任务弹窗
-function showEditTaskModal(id, videoType, realFolderId, currentEpisodes, totalEpisodes, status) {
+function showEditTaskModal(id, videoType, realFolderId, currentEpisodes, totalEpisodes, status, shareLink, shareFolderId, shareFolderName, resourceName) {
     document.getElementById('editTaskId').value = id;
+    document.getElementById('editResourceName').value = resourceName;
     document.getElementById('editVideoType').value = videoType;
     document.getElementById('editRealFolderId').value = realFolderId;
     document.getElementById('editCurrentEpisodes').value = currentEpisodes;
     document.getElementById('editTotalEpisodes').value = totalEpisodes;
     document.getElementById('editStatus').value = status;
+    document.getElementById('shareLink').value = shareLink;
+    document.getElementById('shareFolder').value = shareFolderName;
+    document.getElementById('shareFolderId').value = shareFolderId;
     document.getElementById('editTaskModal').style.display = 'block';
 }
 
@@ -654,15 +535,17 @@ function showEditTaskModal(id, videoType, realFolderId, currentEpisodes, totalEp
 function closeEditTaskModal() {
     document.getElementById('editTaskModal').style.display = 'none';
 }
-
 // 提交修改任务表单
 document.getElementById('editTaskForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     const id = document.getElementById('editTaskId').value;
+    const resourceName = document.getElementById('editResourceName').value;
     const videoType = document.getElementById('editVideoType').value;
     const realFolderId = document.getElementById('editRealFolderId').value;
     const currentEpisodes = document.getElementById('editCurrentEpisodes').value;
     const totalEpisodes = document.getElementById('editTotalEpisodes').value;
+    const shareFolderName = document.getElementById('shareFolder').value;
+    const shareFolderId = document.getElementById('shareFolderId').value;
     const status = document.getElementById('editStatus').value;
 
     try {
@@ -670,11 +553,14 @@ document.getElementById('editTaskForm').addEventListener('submit', async (e) => 
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
+                resourceName,
                 videoType,
                 realFolderId,
                 currentEpisodes: parseInt(currentEpisodes),
                 totalEpisodes: parseInt(totalEpisodes),
-                status
+                status,
+                shareFolderName,
+                shareFolderId
             })
         });
 

@@ -265,13 +265,13 @@ class TaskService {
         if (!task) throw new Error('任务不存在');
 
         // 只允许更新特定字段
-        const allowedFields = ['videoType', 'realFolderId', 'currentEpisodes', 'totalEpisodes', 'status'];
+        const allowedFields = ['resourceName','videoType', 'realFolderId', 'currentEpisodes', 'totalEpisodes', 'status', 'shareFolderName', 'shareFolderId'];
         for (const field of allowedFields) {
             if (updates[field] !== undefined) {
                 task[field] = updates[field];
             }
         }
-
+        
         // 验证状态值
         const validStatuses = ['pending', 'processing', 'completed', 'failed'];
         if (!validStatuses.includes(task.status)) {
@@ -285,7 +285,6 @@ class TaskService {
         if (task.totalEpisodes !== null && task.totalEpisodes < 0) {
             throw new Error('总数不能为负数');
         }
-
         return await this.taskRepo.save(task);
     }
 }
