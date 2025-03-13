@@ -62,6 +62,23 @@ export class Task {
     @Column('text', { nullable: true })
     realFolderId!: string;
 
+    @Column('text', { nullable: true })
+    shareFolderId!: string;
+
+    @Column('text', { nullable: true })
+    shareFolderName!: string;
+
+    @Column('text', { nullable: true })
+    shareId!: string;
+    
+    @Column('text', { nullable: true })
+    shareMode!: string;
+
+    @Column('text', { nullable: true })
+    pathType!: string;
+
+
+
     @CreateDateColumn()
     createdAt!: Date;
 

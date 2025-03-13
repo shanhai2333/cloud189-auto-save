@@ -16,7 +16,7 @@ class Cloud189Service {
             username: account.username,
             password: account.password,
             tokenStore: new FileTokenStore(`${account.username}.json`)
-        }
+            }
         );
     }
 
@@ -123,7 +123,6 @@ class Cloud189Service {
                 'Accept': 'application/json;charset=UTF-8'
             }
         }).json();
-        console.log(response)
         return response;
     }
 
@@ -157,6 +156,23 @@ class Cloud189Service {
         }).json();
         return response;
     }
+
+    // 新建目录
+    async createFolder(folderName, parentFolderId) {
+        const response = await this.client.request('https://cloud.189.cn/api/open/file/createFolder.action', {
+            method: 'POST',
+            form: {
+                parentFolderId: parentFolderId,
+                folderName: folderName
+            },
+            headers: {
+                'Accept': 'application/json;charset=UTF-8'
+            },
+        }).json();
+        return response;
+    }
+
+    
 }
 
 module.exports = { Cloud189Service };
