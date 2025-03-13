@@ -130,6 +130,38 @@
         #folderModal {
             z-index: 9999;
         }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 20px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .refresh-link {
+            color: #666;
+            text-decoration: none;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            cursor: pointer;
+        }
+
+        .refresh-link:hover {
+            color: #1890ff;
+        }
+
+        .refresh-link.loading .refresh-icon {
+            display: inline-block;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
     </style>
 </head>
 <body>
@@ -327,7 +359,11 @@
                 const data = await response.json();
                 if (data.success) {
                     document.getElementById('taskForm').reset();
-                    await executeTask(data.data.id);
+                    // data.data为数据对象, 拿到所有的id
+                    const ids = data.data.map(item => item.id)
+                    // 并发执行所有的任务并等待所有的任务完成
+                    await Promise.all(ids.map(id => executeTask(id, false)))
+                    alert('任务执行完成')
                     fetchTasks();
                 } else {
                     alert('任务创建失败: ' + data.error);
@@ -375,7 +411,7 @@
         }
 
         // 立即执行任务
-        async function executeTask(id) {
+        async function executeTask(id, refresh = true) {
             const executeBtn = document.querySelector(`button[onclick="executeTask(${id})"]`);
             if (executeBtn) {
                 executeBtn.classList.add('loading');
@@ -386,8 +422,8 @@
                     method: 'POST'
                 });
                 if (response.ok) {
-                    alert('任务执行完成');
-                    fetchTasks();
+                    refresh && alert('任务执行完成');
+                    refresh && fetchTasks();
                 } else {
                     alert('任务执行失败');
                 }
@@ -479,8 +515,8 @@
                 <label for="editStatus">状态</label>
                 <select id="editStatus" required>
                     <option value="pending">待处理</option>
-                    <option value="processing">处理中</option>
-                    <option value="completed">已完成</option>
+                    <option value="processing">追剧中</option>
+                    <option value="completed">已完结</option>
                     <option value="failed">失败</option>
                 </select>
             </div>
@@ -500,8 +536,8 @@ let shareFolderSelector = new FolderSelector({
         document.getElementById('shareFolderId').value = id;
     },
     buildParams: (accountId, folderId) => {
-        const shareLink = document.getElementById('shareLink').value;
-        return `${accountId}?folderId=${folderId}&shareLink=${shareLink}`;
+        const taskId = document.getElementById('editTaskId').value;
+        return `${accountId}?folderId=${folderId}&taskId=${taskId}`;
     }
 });
 

@@ -25,6 +25,86 @@ class TaskService {
          return shareInfo;
     }
 
+    // 创建任务的基础配置
+    _createTaskConfig(accountId, shareLink, targetFolderId, videoType, totalEpisodes, shareInfo, realFolderId, resourceName, currentEpisodes = 0, shareFolderId = null, shareFolderName = "") {
+        return {
+            accountId,
+            shareLink,
+            targetFolderId,
+            realFolderId,
+            videoType,
+            status: 'pending',
+            totalEpisodes,
+            resourceName,
+            currentEpisodes,
+            shareFileId: shareInfo.fileId,
+            shareFolderId: shareFolderId || shareInfo.fileId,
+            shareFolderName,
+            shareId: shareInfo.shareId,
+            shareMode: shareInfo.shareMode
+        };
+    }
+
+     // 验证并创建目标目录
+     async _validateAndCreateTargetFolder(cloud189, targetFolderId, shareInfo) {
+        const folderInfo = await cloud189.listFiles(targetFolderId);
+        if (folderInfo.fileListAO.folderList.length > 0 && 
+            folderInfo.fileListAO.folderList.find(folder => folder.name === shareInfo.fileName)) {
+            throw new Error('目标已存在同名目录，请选择其他目录');
+        }
+        
+        const targetFolder = await cloud189.createFolder(shareInfo.fileName, targetFolderId);
+        if (!targetFolder || !targetFolder.id) throw new Error('创建目录失败');
+        return targetFolder;
+    }
+
+    // 处理文件夹分享
+    async _handleFolderShare(cloud189, shareInfo, accountId, shareLink, targetFolderId, videoType, totalEpisodes, rootFolderId, tasks) {
+        const result = await cloud189.listShareDir(shareInfo.shareId, shareInfo.fileId, shareInfo.shareMode);
+        if (!result?.fileListAO) return;
+
+        const { fileList: rootFiles = [], folderList: subFolders = [] } = result.fileListAO;
+        
+        // 处理根目录文件
+        if (rootFiles.length > 0) {
+            const rootTask = this.taskRepo.create(
+                this._createTaskConfig(
+                    accountId, shareLink, targetFolderId, videoType, totalEpisodes,
+                    shareInfo, rootFolderId, `${shareInfo.fileName}(根)`, rootFiles.length
+                )
+            );
+            tasks.push(await this.taskRepo.save(rootTask));
+        }
+
+        // 处理子文件夹
+        for (const folder of subFolders) {
+            const realFolder = await cloud189.createFolder(folder.name, rootFolderId);
+            if (!realFolder?.id) throw new Error('创建目录失败');
+
+            const subTask = this.taskRepo.create(
+                this._createTaskConfig(
+                    accountId, shareLink, targetFolderId, videoType, totalEpisodes,
+                    shareInfo, realFolder.id, shareInfo.fileName, 0, folder.id, folder.name
+                )
+            );
+            tasks.push(await this.taskRepo.save(subTask));
+        }
+    }
+
+    // 处理单文件分享
+    async _handleSingleShare(cloud189, shareInfo, accountId, shareLink, targetFolderId, videoType, totalEpisodes, rootFolderId, tasks) {
+        const shareFiles = await cloud189.getAllShareFiles(shareInfo.shareId, shareInfo.fileId, shareInfo.shareMode);
+        if (!shareFiles?.length) throw new Error('获取文件列表失败');
+
+        const task = this.taskRepo.create(
+            this._createTaskConfig(
+                accountId, shareLink, targetFolderId, videoType, totalEpisodes,
+                shareInfo, rootFolderId, shareInfo.fileName, shareFiles.length
+            )
+        );
+        tasks.push(await this.taskRepo.save(task));
+    }
+
     // 创建新任务
     async createTask(accountId, shareLink, targetFolderId, videoType, totalEpisodes = null) {
         // 获取分享信息
@@ -33,95 +113,20 @@ class TaskService {
         
         const cloud189 = Cloud189Service.getInstance(account);
         const shareInfo = await this.parseShareLink(cloud189, shareLink);
-        // 判断目录是否存在
-        const folderInfo = await cloud189.listFiles(targetFolderId);
-        if (folderInfo.fileListAO.folderList.length > 0 && folderInfo.fileListAO.folderList.find(folder => folder.name === shareInfo.fileName)) {
-            throw new Error('目标已存在同名目录，请选择其他目录');
-        }
-        // 创建目录
-        const targetFolder = await cloud189.createFolder(shareInfo.fileName, targetFolderId);
-        if (!targetFolder || !targetFolder.id) throw new Error('创建目录失败');
+        
+        // 检查并创建目标目录
+        const targetFolder = await this._validateAndCreateTargetFolder(cloud189, targetFolderId, shareInfo);
         const rootFolderId =  targetFolder.id
         const tasks = [];
-        const baseName = shareInfo.fileName;
         
-        // 如果是文件夹，检查是否需要拆分
         if (shareInfo.isFolder) {
-            const result = await cloud189.listShareDir(shareInfo.shareId, shareInfo.fileId, shareInfo.shareMode);
-            if (result && result.fileListAO) {
-                const rootFiles = result.fileListAO.fileList || [];
-                const subFolders = result.fileListAO.folderList || [];
-                
-                // 如果根目录有文件，创建根任务
-                if (rootFiles.length > 0) {
-                    const rootTask = this.taskRepo.create({
-                        accountId,
-                        shareLink,
-                        targetFolderId,
-                        realFolderId: rootFolderId,
-                        videoType,
-                        status: 'pending',
-                        totalEpisodes,
-                        resourceName: `${baseName}(根)`,
-                        currentEpisodes: rootFiles.length,
-                        shareFolderId: shareInfo.fileId,
-                        shareFolderName: "",
-                        shareId: shareInfo.shareId,
-                        shareMode: shareInfo.shareMode,
-                        pathType: "root"
-                    });
-                    tasks.push(await this.taskRepo.save(rootTask));
-                }
-                
-                // 为每个子文件夹创建任务
-                for (const folder of subFolders) {
-                    const realFolder = await cloud189.createFolder(folder.name, rootFolderId);
-                    if (!realFolder || !realFolder.id) throw new Error('创建目录失败');
-                    const subTask = this.taskRepo.create({
-                        accountId,
-                        shareLink,
-                        targetFolderId,
-                        realFolderId:realFolder.id,
-                        videoType,
-                        status: 'pending',
-                        totalEpisodes,
-                        resourceName: `${baseName}`,
-                        currentEpisodes: 0,
-                        shareFolderId: folder.id,
-                        shareFolderName: folder.name,
-                        shareId: shareInfo.shareId,
-                        shareMode: shareInfo.shareMode,
-                        pathType: "sub"
-                    });
-                    tasks.push(await this.taskRepo.save(subTask));
-                }
-            }
+            await this._handleFolderShare(cloud189, shareInfo, accountId, shareLink, targetFolderId, videoType, totalEpisodes, rootFolderId, tasks);
         }
-        
-        // 如果没有拆分任务（纯文件或单文件夹），创建单个任务
-        if (tasks.length === 0) {
-             // 获取分享文件列表
-            const shareFiles = await cloud189.getAllShareFiles(shareInfo.shareId, shareInfo.fileId, shareInfo.shareMode);
-            if (!shareFiles || shareFiles.length === 0) throw new Error('获取文件列表失败');
-            const task = this.taskRepo.create({
-                accountId,
-                shareLink,
-                targetFolderId,
-                realFolderId: rootFolderId,
-                videoType,
-                status: 'pending',
-                totalEpisodes,
-                resourceName: baseName,
-                currentEpisodes: shareFiles.length,
-                shareFolderId:  shareInfo.fileId,
-                shareFolderName: "",
-                shareId: shareInfo.shareId,
-                shareMode: shareInfo.shareMode,
-                pathType: "root"
-            });
-            tasks.push(await this.taskRepo.save(task));
+
+         // 处理单文件或空文件夹情况
+         if (tasks.length === 0) {
+            await this._handleSingleShare(cloud189, shareInfo, accountId, shareLink, targetFolderId, videoType, totalEpisodes, rootFolderId, tasks);
         }
-        
         return tasks;
     }
 
@@ -171,7 +176,6 @@ class TaskService {
                 throw new Error('账号不存在');
             }
             const cloud189 = Cloud189Service.getInstance(account);
-            const shareInfo = await this.parseShareLink(cloud189, task.shareLink);
              // 获取分享文件列表并进行增量转存
              const shareDir = await cloud189.listShareDir(task.shareId, task.shareFolderId, task.shareMode);
              if (!shareDir || !shareDir.fileListAO.fileList) {
@@ -204,7 +208,7 @@ class TaskService {
                 await cloud189.createSaveTask(
                     JSON.stringify(taskInfoList),
                     task.realFolderId,
-                    shareInfo.shareId
+                    task.shareId
                 );
                 const resourceName = task.shareFolderName? `${task.resourceName}/${task.shareFolderName}` : task.resourceName;
                 saveResults.push(`${resourceName}更新${taskInfoList.length}集: > \n <font color="warning">${fileNameList.join('\n')}</font>`);
@@ -219,7 +223,7 @@ class TaskService {
                 if (daysDiff >= 3) {
                     task.status = 'completed';
                 }
-                console.log("====== ${task.resourceName} 没有增量剧集 =======")
+                console.log(`====== ${task.resourceName} 没有增量剧集 =======`)
             }
             // 检查是否达到总数
             if (task.totalEpisodes && task.currentEpisodes >= task.totalEpisodes) {

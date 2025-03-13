@@ -63,6 +63,9 @@ export class Task {
     realFolderId!: string;
 
     @Column('text', { nullable: true })
+    shareFileId!: string;
+
+    @Column('text', { nullable: true })
     shareFolderId!: string;
 
     @Column('text', { nullable: true })

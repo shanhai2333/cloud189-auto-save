@@ -23,7 +23,10 @@ class FolderSelector {
             <div id="${this.modalId}" class="modal">
                 <div class="modal-content">
                     <div class="modal-header">
-                        <h3 class="modal-title">选择保存目录</h3>
+                        <h3 class="modal-title">选择目录</h3>
+                        <a href="javascript:;" class="refresh-link" data-action="refresh">
+                            <span class="refresh-icon">🔄</span> 刷新
+                        </a>
                     </div>
                     <div class="modal-body">
                         <div id="${this.treeId}" class="folder-tree"></div>
@@ -50,9 +53,22 @@ class FolderSelector {
                 this.close();
             }
         });
-
+        // 添加刷新事件监听
+        this.modal.querySelector('[data-action="refresh"]').addEventListener('click', () => this.refreshTree());
         this.modal.querySelector('[data-action="cancel"]').addEventListener('click', () => this.close());
         this.modal.querySelector('[data-action="confirm"]').addEventListener('click', () => this.confirm());
+    }
+
+    // 添加刷新方法
+    async refreshTree() {
+        const refreshLink = this.modal.querySelector('.refresh-link');
+        refreshLink.classList.add('loading');
+        
+        try {
+            await this.loadFolderNodes('-11', this.folderTree, true);
+        } finally {
+            refreshLink.classList.remove('loading');
+        }
     }
 
     async show(accountId = '') {
@@ -89,10 +105,10 @@ class FolderSelector {
         }
     }
 
-    async loadFolderNodes(folderId, parentElement = this.folderTree) {
+    async loadFolderNodes(folderId, parentElement = this.folderTree, refresh = false) {
         try {
             const params = this.apiConfig.buildParams(this.accountId, folderId);
-            const response = await fetch(`${this.apiConfig.url}/${params}`);
+            const response = await fetch(`${this.apiConfig.url}/${params}${refresh ? '&refresh=true' : ''}`);
             const data = await response.json();
             if (this.apiConfig.validateResponse(data)) {
                 const nodes = this.apiConfig.parseResponse(data);

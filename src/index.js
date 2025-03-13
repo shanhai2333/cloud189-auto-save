@@ -7,6 +7,7 @@ const { Account, Task } = require('./entities');
 const { TaskService } = require('./services/task');
 const { Cloud189Service } = require('./services/cloud189');
 const { WeworkService } = require('./services/wework');
+const { CacheManager } = require('./services/CacheManager')
 
 const app = express();
 app.use(express.json());
@@ -26,6 +27,10 @@ AppDataSource.initialize().then(() => {
     const taskRepo = AppDataSource.getRepository(Task);
     const taskService = new TaskService(taskRepo, accountRepo);
     const webhook = new WeworkService(process.env.WECOM_WEBHOOK);
+    // 初始化缓存管理器
+    const folderCache = new CacheManager(parseInt(process.env.FOLDER_CACHE_TTL || 600));
+
+
     // 账号相关API
     app.get('/api/accounts', async (req, res) => {
         const accounts = await accountRepo.find();
@@ -111,6 +116,15 @@ AppDataSource.initialize().then(() => {
         try {
             const accountId = parseInt(req.params.accountId);
             const folderId = req.query.folderId || '-11';
+            const forceRefresh = req.query.refresh === 'true';
+            const cacheKey = `folders_${accountId}_${folderId}`;
+            // forceRefresh 为true 则清空所有folders_开头的缓存
+            if (forceRefresh) {
+                folderCache.clearPrefix("folders_");
+            }
+            if (folderCache.has(cacheKey)) {
+                return res.json({ success: true, data: folderCache.get(cacheKey) });
+            }
             const account = await accountRepo.findOneBy({ id: accountId });
             if (!account) {
                 throw new Error('账号不存在');
@@ -118,6 +132,7 @@ AppDataSource.initialize().then(() => {
 
             const cloud189 = Cloud189Service.getInstance(account);
             const folders = await cloud189.getFolderNodes(folderId);
+            folderCache.set(cacheKey, folders);
             res.json({ success: true, data: folders });
         } catch (error) {
             res.status(500).json({ success: false, error: error.message });
@@ -127,26 +142,38 @@ AppDataSource.initialize().then(() => {
     // 根据分享链接获取文件目录
     app.get('/api/share/folders/:accountId', async (req, res) => {
         try {
-            const shareLink = req.query.shareLink;
-            const accountId = req.params.accountId;
-            const account = await accountRepo.findOneBy({ id: accountId });
+            const taskId = parseInt(req.query.taskId);
+            const folderId = req.query.folderId;
+            const forceRefresh = req.query.refresh === 'true';
+            const cacheKey = `share_folders_${taskId}_${folderId}`;
+            if (forceRefresh) {
+                folderCache.clearPrefix("share_folders_");
+            }
+            if (folderCache.has(cacheKey)) {
+                return res.json({ success: true, data: folderCache.get(cacheKey) });
+            }
+            const task = await taskRepo.findOneBy({ id: parseInt(taskId) });
+            if (!task) {
+                throw new Error('任务不存在');
+            }
+            if (folderId == -11) {
+                // 返回顶级目录
+                res.json({success: true, data: [{id: task.shareFileId, name: task.resourceName}]});
+                return 
+            }
+            const account = await accountRepo.findOneBy({ id: req.params.accountId });
             if (!account) {
                 throw new Error('账号不存在');
             }
             const cloud189 = Cloud189Service.getInstance(account);
-            const shareInfo = await taskService.parseShareLink(cloud189, shareLink);
-            if (!shareInfo || !shareInfo.shareId) throw new Error('获取分享信息失败');
-            if (req.query.folderId == -11) {
-                // 返回顶级目录
-                res.json({success: true, data: [{id: shareInfo.fileId, name: shareInfo.fileName}]});
-                return 
-            }
             // 查询分享目录
-            const shareDir = await cloud189.listShareDir(shareInfo.shareId, req.query.folderId, shareInfo.shareMode);
+            const shareDir = await cloud189.listShareDir(task.shareId, req.query.folderId, task.shareMode);
             if (!shareDir || !shareDir.fileListAO) {
                 res.json({ success: true, data: [] });    
             }
-            res.json({ success: true, data: shareDir.fileListAO.folderList });
+            const folders = shareDir.fileListAO.folderList;
+            folderCache.set(cacheKey, folders);
+            res.json({ success: true, data: folders });
         } catch (error) {
             res.status(500).json({ success: false, error: error.message });
         }
