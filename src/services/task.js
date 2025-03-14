@@ -26,12 +26,13 @@ class TaskService {
     }
 
     // 创建任务的基础配置
-    _createTaskConfig(accountId, shareLink, targetFolderId, videoType, totalEpisodes, shareInfo, realFolderId, resourceName, currentEpisodes = 0, shareFolderId = null, shareFolderName = "") {
+    _createTaskConfig(accountId, shareLink, targetFolderId, videoType, totalEpisodes, shareInfo, realFolder, resourceName, currentEpisodes = 0, shareFolderId = null, shareFolderName = "") {
         return {
             accountId,
             shareLink,
             targetFolderId,
-            realFolderId,
+            realFolderId:realFolder.id,
+            realFolderName:realFolder.name,
             videoType,
             status: 'pending',
             totalEpisodes,
@@ -59,7 +60,7 @@ class TaskService {
     }
 
     // 处理文件夹分享
-    async _handleFolderShare(cloud189, shareInfo, accountId, shareLink, targetFolderId, videoType, totalEpisodes, rootFolderId, tasks) {
+    async _handleFolderShare(cloud189, shareInfo, accountId, shareLink, targetFolderId, videoType, totalEpisodes, rootFolder, tasks) {
         const result = await cloud189.listShareDir(shareInfo.shareId, shareInfo.fileId, shareInfo.shareMode);
         if (!result?.fileListAO) return;
 
@@ -70,7 +71,7 @@ class TaskService {
             const rootTask = this.taskRepo.create(
                 this._createTaskConfig(
                     accountId, shareLink, targetFolderId, videoType, totalEpisodes,
-                    shareInfo, rootFolderId, `${shareInfo.fileName}(根)`, rootFiles.length
+                    shareInfo, rootFolder, `${shareInfo.fileName}(根)`, rootFiles.length
                 )
             );
             tasks.push(await this.taskRepo.save(rootTask));
@@ -78,13 +79,13 @@ class TaskService {
 
         // 处理子文件夹
         for (const folder of subFolders) {
-            const realFolder = await cloud189.createFolder(folder.name, rootFolderId);
+            const realFolder = await cloud189.createFolder(folder.name, rootFolder.id);
             if (!realFolder?.id) throw new Error('创建目录失败');
 
             const subTask = this.taskRepo.create(
                 this._createTaskConfig(
                     accountId, shareLink, targetFolderId, videoType, totalEpisodes,
-                    shareInfo, realFolder.id, shareInfo.fileName, 0, folder.id, folder.name
+                    shareInfo, realFolder, shareInfo.fileName, 0, folder.id, folder.name
                 )
             );
             tasks.push(await this.taskRepo.save(subTask));
@@ -115,17 +116,16 @@ class TaskService {
         const shareInfo = await this.parseShareLink(cloud189, shareLink);
         
         // 检查并创建目标目录
-        const targetFolder = await this._validateAndCreateTargetFolder(cloud189, targetFolderId, shareInfo);
-        const rootFolderId =  targetFolder.id
+        const rootFolder = await this._validateAndCreateTargetFolder(cloud189, targetFolderId, shareInfo);
         const tasks = [];
         
         if (shareInfo.isFolder) {
-            await this._handleFolderShare(cloud189, shareInfo, accountId, shareLink, targetFolderId, videoType, totalEpisodes, rootFolderId, tasks);
+            await this._handleFolderShare(cloud189, shareInfo, accountId, shareLink, targetFolderId, videoType, totalEpisodes, rootFolder, tasks);
         }
 
          // 处理单文件或空文件夹情况
          if (tasks.length === 0) {
-            await this._handleSingleShare(cloud189, shareInfo, accountId, shareLink, targetFolderId, videoType, totalEpisodes, rootFolderId, tasks);
+            await this._handleSingleShare(cloud189, shareInfo, accountId, shareLink, targetFolderId, videoType, totalEpisodes, rootFolder, tasks);
         }
         return tasks;
     }

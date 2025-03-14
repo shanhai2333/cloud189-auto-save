@@ -53,9 +53,30 @@
         flex-wrap: wrap;
     }
 }
+
+.refresh-link {
+    color: #666;
+    text-decoration: none;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    cursor: pointer;
+}
+
+.refresh-link:hover {
+    color: #1890ff;
+}
+
+.refresh-link.loading .refresh-icon {
+    display: inline-block;
+    animation: spin 1s linear infinite;
+}
 .modal-header {
-    margin-bottom: 20px;
-    padding-bottom: 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 20px;
     border-bottom: 1px solid #eee;
 }
 
@@ -70,6 +91,7 @@
     overflow-y: auto;
 }
 
+.form-actions, 
 .modal-footer {
     margin-top: 20px;
     padding-top: 10px;

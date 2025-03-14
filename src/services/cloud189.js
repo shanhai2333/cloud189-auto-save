@@ -12,10 +12,10 @@ class Cloud189Service {
     }
 
     constructor(account) {
-        this.client = new CloudClient({
+        this.client = new CloudClient({ 
             username: account.username,
             password: account.password,
-            tokenStore: new FileTokenStore(`${account.username}.json`)
+            token: new FileTokenStore(`data/${account.username}.json`)
             }
         );
     }

@@ -1,0 +1,71 @@
+/* 卡片视图样式 */
+.table-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 20px;
+    padding: 10px;
+}
+
+#taskTable {
+    display: contents;
+}
+
+#taskTable thead {
+    display: none;
+}
+
+#taskTable tbody {
+    display: contents;
+}
+
+#taskTable tr {
+    display: flex;
+    flex-direction: column;
+    padding: 15px;
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+#taskTable tr:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+#taskTable td {
+    display: block;
+    padding: 8px 0;
+    border: none;
+    text-align: left;
+}
+
+#taskTable td:not(:last-child) {
+    border-bottom: 1px solid #f0f0f0;
+}
+
+#taskTable td::before {
+    content: attr(data-label);
+    font-weight: 500;
+    color: #666;
+    margin-right: 8px;
+}
+
+#taskTable td:first-child {
+    padding: 12px 0;
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+#taskTable .ellipsis {
+    max-width: 100%;
+    white-space: normal;
+    word-break: break-all;
+}
+
+@media screen and (max-width: 768px) {
+    .table-container {
+        grid-template-columns: 1fr;
+    }
+}

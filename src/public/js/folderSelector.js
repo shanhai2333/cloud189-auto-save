@@ -82,6 +82,8 @@ class FolderSelector {
         }
 
         this.modal.style.display = 'block';
+        // 设置z-index
+        this.modal.style.zIndex = 1001;
         this.selectedNode = null;
         await this.loadFolderNodes('-11');
     }

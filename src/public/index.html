@@ -4,165 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>天翼云盘自动转存系统</title>
-    <link rel="stylesheet" href="modal.css">
-    <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 20px;
-            background-color: #f5f5f5;
-        }
-        .container {
-            background: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        .tabs {
-            display: flex;
-            border-bottom: 2px solid #eee;
-            margin-bottom: 20px;
-        }
-        .tab {
-            padding: 10px 20px;
-            cursor: pointer;
-            border-bottom: 2px solid transparent;
-            margin-bottom: -2px;
-        }
-        .tab.active {
-            border-bottom-color: #1890ff;
-            color: #1890ff;
-        }
-        .tab-content {
-            display: none;
-        }
-        .tab-content.active {
-            display: block;
-        }
-        .form-group {
-            margin-bottom: 15px;
-        }
-        label {
-            display: block;
-            margin-bottom: 5px;
-            color: #666;
-        }
-        input, select {
-            width: 100%;
-            padding: 8px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            box-sizing: border-box;
-        }
-        button {
-            background-color: #1890ff;
-            color: white;
-            border: none;
-            padding: 8px 16px;
-            border-radius: 4px;
-            cursor: pointer;
-        }
-        button:hover {
-            background-color: #40a9ff;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 15px;
-        }
-        th, td {
-            padding: 12px;
-            text-align: left;
-            border-bottom: 1px solid #eee;
-        }
-        th {
-            background-color: #fafafa;
-            font-weight: 500;
-        }
-        .status-badge {
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-size: 12px;
-        }
-        .status-pending { background-color: #e6f7ff; color: #1890ff; }
-        .status-processing { background-color: #fff7e6; color: #fa8c16; }
-        .status-completed { background-color: #f6ffed; color: #52c41a; }
-        .status-failed { background-color: #fff1f0; color: #f5222d; }
-        .ellipsis {
-            max-width: 150px;
-            text-overflow: ellipsis;
-            display: block;
-        }
-        a:visited {
-            color: #1890ff; 
-        }
-        .delete-btn {
-            background-color: #fa8c16;
-        }
-    </style>
-    <style>
-        .loading {
-            opacity: 0.6;
-            cursor: not-allowed;
-        }
-        .loading::after {
-            content: '';
-            display: inline-block;
-            width: 8px;
-            height: 8px;
-            margin-left: 4px;
-            border: 2px solid #fff;
-            border-top-color: transparent;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-        }
+    <link rel="stylesheet" href="/css/base.css">
+    <link rel="stylesheet" href="/css/modal.css">
+    <link rel="stylesheet" href="/css/card-view.css">
+    <link rel="stylesheet" href="/css/components.css">
+    <link rel="stylesheet" href="/css/table-view.css">
+    <link rel="stylesheet" href="/css/table.css">
+    <link rel="stylesheet" href="/css/tabs.css">
 
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-        @keyframes dots {
-            0%, 20% { content: '.'; }
-            40% { content: '..'; }
-            60% { content: '...'; }
-            80%, 100% { content: ''; }
-        }
-        #folderModal {
-            z-index: 9999;
-        }
-
-        .modal-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 15px 20px;
-            border-bottom: 1px solid #eee;
-        }
-
-        .refresh-link {
-            color: #666;
-            text-decoration: none;
-            font-size: 14px;
-            display: flex;
-            align-items: center;
-            gap: 4px;
-            cursor: pointer;
-        }
-
-        .refresh-link:hover {
-            color: #1890ff;
-        }
-
-        .refresh-link.loading .refresh-icon {
-            display: inline-block;
-            animation: spin 1s linear infinite;
-        }
-
-        @keyframes spin {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
-        }
-    </style>
 </head>
 <body>
     <h1>天翼云盘自动转存系统</h1>
@@ -229,6 +78,12 @@
                 </div>
                 <button type="submit">创建任务</button>
             </form>
+            <div style="position: relative;">
+                <button class="view-toggle" onclick="toggleView()" title="切换视图">
+                    <svg viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/>
+                    </svg>
+                </button>
             <div class="table-container">
                 <table id="taskTable">
                     <thead>
@@ -246,227 +101,19 @@
                     <tbody></tbody>
                 </table>
             </div>
+            </div>
         </div>
     </div>
 
-    <script>
-        // 选项卡切换
-        document.querySelectorAll('.tab').forEach(tab => {
-            tab.addEventListener('click', () => {
-                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-                tab.classList.add('active');
-                document.getElementById(tab.dataset.tab + 'Tab').classList.add('active');
-            });
-        });
+<!-- 在 body 结束标签前添加以下脚本引用 -->
+<script src="/js/folderSelector.js"></script>
+<script src="/js/tabs.js"></script>
+<script src="/js/accounts.js"></script>
+<script src="/js/tasks.js"></script>
+<script src="/js/view-toggle.js"></script>
+<script src="/js/edit-task.js"></script>
+<script src="/js/main.js"></script>
 
-        // 获取所有账号
-        async function fetchAccounts() {
-            const response = await fetch('/api/accounts');
-            const data = await response.json();
-            if (data.success) {
-                const tbody = document.querySelector('#accountTable tbody');
-                const select = document.querySelector('#accountId');
-                tbody.innerHTML = '';
-                select.innerHTML = '';
-                
-                data.data.forEach(account => {
-                    tbody.innerHTML += `
-                        <tr>
-                            <td>${account.id}</td>
-                            <td>${account.username}</td>
-                            <td><button class="delete-btn" onclick="deleteAccount(${account.id})">删除</button></td>
-                        </tr>
-                    `;
-                    select.innerHTML += `
-                        <option value="${account.id}">${account.username}</option>
-                    `;
-                });
-            }
-        }
-
-        // 获取所有任务
-        async function fetchTasks() {
-            const response = await fetch('/api/tasks');
-            const data = await response.json();
-            if (data.success) {
-                const tbody = document.querySelector('#taskTable tbody');
-                tbody.innerHTML = '';
-                
-                data.data.forEach(task => {
-                    tbody.innerHTML += `
-                        <tr>
-                            <td>
-                                <button class="delete-btn" onclick="deleteTask(${task.id})">删除</button>
-                                <button onclick="executeTask(${task.id})">执行</button>
-                                <button onclick="showEditTaskModal(${task.id}, '${task.videoType}', '${task.realFolderId || ''}', ${task.currentEpisodes || 0}, ${task.totalEpisodes || 0}, '${task.status}','${task.shareLink}','${task.shareFolderId}','${task.shareFolderName}', '${task.resourceName}')">修改</button>
-                            </td>
-                            <td><a href="${task.shareLink}" target="_blank" class='ellipsis' title="${task.shareFolderName ? (task.resourceName + '/' + task.shareFolderName) : task.resourceName || '未知'}"">${task.shareFolderName?(task.resourceName + '/' + task.shareFolderName): task.resourceName || '未知'}</a></td>
-                            <td>${task.accountId}</td>
-                            <td>${task.videoType}</td>
-                            <td>${task.targetFolderId}</td>
-                            <td>${task.realFolderId || '未知'}</td>
-                            <td>${task.currentEpisodes || 0}/${task.totalEpisodes || '未知'}</td>
-                            <td><span class="status-badge status-${task.status}">${task.status}</span></td>
-                        </tr>
-                    `;
-                });
-            }
-        }
-
-        // 添加账号
-        document.getElementById('accountForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const username = document.getElementById('username').value;
-            const password = document.getElementById('password').value;
-
-            const response = await fetch('/api/accounts', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ username, password })
-            });
-
-            const data = await response.json();
-            if (data.success) {
-                alert('账号添加成功');
-                document.getElementById('accountForm').reset();
-                fetchAccounts();
-            } else {
-                alert('账号添加失败: ' + data.error);
-            }
-        });
-
-        // 创建任务
-        document.getElementById('taskForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const submitBtn = e.target.querySelector('button[type="submit"]');
-            submitBtn.classList.add('loading');
-            submitBtn.disabled = true;
-        
-            try {
-                const accountId = document.getElementById('accountId').value;
-                const shareLink = document.getElementById('shareLink').value;
-                const videoType = document.getElementById('videoType').value;
-                const totalEpisodes = document.getElementById('totalEpisodes').value;
-                const targetFolderId = document.getElementById('targetFolderId').value;
-        
-                const response = await fetch('/api/tasks', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ accountId, shareLink, videoType, totalEpisodes, targetFolderId })
-                });
-        
-                const data = await response.json();
-                if (data.success) {
-                    document.getElementById('taskForm').reset();
-                    // data.data为数据对象, 拿到所有的id
-                    const ids = data.data.map(item => item.id)
-                    // 并发执行所有的任务并等待所有的任务完成
-                    await Promise.all(ids.map(id => executeTask(id, false)))
-                    alert('任务执行完成')
-                    fetchTasks();
-                } else {
-                    alert('任务创建失败: ' + data.error);
-                }
-            } catch (error) {
-                alert('任务创建失败: ' + error.message);
-            } finally {
-                submitBtn.classList.remove('loading');
-                submitBtn.disabled = false;
-            }
-        });
-
-        // 删除账号
-        async function deleteAccount(id) {
-            if (!confirm('确定要删除这个账号吗？')) return;
-
-            const response = await fetch(`/api/accounts/${id}`, {
-                method: 'DELETE'
-            });
-
-            const data = await response.json();
-            if (data.success) {
-                alert('账号删除成功');
-                fetchAccounts();
-            } else {
-                alert('账号删除失败: ' + data.error);
-            }
-        }
-
-        // 删除任务
-        async function deleteTask(id) {
-            if (!confirm('确定要删除这个任务吗？')) return;
-
-            const response = await fetch(`/api/tasks/${id}`, {
-                method: 'DELETE'
-            });
-
-            const data = await response.json();
-            if (data.success) {
-                alert('任务删除成功');
-                fetchTasks();
-            } else {
-                alert('任务删除失败: ' + data.error);
-            }
-        }
-
-        // 立即执行任务
-        async function executeTask(id, refresh = true) {
-            const executeBtn = document.querySelector(`button[onclick="executeTask(${id})"]`);
-            if (executeBtn) {
-                executeBtn.classList.add('loading');
-                executeBtn.disabled = true;
-            }
-            try {
-                const response = await fetch(`/api/tasks/${id}/execute`, {
-                    method: 'POST'
-                });
-                if (response.ok) {
-                    refresh && alert('任务执行完成');
-                    refresh && fetchTasks();
-                } else {
-                    alert('任务执行失败');
-                }
-            } catch (error) {
-                alert('任务执行失败: ' + error.message);
-            } finally {
-                if (executeBtn) {
-                    executeBtn.classList.remove('loading');
-                    executeBtn.disabled = false;
-                }
-            }
-        }
-
-        // 定时刷新数据
-        fetchAccounts();
-        fetchTasks();
-        setInterval(() => {
-            fetchAccounts();
-            fetchTasks();
-        }, 30000); // 每30秒刷新一次
-    </script>
-
-<script src="/folderSelector.js"></script>
-<script>
-    // 初始化目录选择器
-    const folderSelector = new FolderSelector({
-        onSelect: ({ id, name }) => {
-            document.getElementById('targetFolder').value = name;
-            document.getElementById('targetFolderId').value = id;
-        }
-    });
-
-    // 修改目录选择触发方式
-    document.getElementById('targetFolder').addEventListener('click', (e) => {
-        e.preventDefault();
-        const accountId = document.getElementById('accountId').value;
-        if (!accountId) {
-            alert('请先选择账号');
-            return;
-        }
-        folderSelector.show(accountId);
-    });
-</script>
 </body>
 </html>
 
@@ -500,7 +147,11 @@
             </div>
             <div class="form-group">
                 <label for="editRealFolderId">更新目录</label>
-                <input type="text" id="editRealFolderId">
+                <div class="tree-select">
+                    <input type="text" id="editRealFolder" readonly required>
+                    <input type="hidden" id="editRealFolderId" required>
+                    <div class="tree-select-dropdown"></div>
+                </div>
             </div>
             <div class="form-group">
                 <label for="editCurrentEpisodes">更新数</label>
@@ -527,88 +178,3 @@
         </form>
     </div>
 </div>
-
-<script>
-let shareFolderSelector = new FolderSelector({
-    apiUrl: "/api/share/folders",
-    onSelect: ({ id, name }) => {
-        document.getElementById('shareFolder').value = name;
-        document.getElementById('shareFolderId').value = id;
-    },
-    buildParams: (accountId, folderId) => {
-        const taskId = document.getElementById('editTaskId').value;
-        return `${accountId}?folderId=${folderId}&taskId=${taskId}`;
-    }
-});
-
-// 修改目录选择触发方式
-document.getElementById('shareFolder').addEventListener('click', (e) => {
-    e.preventDefault();
-    const accountId = document.getElementById('accountId').value;
-    if (!accountId) {
-        alert('请先选择账号');
-        return;
-    }
-    shareFolderSelector.show(accountId);
-});
-
-// 显示修改任务弹窗
-function showEditTaskModal(id, videoType, realFolderId, currentEpisodes, totalEpisodes, status, shareLink, shareFolderId, shareFolderName, resourceName) {
-    document.getElementById('editTaskId').value = id;
-    document.getElementById('editResourceName').value = resourceName;
-    document.getElementById('editVideoType').value = videoType;
-    document.getElementById('editRealFolderId').value = realFolderId;
-    document.getElementById('editCurrentEpisodes').value = currentEpisodes;
-    document.getElementById('editTotalEpisodes').value = totalEpisodes;
-    document.getElementById('editStatus').value = status;
-    document.getElementById('shareLink').value = shareLink;
-    document.getElementById('shareFolder').value = shareFolderName;
-    document.getElementById('shareFolderId').value = shareFolderId;
-    document.getElementById('editTaskModal').style.display = 'block';
-}
-
-// 关闭修改任务弹窗
-function closeEditTaskModal() {
-    document.getElementById('editTaskModal').style.display = 'none';
-}
-// 提交修改任务表单
-document.getElementById('editTaskForm').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const id = document.getElementById('editTaskId').value;
-    const resourceName = document.getElementById('editResourceName').value;
-    const videoType = document.getElementById('editVideoType').value;
-    const realFolderId = document.getElementById('editRealFolderId').value;
-    const currentEpisodes = document.getElementById('editCurrentEpisodes').value;
-    const totalEpisodes = document.getElementById('editTotalEpisodes').value;
-    const shareFolderName = document.getElementById('shareFolder').value;
-    const shareFolderId = document.getElementById('shareFolderId').value;
-    const status = document.getElementById('editStatus').value;
-
-    try {
-        const response = await fetch(`/api/tasks/${id}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                resourceName,
-                videoType,
-                realFolderId,
-                currentEpisodes: parseInt(currentEpisodes),
-                totalEpisodes: parseInt(totalEpisodes),
-                status,
-                shareFolderName,
-                shareFolderId
-            })
-        });
-
-        if (response.ok) {
-            closeEditTaskModal();
-            await fetchTasks();
-        } else {
-            const error = await response.json();
-            alert(error.message || '修改任务失败');
-        }
-    } catch (error) {
-        alert('修改任务失败：' + error.message);
-    }
-});
-</script>
