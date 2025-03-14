@@ -6,7 +6,7 @@ class MessageUtil {
         messageManager.initialize({
             wework: {
                 enabled: process.env.WECOM_ENABLED === 'true',
-                webhook: process.env.WECOM_WEBHOOK || webhook
+                webhook: process.env.WECOM_WEBHOOK
             },
             telegram: {
                 enabled: process.env.TELEGRAM_ENABLED === 'true',
