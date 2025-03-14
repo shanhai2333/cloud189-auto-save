@@ -4,8 +4,8 @@ FROM node:16.19.0-slim
 # 设置工作目录
 WORKDIR /home
 
-# 复制package.json和yarn.lock
-COPY package.json yarn.lock tsconfig.json ./
+# 复制源代码
+COPY . .
 
 # 更换为国内镜像源
 RUN sed -i 's/deb.debian.org/mirrors.aliyun.com/g' /etc/apt/sources.list && \
@@ -18,9 +18,6 @@ RUN apt-get update && \
 
 # 安装依赖
 RUN yarn install
-
-# 复制源代码
-COPY src ./src
 
 # 创建数据目录
 RUN mkdir -p /home/data
