@@ -6,7 +6,7 @@ const { AppDataSource } = require('./database');
 const { Account, Task } = require('./entities');
 const { TaskService } = require('./services/task');
 const { Cloud189Service } = require('./services/cloud189');
-const { WeworkService } = require('./services/wework');
+const { MessageUtil } = require('./services/message');
 const { CacheManager } = require('./services/CacheManager')
 
 const app = express();
@@ -26,7 +26,7 @@ AppDataSource.initialize().then(() => {
     const accountRepo = AppDataSource.getRepository(Account);
     const taskRepo = AppDataSource.getRepository(Task);
     const taskService = new TaskService(taskRepo, accountRepo);
-    const webhook = new WeworkService(process.env.WECOM_WEBHOOK);
+    const messageUtil = new MessageUtil();
     // 初始化缓存管理器
     const folderCache = new CacheManager(parseInt(process.env.FOLDER_CACHE_TTL || 600));
 
@@ -103,7 +103,7 @@ AppDataSource.initialize().then(() => {
             if (!task) throw new Error('任务不存在');
             const result = await taskService.processTask(task);
             if (result) {
-                webhook.sendMessage(result)
+                messageUtil.sendMessage(result)
             }
             res.json({ success: true, data: result });
         } catch (error) {
@@ -195,7 +195,7 @@ AppDataSource.initialize().then(() => {
             }
         }
         if (saveResults.length > 0) {
-            webhook.sendMessage(saveResults.join("\n"))
+            messageUtil.sendMessage(saveResults.join("\n"))
         }
     });
 

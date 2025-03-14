@@ -203,7 +203,7 @@ class TaskService {
                         fileName: file.name,
                         isFolder: 0
                     });
-                    fileNameList.push(file.name);
+                    fileNameList.push(` > <font color="warning">${file.name}</font>`);
                 }
                 await cloud189.createSaveTask(
                     JSON.stringify(taskInfoList),
@@ -211,7 +211,7 @@ class TaskService {
                     task.shareId
                 );
                 const resourceName = task.shareFolderName? `${task.resourceName}/${task.shareFolderName}` : task.resourceName;
-                saveResults.push(`${resourceName}更新${taskInfoList.length}集: > \n <font color="warning">${fileNameList.join('\n')}</font>`);
+                saveResults.push(`${resourceName}更新${taskInfoList.length}集: \n ${fileNameList.join('\n')}`);
                 task.status = 'processing';
                 task.lastFileUpdateTime = new Date();
                 task.currentEpisodes = existingFiles.size + newFiles.length;

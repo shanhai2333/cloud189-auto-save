@@ -21,10 +21,12 @@
 AUTH_USERNAME=admin    # 网页登录用户名
 AUTH_PASSWORD=password # 网页登录密码
 
-# 企业微信推送配置（可选）
+# 企业微信推送配置
+WECOM_ENABLED=true
 WECOM_WEBHOOK=your_webhook_url
 
-# Telegram 推送配置（可选）
+# Telegram 推送配置
+TELEGRAM_ENABLED=true
 TELEGRAM_BOT_TOKEN=your_bot_token
 TELEGRAM_CHAT_ID=your_chat_id
 
@@ -36,8 +38,26 @@ PROXY_PORT=
 PROXY_USERNAME=
 PROXY_PASSWORD=
 
+# WxPusher配置
+# 是否启用
+WXPUSHER_ENABLED=false
+WXPUSHER_SPT=
+
 # 任务检查间隔（Cron 表达式）
 TASK_CHECK_INTERVAL=*/30 * * * *
+```
+
+## 源码部署
+```bash
+移动database.sqlite到配置文件 DB_PATH 的目录
+重命名 .env.example为.env
+
+# 安装依赖
+yarn install
+
+# 启动
+yarn start
+
 ```
 
 ## Docker 部署
