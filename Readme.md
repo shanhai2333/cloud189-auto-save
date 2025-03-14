@@ -40,8 +40,32 @@ PROXY_PASSWORD=
 TASK_CHECK_INTERVAL=*/30 * * * *
 ```
 
-### Docker 部署
+## Docker 部署
 
+### 直接使用镜像
+
+最简单的方式（不需要持久化数据和自定义配置）：
+```bash
+docker run -d \
+  -p 3000:3000 \
+  --restart unless-stopped \
+  --name cloud189 \
+  xia1307/cloud189-auto-save
+```
+
+需要持久化数据和自定义配置(推荐)：
+```bash
+docker run -d \
+  -v /yourpath/database.sqlite:/home/data/database.sqlite \
+  -v /yourpath/.env:/home/.env \
+  -p 3000:3000 \
+  --restart unless-stopped \
+  --name cloud189 \
+  xia1307/cloud189-auto-save
+  ```
+注意: 镜像构建不那么及时, 最好自行构建, 或者下载源码, 将源码的src目录挂载到/home/src
+
+### 自行构建
 1. 构建镜像
 ```bash
 docker build -t cloud189_auto_save .
