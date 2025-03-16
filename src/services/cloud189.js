@@ -1,5 +1,5 @@
 const { CloudClient, FileTokenStore } = require('cloud189-sdk');
-
+const crypto = require('crypto');
 class Cloud189Service {
     static instances = new Map();
 
@@ -32,7 +32,7 @@ class Cloud189Service {
     }
 
     // 获取分享目录下的文件列表
-    async listShareDir(shareId, fileId, shareMode) {
+    async listShareDir(shareId, fileId, shareMode, accessCode) {
         const response = await this.client.request.get('https://cloud.189.cn/api/open/share/listShareDir.action', {
             searchParams: {
                 shareId,
@@ -42,7 +42,8 @@ class Cloud189Service {
                 descending: true,
                 shareMode: shareMode,
                 pageNum: 1,
-                pageSize: 1000
+                pageSize: 1000,
+                accessCode
             },
             headers: {
                 'Accept': 'application/json;charset=UTF-8'
@@ -52,8 +53,8 @@ class Cloud189Service {
     }
 
     // 递归获取所有文件列表
-    async getAllShareFiles(shareId, fileId, shareMode) {
-        const result = await this.listShareDir(shareId, fileId, shareMode);
+    async getAllShareFiles(shareId, fileId, shareMode, accessCode) {
+        const result = await this.listShareDir(shareId, fileId, shareMode, accessCode);
         if (!result || (!result.fileListAO.folderList && !result.fileListAO.fileList)) {
             return [];
         }
@@ -62,7 +63,7 @@ class Cloud189Service {
 
         // 递归获取子文件夹中的文件
         for (const floder of result.fileListAO.folderList) {
-            const subFiles = await this.getAllShareFiles(shareId, floder.id, shareMode);
+            const subFiles = await this.getAllShareFiles(shareId, floder.id, shareMode, accessCode);
                 allFiles = allFiles.concat(subFiles);
         }
 
@@ -172,7 +173,45 @@ class Cloud189Service {
         return response;
     }
 
-    
+     // 验证分享链接访问码
+     async checkAccessCode(shareCode, accessCode) {
+        const response = await this.client.request.get('https://cloud.189.cn/api/open/share/checkAccessCode.action', {
+            searchParams: {
+                shareCode,
+                accessCode,
+                uuid: crypto.randomUUID()
+            },
+            headers: {
+                'Accept': 'application/json;charset=UTF-8'
+            }
+        }).json();
+        return response;
+    }
+
+    // 重命名文件
+    async renameFile(fileId, destFileName) {
+        try{
+            const response = await this.client.request('https://cloud.189.cn/api/open/file/renameFile.action', {
+                method: 'POST',
+                form: {
+                    fileId,
+                    destFileName
+                },
+                headers: {
+                    'Accept': 'application/json;charset=UTF-8'
+                }
+            }).json();
+            return response;
+        }catch(e){
+            if (JSON.parse(e.response.body).res_code == "FileAlreadyExists") {
+                return {
+                    res_code: "FileAlreadyExists",
+                    res_msg: "文件已存在"
+                }
+            }
+            throw e;
+        }
+    }
 }
 
 module.exports = { Cloud189Service };

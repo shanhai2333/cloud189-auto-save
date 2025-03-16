@@ -211,3 +211,85 @@
 .modal-btn-default:hover {
     background-color: #e8e8e8;
 }
+
+
+.preview-container {
+    max-height: 400px;
+    overflow-y: auto;
+    margin: 20px 0;
+}
+
+.rename-options {
+    display: flex;
+    gap: 10px;
+    margin: 20px 0;
+}
+
+/* .form-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+    margin-top: 20px;
+} */
+
+.batch-rename-btn {
+    margin-bottom: 10px;
+}
+.rename-type-selector {
+    display: flex;
+    gap: 32px;
+    margin-bottom: 20px;
+}
+
+.radio-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.radio-label input[type="radio"] {
+    width: auto;
+    order: -1;
+}
+.form-input {
+    border: 1px solid #d9d9d9;
+    border-radius: 4px;
+    padding: 8px 12px;
+    width: 100%;
+    font-size: 14px;
+}
+
+.form-input:focus {
+    border-color: #1890ff;
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
+}
+
+.btn-default {
+    background: #fff;
+    border: 1px solid #d9d9d9;
+    color: rgba(0, 0, 0, 0.85);
+}
+
+.btn-primary {
+    background: #1890ff;
+    border: 1px solid #1890ff;
+    color: #fff;
+}
+
+.btn-default, .btn-primary {
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-left: 8px;
+}
+
+.btn-default:hover {
+    border-color: #40a9ff;
+    color: #40a9ff;
+}
+
+.btn-primary:hover {
+    background: #40a9ff;
+    border-color: #40a9ff;
+}

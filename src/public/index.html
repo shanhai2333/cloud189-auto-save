@@ -54,7 +54,10 @@
                 </div>
                 <div class="form-group">
                     <label for="shareLink">分享链接</label>
-                    <input type="text" id="shareLink" required>
+                    <div style="display: flex; gap: 10px;">
+                        <input type="text" id="shareLink" required style="flex: 2;">
+                        <input type="text" id="accessCode" placeholder="访问码（可选）" style="flex: 1;">
+                    </div>
                 </div>
                 <div class="form-group">
                     <label for="videoType">视频类型</label>
@@ -161,7 +164,6 @@
                 <label for="editTotalEpisodes">总数</label>
                 <input type="number" id="editTotalEpisodes" min="0">
             </div>
-            <input type="hidden" name="shareLink" id="shareLink">
             <div class="form-group">
                 <label for="editStatus">状态</label>
                 <select id="editStatus" required>

@@ -88,6 +88,9 @@ export class Task {
 
     @UpdateDateColumn()
     updatedAt!: Date;
+
+    @Column('text', { nullable: true })
+    accessCode!: string;
 }
 
 export default { Account, Task };

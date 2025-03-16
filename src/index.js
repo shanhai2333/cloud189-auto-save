@@ -68,8 +68,8 @@ AppDataSource.initialize().then(() => {
 
     app.post('/api/tasks', async (req, res) => {
         try {
-            const { accountId, shareLink, targetFolderId, videoType, totalEpisodes } = req.body;
-            const task = await taskService.createTask(accountId, shareLink, targetFolderId, videoType, totalEpisodes);
+            const { accountId, shareLink, targetFolderId, videoType, totalEpisodes, accessCode } = req.body;
+            const task = await taskService.createTask(accountId, shareLink, targetFolderId, videoType, totalEpisodes, accessCode);
             res.json({ success: true, data: task });
         } catch (error) {
             res.json({ success: false, error: error.message });
@@ -177,6 +177,37 @@ AppDataSource.initialize().then(() => {
         } catch (error) {
             res.status(500).json({ success: false, error: error.message });
         }
+    });
+
+     // 获取目录下的文件
+     app.get('/api/folder/files', async (req, res) => {
+        const { accountId, folderId } = req.query;
+        const account = await accountRepo.findOneBy({ id: accountId });
+        if (!account) {
+            throw new Error('账号不存在');
+        }
+        const cloud189 = Cloud189Service.getInstance(account);
+        const fileList =  await taskService.getAllFolderFiles(cloud189, folderId);
+        res.json({ success: true, data: fileList });
+    });
+    app.post('/api/files/rename', async (req, res) => {
+        const {accountId, files} = req.body;
+        if (files.length == 0) {
+            throw new Error('未获取到需要修改的文件');
+        }
+        const account = await accountRepo.findOneBy({ id: accountId });
+        if (!account) {
+            throw new Error('账号不存在');
+        }
+        const cloud189 = Cloud189Service.getInstance(account);
+        const result = []
+        for (const file of files) {
+            const renameResult = await cloud189.renameFile(file.fileId, file.destFileName);
+            if (renameResult.res_code != 0) {
+                result.push(`文件${file.destFileName} ${renameResult.res_msg}`)
+            }
+        }
+        res.json({ success: true, data: result });
     });
 
     // 启动定时任务

@@ -7,21 +7,25 @@ class TaskService {
         this.taskLogRepo = taskLogRepo;
     }
 
+    // 解析分享码
+    async parseShareCode(shareLink) {
+        // 解析分享链接
+        let shareCode;
+        const shareUrl = new URL(shareLink);
+        if (shareUrl.pathname === '/web/share') {
+            shareCode = shareUrl.searchParams.get('code');
+        } else if (shareUrl.pathname.startsWith('/t/')) {
+            shareCode = shareUrl.pathname.split('/').pop();
+        }
+        
+        if (!shareCode) throw new Error('无效的分享链接');
+        return shareCode
+    }
+
     // 解析分享链接
-    async parseShareLink(cloud189, shareLink) {
-         // 解析分享链接
-         let shareCode;
-         const shareUrl = new URL(shareLink);
-         if (shareUrl.pathname === '/web/share') {
-             shareCode = shareUrl.searchParams.get('code');
-         } else if (shareUrl.pathname.startsWith('/t/')) {
-             shareCode = shareUrl.pathname.split('/').pop();
-         }
-         
-         if (!shareCode) throw new Error('无效的分享链接');
-         
+    async getShareInfo(cloud189, shareCode) {
          const shareInfo = await cloud189.getShareInfo(shareCode);
-         if (!shareInfo || !shareInfo.shareId) throw new Error('获取分享信息失败');
+         if (!shareInfo) throw new Error('获取分享信息失败');
          return shareInfo;
     }
 
@@ -42,7 +46,8 @@ class TaskService {
             shareFolderId: shareFolderId || shareInfo.fileId,
             shareFolderName,
             shareId: shareInfo.shareId,
-            shareMode: shareInfo.shareMode
+            shareMode: shareInfo.shareMode,
+            accessCode: shareInfo.userAccessCode
         };
     }
 
@@ -61,7 +66,7 @@ class TaskService {
 
     // 处理文件夹分享
     async _handleFolderShare(cloud189, shareInfo, accountId, shareLink, targetFolderId, videoType, totalEpisodes, rootFolder, tasks) {
-        const result = await cloud189.listShareDir(shareInfo.shareId, shareInfo.fileId, shareInfo.shareMode);
+        const result = await cloud189.listShareDir(shareInfo.shareId, shareInfo.fileId, shareInfo.shareMode, shareInfo.userAccessCode);
         if (!result?.fileListAO) return;
 
         const { fileList: rootFiles = [], folderList: subFolders = [] } = result.fileListAO;
@@ -94,7 +99,7 @@ class TaskService {
 
     // 处理单文件分享
     async _handleSingleShare(cloud189, shareInfo, accountId, shareLink, targetFolderId, videoType, totalEpisodes, rootFolderId, tasks) {
-        const shareFiles = await cloud189.getAllShareFiles(shareInfo.shareId, shareInfo.fileId, shareInfo.shareMode);
+        const shareFiles = await cloud189.getAllShareFiles(shareInfo.shareId, shareInfo.fileId, shareInfo.shareMode, shareInfo.userAccessCode);
         if (!shareFiles?.length) throw new Error('获取文件列表失败');
 
         const task = this.taskRepo.create(
@@ -107,18 +112,34 @@ class TaskService {
     }
 
     // 创建新任务
-    async createTask(accountId, shareLink, targetFolderId, videoType, totalEpisodes = null) {
+    async createTask(accountId, shareLink, targetFolderId, videoType, totalEpisodes = null, accessCode = null) {
         // 获取分享信息
         const account = await this.accountRepo.findOneBy({ id: accountId });
         if (!account) throw new Error('账号不存在');
         
         const cloud189 = Cloud189Service.getInstance(account);
-        const shareInfo = await this.parseShareLink(cloud189, shareLink);
-        
+        const shareCode = await this.parseShareCode(shareLink);
+        const shareInfo = await this.getShareInfo(cloud189, shareCode);
+        // 如果分享链接是加密链接, 且没有提供访问码, 则抛出错误
+        if (shareInfo.needAccessCode == 1 ) {
+            if (!accessCode) {
+                throw new Error('分享链接为加密链接, 请提供访问码');
+            }
+            // 校验访问码是否有效
+            const accessCodeResponse = await cloud189.checkAccessCode(shareCode, accessCode);
+            console.log(accessCodeResponse)
+            if (!accessCodeResponse.shareId) {
+                throw new Error('访问码无效');
+            }
+            shareInfo.shareId = accessCodeResponse.shareId;
+        }
+        if (!shareInfo.shareId) {
+            throw new Error('获取分享信息失败');
+        }
         // 检查并创建目标目录
         const rootFolder = await this._validateAndCreateTargetFolder(cloud189, targetFolderId, shareInfo);
         const tasks = [];
-        
+        shareInfo.userAccessCode = accessCode;
         if (shareInfo.isFolder) {
             await this._handleFolderShare(cloud189, shareInfo, accountId, shareLink, targetFolderId, videoType, totalEpisodes, rootFolder, tasks);
         }
@@ -177,7 +198,7 @@ class TaskService {
             }
             const cloud189 = Cloud189Service.getInstance(account);
              // 获取分享文件列表并进行增量转存
-             const shareDir = await cloud189.listShareDir(task.shareId, task.shareFolderId, task.shareMode);
+             const shareDir = await cloud189.listShareDir(task.shareId, task.shareFolderId, task.shareMode,task.accessCode);
              if (!shareDir || !shareDir.fileListAO.fileList) {
                 console.log("获取文件列表失败: " + JSON.stringify(shareDir))
                  throw new Error('获取文件列表失败');
