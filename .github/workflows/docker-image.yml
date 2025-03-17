@@ -29,7 +29,6 @@ jobs:
       - name: Create data directory and move files
         run: |
           mkdir -p data
-          mv database.sqlite data/
           mv .env.example .env
 
       - name: Build and push Docker images

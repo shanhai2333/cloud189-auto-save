@@ -76,7 +76,7 @@ docker run -d \
 需要持久化数据和自定义配置(推荐)：
 ```bash
 docker run -d \
-  -v /yourpath/database.sqlite:/home/data/database.sqlite \
+  -v /yourpath/data:/home/data \
   -v /yourpath/.env:/home/.env \
   -p 3000:3000 \
   --restart unless-stopped \
@@ -94,7 +94,7 @@ docker build -t cloud189_auto_save .
 2. 运行容器
 ```bash
 docker run -d \
-  -v /host/path/database.sqlite:/home/data/database.sqlite \
+  -v /yourpath/data:/home/data \
   -v /host/path/.env:/home/.env \
   -p 3000:3000 \
   --restart unless-stopped \
