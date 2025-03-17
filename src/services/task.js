@@ -121,7 +121,7 @@ class TaskService {
         const shareCode = await this.parseShareCode(shareLink);
         const shareInfo = await this.getShareInfo(cloud189, shareCode);
         // 如果分享链接是加密链接, 且没有提供访问码, 则抛出错误
-        if (shareInfo.needAccessCode == 1 ) {
+        if (shareInfo.shareMode == 1 ) {
             if (!accessCode) {
                 throw new Error('分享链接为加密链接, 请提供访问码');
             }
