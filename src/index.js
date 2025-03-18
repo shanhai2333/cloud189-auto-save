@@ -191,13 +191,17 @@ AppDataSource.initialize().then(() => {
         res.json({ success: true, data: fileList });
     });
     app.post('/api/files/rename', async (req, res) => {
-        const {accountId, files} = req.body;
+        const {taskId, accountId, files, sourceRegex, targetRegex } = req.body;
         if (files.length == 0) {
             throw new Error('未获取到需要修改的文件');
         }
         const account = await accountRepo.findOneBy({ id: accountId });
         if (!account) {
             throw new Error('账号不存在');
+        }
+        const task = await taskRepo.findOneBy({ id: taskId });
+        if (!task) {
+            throw new Error('任务不存在');
         }
         const cloud189 = Cloud189Service.getInstance(account);
         const result = []
@@ -206,6 +210,11 @@ AppDataSource.initialize().then(() => {
             if (renameResult.res_code != 0) {
                 result.push(`文件${file.destFileName} ${renameResult.res_msg}`)
             }
+        }
+        if (sourceRegex && targetRegex) {
+            task.sourceRegex = sourceRegex
+            task.targetRegex = targetRegex
+            taskRepo.save(task)
         }
         res.json({ success: true, data: result });
     });

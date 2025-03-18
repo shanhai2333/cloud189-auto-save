@@ -34,19 +34,25 @@ function createProgressRing(current, total) {
     `;
 }
 
+var taskList = []
+// 从taskList中获取任务
+function getTaskById(id) {
+    return taskList.find(task => task.id == id);
+}
 async function fetchTasks() {
+    taskList = []
     const response = await fetch('/api/tasks');
     const data = await response.json();
     if (data.success) {
         const tbody = document.querySelector('#taskTable tbody');
         tbody.innerHTML = '';
-        
         data.data.forEach(task => {
+            taskList.push(task)
             const progressRing = task.totalEpisodes ? createProgressRing(task.currentEpisodes || 0, task.totalEpisodes) : '';
             tbody.innerHTML += `
                 <tr>
                     <td data-label="操作">
-                        <button class="delete-btn" onclick="deleteTask(${task.id})">删除</button>
+                        <button class="btn-warning" onclick="deleteTask(${task.id})">删除</button>
                         <button onclick="executeTask(${task.id})">执行</button>
                         <button onclick="showEditTaskModal(${task.id}, '${task.videoType}', '${task.realFolderId || ''}', ${task.currentEpisodes || 0}, ${task.totalEpisodes || 0}, '${task.status}','${task.shareLink}','${task.shareFolderId}','${task.shareFolderName}', '${task.resourceName}', '${task.realFolderName}')">修改</button>
                     </td>
@@ -54,7 +60,7 @@ async function fetchTasks() {
                     <td data-label="账号ID">${task.accountId}</td>
                     <td data-label="视频类型">${task.videoType}</td>
                     <td data-label="首次保存目录"><a href="https://cloud.189.cn/web/main/file/folder/${task.targetFolderId}" target="_blank">${task.targetFolderId}</a></td>
-                     <td data-label="更新目录"><a href="javascript:void(0)" onclick="showFileListModal('${task.accountId}', '${task.realFolderId}')" class='ellipsis'>${task.realFolderName || task.realFolderId}</a></td>
+                     <td data-label="更新目录"><a href="javascript:void(0)" onclick="showFileListModal('${task.id}')" class='ellipsis'>${task.realFolderName || task.realFolderId}</a></td>
                     <td data-label="更新数/总数">${task.currentEpisodes || 0}/${task.totalEpisodes || '未知'}${progressRing}</td>
                     <td data-label="状态"><span class="status-badge status-${task.status}">${task.status}</span></td>
                 </tr>
@@ -149,9 +155,12 @@ function initTaskForm() {
 }
 
 
-
+var chooseTask = undefined
 // 文件列表弹窗
-async function showFileListModal(accountId, folderId) {
+async function showFileListModal(taskId) {
+    chooseTask = getTaskById(taskId);
+    const accountId = chooseTask.accountId;
+    const folderId = chooseTask.realFolderId;
     // 创建弹窗
     const modal = document.createElement('div');
     modal.className = 'modal files-list-modal'; 
@@ -175,8 +184,6 @@ async function showFileListModal(accountId, folderId) {
             <div class="modal-footer">
                 <button onclick="closeFileListModal()">关闭</button>
             </div>
-            <input type="hidden" id="fileList-accountId" value="${accountId}">
-            <input type="hidden" id="fileList-folderId" value="${folderId}">
         </div>
     `;
     document.body.appendChild(modal);
@@ -204,6 +211,8 @@ async function showFileListModal(accountId, folderId) {
 }
 // 显示批量重命名选项
 function showBatchRenameOptions() {
+    const sourceRegex = escapeHtmlAttr(chooseTask.sourceRegex)?? ''
+    const targetRegex = escapeHtmlAttr(chooseTask.targetRegex)?? ''
     const selectedFiles = Array.from(document.querySelectorAll('.file-checkbox:checked')).map(cb => cb.dataset.filename);
     if (selectedFiles.length === 0) {
         alert('请选择要重命名的文件');
@@ -230,10 +239,10 @@ function showBatchRenameOptions() {
             </div>
             <div id="regexInputs" class="rename-inputs">
                 <div class="form-group">
-                    <input type="text" id="sourceRegex" class="form-input" placeholder="源文件名正则表达式">
+                    <input type="text" id="sourceRegex" class="form-input" placeholder="源文件名正则表达式" value="${sourceRegex}">
                 </div>
                 <div class="form-group">
-                    <input type="text" id="targetRegex" class="form-input" placeholder="新文件名正则表达式">
+                    <input type="text" id="targetRegex" class="form-input" placeholder="新文件名正则表达式" value="${targetRegex}">
                 </div>
             </div>
             <div id="sequentialInputs" class="rename-inputs" style="display: none;">
@@ -245,8 +254,9 @@ function showBatchRenameOptions() {
                 </div>
             </div>
             <div class="form-actions">
+                <button class="saveAndAutoUpdate btn-warning" onclick="previewRename(true)">确定并自动更新</button>
                 <button class="btn-default" onclick="closeRenameOptionsModal()">取消</button>
-                <button class="btn-primary" onclick="previewRename()">确定</button>
+                <button class="btn-primary" onclick="previewRename(false)">确定</button>
             </div>
         </div>
     `;
@@ -262,10 +272,12 @@ function showBatchRenameOptions() {
 
     radioButtons.forEach(radio => {
         radio.addEventListener('change', (e) => {
+            modal.querySelector('.saveAndAutoUpdate').style.display = 'none';
             if (e.target.value === 'regex') {
-                description.textContent = '正则表达式文件重命名。 在第一行输入源文件名正则表达式，并在第二行输入新文件名正则表达式。';
+                description.textContent = '正则表达式文件重命名。 在第一行输入源文件名正则表达式，并在第二行输入新文件名正则表达式。如果新旧名称相同, 则跳过该文件。';
                 regexInputs.style.display = 'block';
                 sequentialInputs.style.display = 'none';
+                modal.querySelector('.saveAndAutoUpdate').style.display = 'block';
             } else {
                 description.textContent = '新文件名将有一个数值起始值附加到它， 并且它将通过向起始值添加 1 来按顺序显示。 在第一行输入新的文件名，并在第二行输入起始值。';
                 regexInputs.style.display = 'none';
@@ -276,14 +288,14 @@ function showBatchRenameOptions() {
 }
 
 // 预览重命名
-async function previewRename() {
+async function previewRename(autoUpdate = false) {
     const selectedFiles = Array.from(document.querySelectorAll('.file-checkbox:checked')).map(cb => cb.dataset.filename);
     const renameType = document.querySelector('input[name="renameType"]:checked').value;
     let newNames = [];
 
     if (renameType === 'regex') {
-        const sourceRegex = document.getElementById('sourceRegex').value;
-        const targetRegex = document.getElementById('targetRegex').value;
+        const sourceRegex = escapeRegExp(document.getElementById('sourceRegex').value);
+        const targetRegex = escapeRegExp(document.getElementById('targetRegex').value);
         newNames = selectedFiles
             .map(filename => {
                 const checkbox = document.querySelector(`.file-checkbox[data-filename="${filename}"]`);
@@ -315,12 +327,12 @@ async function previewRename() {
                 destFileName: `${nameFormat}${num}.${ext}`
             };
         });
+        autoUpdate = false
     }
-
-    showRenamePreview(newNames);
+    showRenamePreview(newNames, autoUpdate);
 }
 
-function showRenamePreview(newNames) {
+function showRenamePreview(newNames, autoUpdate) {
     const modal = document.createElement('div');
     modal.className = 'modal preview-rename-modal';
     modal.innerHTML = `
@@ -345,7 +357,7 @@ function showRenamePreview(newNames) {
                 </table>
             </div>
             <div class="form-actions">
-                <button onclick="submitRename()">确定</button>
+                <button onclick="submitRename(${autoUpdate})">确定</button>
                 <button onclick="backToRenameOptions()">返回</button>
                 <button onclick="closeRenamePreviewModal()">取消</button>
             </div>
@@ -359,18 +371,29 @@ function backToRenameOptions() {
     closeRenamePreviewModal();
 }
 
-async function submitRename() {
+async function submitRename(autoUpdate) {
     const files = Array.from(document.querySelectorAll('.preview-rename-modal tr[data-file-id]')).map(row => ({
         fileId: row.dataset.fileId,
         destFileName: row.querySelector('td:last-child').textContent
     }));
-    const accountId = document.getElementById('fileList-accountId').value;
-    const folderId = document.getElementById('fileList-folderId').value;
+    if (files.length == 0) {
+        alert('没有需要重命名的文件');
+        return
+    }
+    if (autoUpdate) {
+        if (!confirm('当前选择的是自动更新, 请确认正则表达式是否正确, 否则后续的文件可能无法正确重命名')){
+            return;
+        }
+    }
+    const accountId = chooseTask.accountId;
+    const taskId = chooseTask.id;
+    const sourceRegex = autoUpdate ? escapeRegExp(document.getElementById('sourceRegex').value): null;
+    const targetRegex = autoUpdate ? escapeRegExp(document.getElementById('targetRegex').value): null;
     try {
         const response = await fetch('/api/files/rename', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ accountId, files })
+            body: JSON.stringify({ taskId, accountId, files, sourceRegex, targetRegex })
         });
         const data = await response.json();
         if (data.success) {
@@ -382,8 +405,10 @@ async function submitRename() {
             closeRenamePreviewModal();
             closeRenameOptionsModal();
             closeFileListModal()
+            chooseTask.sourceRegex = sourceRegex;
+            chooseTask.targetRegex = targetRegex;
             // 刷新文件列表
-            showFileListModal(accountId, folderId);
+            showFileListModal(taskId);
         } else {
             alert('重命名失败: ' + data.error);
         }
@@ -425,4 +450,20 @@ function closeRenameModal() {
 function closeRenamePreviewModal() {
     const modal = document.querySelector('.preview-rename-modal');
     modal?.remove();
+}
+
+// 处理反斜杠
+function escapeRegExp(regexStr) {
+    return regexStr?regexStr.replace(/\\\\/g, '\\'):'';
+}
+
+// 转义HTML属性中的特殊字符
+function escapeHtmlAttr(str) {
+    if (!str) return '';
+    return str
+        .replace(/\\/g, '\\\\')
+        .replace(/'/g, "\\'")
+        .replace(/"/g, '\\"')
+        .replace(/\n/g, '\\n')
+        .replace(/\r/g, '\\r');
 }

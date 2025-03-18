@@ -91,6 +91,12 @@ export class Task {
 
     @Column('text', { nullable: true })
     accessCode!: string;
+
+    @Column('text', { nullable: true })
+    sourceRegex!: string;
+    
+    @Column('text', { nullable: true })
+    targetRegex!: string;
 }
 
 export default { Account, Task };

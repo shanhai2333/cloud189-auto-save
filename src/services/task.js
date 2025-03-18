@@ -1,10 +1,12 @@
 const { Cloud189Service } = require('./cloud189');
+const { MessageUtil } = require('./message');
 
 class TaskService {
     constructor(taskRepo, accountRepo, taskLogRepo) {
         this.taskRepo = taskRepo;
         this.accountRepo = accountRepo;
         this.taskLogRepo = taskLogRepo;
+        this.messageUtil = new MessageUtil();
     }
 
     // 解析分享码
@@ -226,16 +228,29 @@ class TaskService {
                     });
                     fileNameList.push(` > <font color="warning">${file.name}</font>`);
                 }
-                await cloud189.createSaveTask(
+                const taskResp = await cloud189.createSaveTask(
                     JSON.stringify(taskInfoList),
                     task.realFolderId,
                     task.shareId
                 );
+                if (taskResp.res_code != 0) {
+                    throw new Error(taskResp.res_msg);
+                }
+
+                const status = await this.checkTaskStatus(cloud189,taskResp.taskId);
+                if (!status) {
+                    throw new Error('保存任务失败');
+                }
                 const resourceName = task.shareFolderName? `${task.resourceName}/${task.shareFolderName}` : task.resourceName;
+                // 防止文件数量过长, 消息推送只保留前5个和最后5个
+                if (fileNameList.length > 20) {
+                    fileNameList.splice(5, fileNameList.length - 10, '> <font color="warning">...</font>');
+                }
                 saveResults.push(`${resourceName}更新${taskInfoList.length}集: \n ${fileNameList.join('\n')}`);
                 task.status = 'processing';
                 task.lastFileUpdateTime = new Date();
                 task.currentEpisodes = existingFiles.size + newFiles.length;
+                this.autoRename(cloud189, task)
             } else if (task.lastFileUpdateTime) {
                 // 检查是否超过3天没有新文件
                 const now = new Date();
@@ -311,6 +326,60 @@ class TaskService {
             throw new Error('总数不能为负数');
         }
         return await this.taskRepo.save(task);
+    }
+
+    // 自动重命名
+    async autoRename(cloud189, task) {
+        if (!task.sourceRegex || !task.targetRegex) return;
+        const folderInfo = await cloud189.listFiles(task.realFolderId);
+        if (!folderInfo ||!folderInfo.fileListAO) return;
+        const files = folderInfo.fileListAO.fileList;
+        const message = []
+        for (const file of files) {
+            if (file.isFolder) continue;
+            const destFileName = file.name.replace(new RegExp(task.sourceRegex), task.targetRegex);
+            if (destFileName === file.name) continue;
+            const renameResult = await cloud189.renameFile(file.id, destFileName);
+            if (renameResult.res_code != 0) {
+                console.log(`${file.name}重命名为${destFileName}失败, 原因:${destFileName}${renameResult.res_msg}`)
+                message.push(` > <font color="comment">${file.name} => ${destFileName}失败, 原因:${destFileName}${renameResult.res_msg}</font>`)
+            }else{
+                console.log(`${file.name}重命名为${destFileName}成功`)
+                message.push(` > <font color="info">${file.name} => ${destFileName}成功</font>`)
+            }
+            await new Promise(resolve => setTimeout(resolve, 50));
+        }
+        this.messageUtil.sendMessage(`${task.resourceName}自动重命名: \n ${message.join('\n')}`)
+    }
+
+    // 检查任务状态
+    async checkTaskStatus(cloud189, taskId, count = 0) {
+        if (count > 5) {
+             return false;
+        }
+        // 轮询任务状态
+        const task = await cloud189.checkTaskStatus(taskId)
+        if (task.taskStatus == 3) {
+            // 暂停200毫秒
+            await new Promise(resolve => setTimeout(resolve, 200));
+            return await this.checkTaskStatus(cloud189,taskId, count++)
+        }
+        if (task.taskStatus == 4) {
+            return true;
+        }
+        // 如果status == 2 说明有冲突
+        if (task.taskStatus == 2) {
+            const conflictTaskInfo = await cloud189.getConflictTaskInfo(taskId);
+            // 忽略冲突
+            const taskInfos = conflictTaskInfo.taskInfos;
+            for (const taskInfo of taskInfos) {
+                taskInfo.dealWay = 1;
+            }
+            await cloud189.manageBatchTask(taskId, conflictTaskInfo.targetFolderId, taskInfos);
+            await new Promise(resolve => setTimeout(resolve, 200));
+            return await this.checkTaskStatus(cloud189, taskId, count++)
+        }
+        return false;
     }
 }
 

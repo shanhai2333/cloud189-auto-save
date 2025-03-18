@@ -13,7 +13,7 @@ async function fetchAccounts() {
                 <tr>
                     <td>${account.id}</td>
                     <td>${account.username}</td>
-                    <td><button class="delete-btn" onclick="deleteAccount(${account.id})">删除</button></td>
+                    <td><button class="btn-warning" onclick="deleteAccount(${account.id})">删除</button></td>
                 </tr>
             `;
             select.innerHTML += `

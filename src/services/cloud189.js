@@ -129,12 +129,10 @@ class Cloud189Service {
 
     // 查询转存任务状态
     async checkTaskStatus(taskId) {
+        const params = {taskId: taskId, type: 'SHARE_SAVE'}
         const response = await this.client.request('https://cloud.189.cn/api/open/batch/checkBatchTask.action', {
             method: 'POST',
-            json: {
-                taskId,
-                type: 'SHARE_SAVE'
-            },
+            form: params,
             headers: {
                 'Accept': 'application/json;charset=UTF-8'
             }
@@ -187,6 +185,38 @@ class Cloud189Service {
         }).json();
         return response;
     }
+    // 获取冲突的文件 
+    async getConflictTaskInfo(taskId) {
+        const response = await this.client.request('https://cloud.189.cn/api/open/batch/getConflictTaskInfo.action', {
+            method: 'POST',
+            json: {
+                taskId,
+                type: 'SHARE_SAVE'
+            },
+            headers: {
+                'Accept': 'application/json;charset=UTF-8'
+            }
+        }).json();
+        return response
+    }
+
+    // 处理冲突 taskInfos: [{"fileId":"","fileName":"","isConflict":1,"isFolder":0,"dealWay":1}]
+    async manageBatchTask(taskId,targetFolderId, taskInfos) {
+        const response = await this.client.request('https://cloud.189.cn/api/open/batch/manageBatchTask.action', {
+            method: 'POST',
+            json: {
+                taskId,
+                type: 'SHARE_SAVE',
+                targetFolderId,
+                taskInfos
+            },
+            headers: {
+                'Accept': 'application/json;charset=UTF-8'
+            }
+        }).json();
+        return response
+    }
+
 
     // 重命名文件
     async renameFile(fileId, destFileName) {
