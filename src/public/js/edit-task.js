@@ -18,10 +18,9 @@ let editFolderSelector = new FolderSelector({
     }
 });
 
-function showEditTaskModal(id, videoType, realFolderId, currentEpisodes, totalEpisodes, status, shareLink, shareFolderId, shareFolderName, resourceName, realFolderName) {
+function showEditTaskModal(id, realFolderId, currentEpisodes, totalEpisodes, status, shareLink, shareFolderId, shareFolderName, resourceName, realFolderName) {
     document.getElementById('editTaskId').value = id;
     document.getElementById('editResourceName').value = resourceName;
-    document.getElementById('editVideoType').value = videoType;
     document.getElementById('editRealFolder').value = realFolderName?realFolderName:realFolderId;
     document.getElementById('editRealFolderId').value = realFolderId;
     document.getElementById('editCurrentEpisodes').value = currentEpisodes;
@@ -63,7 +62,6 @@ function initEditTaskForm() {
         e.preventDefault();
         const id = document.getElementById('editTaskId').value;
         const resourceName = document.getElementById('editResourceName').value;
-        const videoType = document.getElementById('editVideoType').value;
         const realFolderId = document.getElementById('editRealFolderId').value;
         const realFolderName = document.getElementById('editRealFolder').value;
         const currentEpisodes = document.getElementById('editCurrentEpisodes').value;
@@ -78,7 +76,6 @@ function initEditTaskForm() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     resourceName,
-                    videoType,
                     realFolderId,
                     currentEpisodes: parseInt(currentEpisodes),
                     totalEpisodes: parseInt(totalEpisodes),

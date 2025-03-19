@@ -32,14 +32,13 @@ class TaskService {
     }
 
     // 创建任务的基础配置
-    _createTaskConfig(accountId, shareLink, targetFolderId, videoType, totalEpisodes, shareInfo, realFolder, resourceName, currentEpisodes = 0, shareFolderId = null, shareFolderName = "") {
+    _createTaskConfig(accountId, shareLink, targetFolderId, totalEpisodes, shareInfo, realFolder, resourceName, currentEpisodes = 0, shareFolderId = null, shareFolderName = "") {
         return {
             accountId,
             shareLink,
             targetFolderId,
             realFolderId:realFolder.id,
             realFolderName:realFolder.name,
-            videoType,
             status: 'pending',
             totalEpisodes,
             resourceName,
@@ -67,7 +66,7 @@ class TaskService {
     }
 
     // 处理文件夹分享
-    async _handleFolderShare(cloud189, shareInfo, accountId, shareLink, targetFolderId, videoType, totalEpisodes, rootFolder, tasks) {
+    async _handleFolderShare(cloud189, shareInfo, accountId, shareLink, targetFolderId, totalEpisodes, rootFolder, tasks) {
         const result = await cloud189.listShareDir(shareInfo.shareId, shareInfo.fileId, shareInfo.shareMode, shareInfo.userAccessCode);
         if (!result?.fileListAO) return;
 
@@ -77,7 +76,7 @@ class TaskService {
         if (rootFiles.length > 0) {
             const rootTask = this.taskRepo.create(
                 this._createTaskConfig(
-                    accountId, shareLink, targetFolderId, videoType, totalEpisodes,
+                    accountId, shareLink, targetFolderId, totalEpisodes,
                     shareInfo, rootFolder, `${shareInfo.fileName}(根)`, rootFiles.length
                 )
             );
@@ -91,7 +90,7 @@ class TaskService {
 
             const subTask = this.taskRepo.create(
                 this._createTaskConfig(
-                    accountId, shareLink, targetFolderId, videoType, totalEpisodes,
+                    accountId, shareLink, targetFolderId, totalEpisodes,
                     shareInfo, realFolder, shareInfo.fileName, 0, folder.id, folder.name
                 )
             );
@@ -100,13 +99,13 @@ class TaskService {
     }
 
     // 处理单文件分享
-    async _handleSingleShare(cloud189, shareInfo, accountId, shareLink, targetFolderId, videoType, totalEpisodes, rootFolderId, tasks) {
+    async _handleSingleShare(cloud189, shareInfo, accountId, shareLink, targetFolderId, totalEpisodes, rootFolderId, tasks) {
         const shareFiles = await cloud189.getAllShareFiles(shareInfo.shareId, shareInfo.fileId, shareInfo.shareMode, shareInfo.userAccessCode);
         if (!shareFiles?.length) throw new Error('获取文件列表失败');
 
         const task = this.taskRepo.create(
             this._createTaskConfig(
-                accountId, shareLink, targetFolderId, videoType, totalEpisodes,
+                accountId, shareLink, targetFolderId, totalEpisodes,
                 shareInfo, rootFolderId, shareInfo.fileName, shareFiles.length
             )
         );
@@ -114,7 +113,7 @@ class TaskService {
     }
 
     // 创建新任务
-    async createTask(accountId, shareLink, targetFolderId, videoType, totalEpisodes = null, accessCode = null) {
+    async createTask(accountId, shareLink, targetFolderId, totalEpisodes = null, accessCode = null) {
         // 获取分享信息
         const account = await this.accountRepo.findOneBy({ id: accountId });
         if (!account) throw new Error('账号不存在');
@@ -143,12 +142,12 @@ class TaskService {
         const tasks = [];
         shareInfo.userAccessCode = accessCode;
         if (shareInfo.isFolder) {
-            await this._handleFolderShare(cloud189, shareInfo, accountId, shareLink, targetFolderId, videoType, totalEpisodes, rootFolder, tasks);
+            await this._handleFolderShare(cloud189, shareInfo, accountId, shareLink, targetFolderId, totalEpisodes, rootFolder, tasks);
         }
 
          // 处理单文件或空文件夹情况
          if (tasks.length === 0) {
-            await this._handleSingleShare(cloud189, shareInfo, accountId, shareLink, targetFolderId, videoType, totalEpisodes, rootFolder, tasks);
+            await this._handleSingleShare(cloud189, shareInfo, accountId, shareLink, targetFolderId, totalEpisodes, rootFolder, tasks);
         }
         return tasks;
     }
@@ -269,7 +268,7 @@ class TaskService {
 
             task.lastCheckTime = new Date();
             await this.taskRepo.save(task);
-            return saveResults.join('\n\n');
+            return saveResults.join('\n');
 
         } catch (error) {
             console.log(error)
@@ -305,7 +304,7 @@ class TaskService {
         if (!task) throw new Error('任务不存在');
 
         // 只允许更新特定字段
-        const allowedFields = ['resourceName','videoType', 'realFolderId', 'currentEpisodes', 'totalEpisodes', 'status', 'shareFolderName', 'shareFolderId'];
+        const allowedFields = ['resourceName', 'realFolderId', 'currentEpisodes', 'totalEpisodes', 'status', 'shareFolderName', 'shareFolderId'];
         for (const field of allowedFields) {
             if (updates[field] !== undefined) {
                 task[field] = updates[field];

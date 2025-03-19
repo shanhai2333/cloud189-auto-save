@@ -54,11 +54,10 @@ async function fetchTasks() {
                     <td data-label="操作">
                         <button class="btn-warning" onclick="deleteTask(${task.id})">删除</button>
                         <button onclick="executeTask(${task.id})">执行</button>
-                        <button onclick="showEditTaskModal(${task.id}, '${task.videoType}', '${task.realFolderId || ''}', ${task.currentEpisodes || 0}, ${task.totalEpisodes || 0}, '${task.status}','${task.shareLink}','${task.shareFolderId}','${task.shareFolderName}', '${task.resourceName}', '${task.realFolderName}')">修改</button>
+                        <button onclick="showEditTaskModal(${task.id}, '${task.realFolderId || ''}', ${task.currentEpisodes || 0}, ${task.totalEpisodes || 0}, '${task.status}','${task.shareLink}','${task.shareFolderId}','${task.shareFolderName}', '${task.resourceName}', '${task.realFolderName}')">修改</button>
                     </td>
                     <td data-label="资源名称"><a href="${task.shareLink}" target="_blank" class='ellipsis' title="${task.shareFolderName ? (task.resourceName + '/' + task.shareFolderName) : task.resourceName || '未知'}">${task.shareFolderName?(task.resourceName + '/' + task.shareFolderName): task.resourceName || '未知'}</a></td>
                     <td data-label="账号ID">${task.accountId}</td>
-                    <td data-label="视频类型">${task.videoType}</td>
                     <td data-label="首次保存目录"><a href="https://cloud.189.cn/web/main/file/folder/${task.targetFolderId}" target="_blank">${task.targetFolderId}</a></td>
                      <td data-label="更新目录"><a href="javascript:void(0)" onclick="showFileListModal('${task.id}')" class='ellipsis'>${task.realFolderName || task.realFolderId}</a></td>
                     <td data-label="更新数/总数">${task.currentEpisodes || 0}/${task.totalEpisodes || '未知'}${progressRing}</td>
@@ -124,7 +123,6 @@ function initTaskForm() {
         try {
             const accountId = document.getElementById('accountId').value;
             const shareLink = document.getElementById('shareLink').value;
-            const videoType = document.getElementById('videoType').value;
             const totalEpisodes = document.getElementById('totalEpisodes').value;
             const targetFolderId = document.getElementById('targetFolderId').value;
             const accessCode = document.getElementById('accessCode').value;
@@ -132,7 +130,7 @@ function initTaskForm() {
             const response = await fetch('/api/tasks', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ accountId, shareLink, videoType, totalEpisodes, targetFolderId, accessCode })
+                body: JSON.stringify({ accountId, shareLink, totalEpisodes, targetFolderId, accessCode })
             });
     
             const data = await response.json();

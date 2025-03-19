@@ -68,8 +68,8 @@ AppDataSource.initialize().then(() => {
 
     app.post('/api/tasks', async (req, res) => {
         try {
-            const { accountId, shareLink, targetFolderId, videoType, totalEpisodes, accessCode } = req.body;
-            const task = await taskService.createTask(accountId, shareLink, targetFolderId, videoType, totalEpisodes, accessCode);
+            const { accountId, shareLink, targetFolderId, totalEpisodes, accessCode } = req.body;
+            const task = await taskService.createTask(accountId, shareLink, targetFolderId, totalEpisodes, accessCode);
             res.json({ success: true, data: task });
         } catch (error) {
             res.json({ success: false, error: error.message });
@@ -88,8 +88,8 @@ AppDataSource.initialize().then(() => {
     app.put('/api/tasks/:id', async (req, res) => {
         try {
             const taskId = parseInt(req.params.id);
-            const { resourceName, videoType, realFolderId, currentEpisodes, totalEpisodes, status, shareFolderName, shareFolderId } = req.body;
-            const updates = { resourceName, videoType, realFolderId, currentEpisodes, totalEpisodes, status, shareFolderName, shareFolderId };
+            const { resourceName, realFolderId, currentEpisodes, totalEpisodes, status, shareFolderName, shareFolderId } = req.body;
+            const updates = { resourceName, realFolderId, currentEpisodes, totalEpisodes, status, shareFolderName, shareFolderId };
             const updatedTask = await taskService.updateTask(taskId, updates);
             res.json({ success: true, data: updatedTask });
         } catch (error) {
@@ -235,7 +235,7 @@ AppDataSource.initialize().then(() => {
             }
         }
         if (saveResults.length > 0) {
-            messageUtil.sendMessage(saveResults.join("\n"))
+            messageUtil.sendMessage(saveResults.join("\n\n"))
         }
     });
 
