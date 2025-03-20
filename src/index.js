@@ -34,6 +34,19 @@ AppDataSource.initialize().then(() => {
     // 账号相关API
     app.get('/api/accounts', async (req, res) => {
         const accounts = await accountRepo.find();
+        // 获取容量
+        for (const account of accounts) {
+            const cloud189 = Cloud189Service.getInstance(account);
+            const capacity = await cloud189.client.getUserSizeInfo()
+            account.capacity = {
+                cloudCapacityInfo: null,
+                familyCapacityInfo: null
+            }
+            if (capacity && capacity.res_code == 0) {
+                account.capacity.cloudCapacityInfo = capacity.cloudCapacityInfo;
+                account.capacity.familyCapacityInfo = capacity.familyCapacityInfo;
+            }
+        }
         res.json({ success: true, data: accounts });
     });
 
@@ -218,6 +231,8 @@ AppDataSource.initialize().then(() => {
         }
         res.json({ success: true, data: result });
     });
+
+    // 获取云盘容量信息
 
     // 启动定时任务
     cron.schedule(process.env.TASK_CHECK_INTERVAL, async () => {

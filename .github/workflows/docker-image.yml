@@ -25,12 +25,7 @@ jobs:
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
-
-      - name: Create data directory and move files
-        run: |
-          mkdir -p data
-          mv .env.example .env
-
+          
       - name: Build and push Docker images
         uses: docker/build-push-action@v4
         with:

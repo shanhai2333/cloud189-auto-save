@@ -7,7 +7,7 @@
 - 支持多账号管理
 - 自动监控分享链接更新, 自动重命名
 - 支持企业微信、Telegram 消息推送
-- Web 界面管理，操作便捷
+- Web 界面管理，响应式布局, 操作便捷
 - Docker 部署，方便维护
 
 ## 快速开始
@@ -47,33 +47,10 @@ WXPUSHER_SPT=
 TASK_CHECK_INTERVAL=*/30 * * * *
 ```
 
-## 源码部署
-```bash
-移动database.sqlite到配置文件 DB_PATH 的目录
-重命名 .env.example为.env
-
-# 安装依赖
-yarn install
-
-# 启动
-yarn start
-
-```
-
 ## Docker 部署
 
 ### 直接使用镜像
 
-最简单的方式（不需要持久化数据和自定义配置）：
-```bash
-docker run -d \
-  -p 3000:3000 \
-  --restart unless-stopped \
-  --name cloud189 \
-  xia1307/cloud189-auto-save
-```
-
-需要持久化数据和自定义配置(推荐)：
 ```bash
 docker run -d \
   -v /yourpath/data:/home/data \
@@ -84,23 +61,6 @@ docker run -d \
   xia1307/cloud189-auto-save
   ```
 注意: 镜像构建不那么及时, 最好自行构建, 或者下载源码, 将源码的src目录挂载到/home/src
-
-### 自行构建
-1. 构建镜像
-```bash
-docker build -t cloud189_auto_save .
-```
-
-2. 运行容器
-```bash
-docker run -d \
-  -v /yourpath/data:/home/data \
-  -v /host/path/.env:/home/.env \
-  -p 3000:3000 \
-  --restart unless-stopped \
-  --name cloud189 \
-  cloud189-auto-save
-```
 
 ### 访问系统
 
@@ -126,6 +86,12 @@ docker run -d \
    - 点击确定
 5. 系统会自动检查更新并转存文件
 6. 支持手动触发任务执行
+
+## 截图
+<img width="1610" alt="image" src="https://github.com/user-attachments/assets/69fc580e-163b-47fc-82f8-68aa81cef395" />
+<img width="1310" alt="image" src="https://github.com/user-attachments/assets/34706eee-936d-4ec6-9033-2f87674b6a2d" />
+<img width="1354" alt="image" src="https://github.com/user-attachments/assets/c6ddfede-17b2-43eb-838d-de4b1cf93b04" />
+<img width="1297" alt="image" src="https://github.com/user-attachments/assets/13380003-2295-4dfb-9d6c-d9229399f8b6" />
 
 ## 注意事项
 

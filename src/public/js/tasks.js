@@ -51,7 +51,7 @@ async function fetchTasks() {
             const progressRing = task.totalEpisodes ? createProgressRing(task.currentEpisodes || 0, task.totalEpisodes) : '';
             tbody.innerHTML += `
                 <tr>
-                    <td data-label="操作">
+                    <td>
                         <button class="btn-warning" onclick="deleteTask(${task.id})">删除</button>
                         <button onclick="executeTask(${task.id})">执行</button>
                         <button onclick="showEditTaskModal(${task.id}, '${task.realFolderId || ''}', ${task.currentEpisodes || 0}, ${task.totalEpisodes || 0}, '${task.status}','${task.shareLink}','${task.shareFolderId}','${task.shareFolderName}', '${task.resourceName}', '${task.realFolderName}')">修改</button>
