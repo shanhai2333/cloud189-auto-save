@@ -35,7 +35,7 @@ export class Task {
     @Column('text')
     targetFolderId!: string;
 
-    @Column('text')
+    @Column('text', { nullable: true })
     videoType!: string;
 
     @Column('text', { default: 'pending' })
