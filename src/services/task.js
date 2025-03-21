@@ -18,6 +18,12 @@ class TaskService {
             shareCode = shareUrl.searchParams.get('code');
         } else if (shareUrl.pathname.startsWith('/t/')) {
             shareCode = shareUrl.pathname.split('/').pop();
+        }else if (shareUrl.hash && shareUrl.hash.includes('/t/')) {
+            shareCode = shareUrl.hash.split('/').pop();
+        }else if (shareUrl.pathname.includes('share.html')) {
+            // 其他可能的 share.html 格式
+            const hashParts = shareUrl.hash.split('/');
+            shareCode = hashParts[hashParts.length - 1];
         }
         
         if (!shareCode) throw new Error('无效的分享链接');
