@@ -21,28 +21,6 @@
 AUTH_USERNAME=admin    # 网页登录用户名
 AUTH_PASSWORD=password # 网页登录密码
 
-# 企业微信推送配置
-WECOM_ENABLED=true
-WECOM_WEBHOOK=your_webhook_url
-
-# Telegram 推送配置
-TELEGRAM_ENABLED=true
-TELEGRAM_BOT_TOKEN=your_bot_token
-TELEGRAM_CHAT_ID=your_chat_id
-
-# Telegram 代理配置（可选）  或可通过cf反向代理绕墙 可免http代理
-CF_PROXY_DOMAIN=
-PROXY_TYPE=
-PROXY_HOST=
-PROXY_PORT=
-PROXY_USERNAME=
-PROXY_PASSWORD=
-
-# WxPusher配置
-# 是否启用
-WXPUSHER_ENABLED=false
-WXPUSHER_SPT=
-
 # 任务检查间隔（Cron 表达式）
 TASK_CHECK_INTERVAL=*/30 * * * *
 ```
@@ -88,8 +66,9 @@ docker run -d \
 6. 支持手动触发任务执行
 
 ## 截图
-<img width="1610" alt="image" src="https://github.com/user-attachments/assets/69fc580e-163b-47fc-82f8-68aa81cef395" />
-<img width="1310" alt="image" src="https://github.com/user-attachments/assets/34706eee-936d-4ec6-9033-2f87674b6a2d" />
+<img width="1505" alt="image" src="https://github.com/user-attachments/assets/359fb6e2-0d38-4a4c-a398-1b820ce47c8c" />
+<img width="1391" alt="image" src="https://github.com/user-attachments/assets/03826fc6-ac19-442e-a325-ce22250fdb5e" />
+<img width="1327" alt="image" src="https://github.com/user-attachments/assets/8a05ff40-4f70-42a9-9a70-74d9e04f3f64" />
 <img width="1354" alt="image" src="https://github.com/user-attachments/assets/c6ddfede-17b2-43eb-838d-de4b1cf93b04" />
 <img width="1297" alt="image" src="https://github.com/user-attachments/assets/13380003-2295-4dfb-9d6c-d9229399f8b6" />
 

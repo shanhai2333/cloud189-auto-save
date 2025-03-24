@@ -11,15 +11,44 @@
     <link rel="stylesheet" href="/css/table-view.css">
     <link rel="stylesheet" href="/css/table.css">
     <link rel="stylesheet" href="/css/tabs.css">
+    <link rel="stylesheet" href="/css/theme.css">
 
 </head>
 <body>
-    <h1>天翼云盘自动转存系统</h1>
+    <div class="header">
+        <h1>天翼云盘自动转存系统</h1>
+        <div class="header-meta">
+            <a href="https://github.com/1307super/cloud189-auto-save" target="_blank" title="GitHub">
+                <span class="github-icon"></span>
+                <span id="version"></span>
+            </a>
+        </div>
+    </div>
     
+    <div class="theme-switch">
+        <button id="themeToggle" class="theme-toggle-btn">
+            <span class="theme-icon"></span>
+        </button>
+        <div class="theme-dropdown" id="themeDropdown">
+            <div class="theme-option" data-theme="light">
+                <span class="theme-icon"></span>
+                默认
+            </div>
+            <div class="theme-option" data-theme="dark">
+                <span class="theme-icon"></span>
+                暗黑
+            </div>
+            <div class="theme-option" data-theme="auto">
+                <span class="theme-icon"></span>
+                自动
+            </div>
+        </div>
+    </div>
     <div class="container">
         <div class="tabs">
-            <div class="tab" data-tab="account">账号管理</div>
-            <div class="tab active" data-tab="task">任务管理</div>
+            <div class="tab" data-tab="account">账号</div>
+            <div class="tab active" data-tab="task">任务</div>
+            <div class="tab" data-tab="settings">系统</div>
         </div>
 
         <div id="accountTab" class="tab-content">
@@ -50,7 +79,14 @@
         </div>
 
         <div id="taskTab" class="tab-content active">
-            <form id="taskForm">
+            <div class="form-header">
+                <button type="button" id="toggleFormBtn" class="toggle-form-btn">
+                    <span class="toggle-text">展开</span>
+                    <span class="toggle-icon">▼</span>
+                </button>
+                <button type="button" onclick="executeAllTask()" id="executeAllBtn" class="btn-warning">执行所有</button>
+            </div>
+            <form id="taskForm" style="display: none;">
                 <div class="form-group">
                     <label for="accountId">选择账号</label>
                     <select id="accountId" required></select>
@@ -74,14 +110,21 @@
                     <label for="totalEpisodes">总集数</label>
                     <input type="number" id="totalEpisodes" min="0">
                 </div>
+                <div class="form-group">
+                    <label>文件名匹配规则（可选）</label>
+                    <div class="match-rule" style="display: flex; flex-wrap: wrap; gap: 10px;">
+                        <input type="text" id="matchPattern" placeholder="正则表达式 例如: 第(\d+)集" style="flex: 2 1 200px;">
+                        <select id="matchOperator" style="flex: 1 1 100px;">
+                            <option value="lt">小于</option>
+                            <option value="eq">等于</option>
+                            <option value="gt">大于</option>
+                        </select>
+                        <input id="matchValue" placeholder="值" min="0" style="flex: 1 1 100px;">
+                    </div>
+                    <small class="form-text">用于匹配文件名中的数字并进行比较，例如：匹配"第12集"中的12; 如果选择等于, 则只会转存匹配与结果一致的数据</small>
+                </div>
                 <button type="submit">创建任务</button>
             </form>
-            <div style="position: relative;">
-                <button class="view-toggle" onclick="toggleView()" title="切换视图">
-                    <svg viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/>
-                    </svg>
-                </button>
             <div class="table-container">
                 <table id="taskTable">
                     <thead>
@@ -99,7 +142,59 @@
                     <tbody></tbody>
                 </table>
             </div>
-            </div>
+        </div>
+
+        <div id="settingsTab" class="tab-content">
+            <form id="settingsForm">
+                <div class="form-group">
+                    <label for="taskExpireDays">任务过期天数</label>
+                    <input type="number" id="taskExpireDays" min="1" placeholder="默认3天">
+                    <small class="form-text">超过指定天数未新增资源的任务将状态改为已完成</small>
+                </div>
+
+                <div class="form-group">
+                    <label>消息推送设置</label>
+                    <div class="push-settings">
+                        <div class="push-item">
+                            <label>
+                                <input type="checkbox" id="enableWecom">
+                                企微 推送
+                            </label>
+                            <input type="text" id="wecomWebhook" placeholder="机器人webhook">
+                        </div>
+                        
+                        <div class="push-item">
+                            <label>
+                                <input type="checkbox" id="enableTelegram">
+                                Telegram 推送
+                            </label>
+                            <input type="text" id="proxyDomain" placeholder="反代地址, 选填">
+                            <input type="text" id="telegramBotToken" placeholder="Bot Token">
+                            <input type="text" id="telegramChatId" placeholder="Chat ID">
+                        </div>
+
+                        <div class="push-item">
+                            <label>
+                                <input type="checkbox" id="enableWXPusher">
+                                WXPusher 推送
+                            </label>
+                            <input type="text" id="wXPusherSPT" placeholder="WXPusher SPT">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="proxySettings">代理设置（仅用于 Telegram）</label>
+                    <div class="proxy-settings">
+                        <input type="text" id="proxyHost" placeholder="代理地址">
+                        <input type="number" id="proxyPort" placeholder="代理端口">
+                        <input type="text" id="proxyUsername" placeholder="账号 如果有">
+                        <input type="text" id="proxyPassword" placeholder="密码 如果有">
+                    </div>
+                </div>
+
+                <button type="submit">保存设置</button>
+            </form>
         </div>
     </div>
 
@@ -108,9 +203,9 @@
 <script src="/js/tabs.js"></script>
 <script src="/js/accounts.js"></script>
 <script src="/js/tasks.js"></script>
-<script src="/js/view-toggle.js"></script>
 <script src="/js/edit-task.js"></script>
 <script src="/js/main.js"></script>
+<script src="/js/settings.js"></script>
 
 </body>
 </html>
@@ -150,6 +245,18 @@
             <div class="form-group">
                 <label for="editTotalEpisodes">总数</label>
                 <input type="number" id="editTotalEpisodes" min="0">
+            </div>
+            <div class="form-group">
+                <label>文件名匹配规则（可选）</label>
+                <div class="match-rule" style="display: flex; flex-wrap: wrap; gap: 10px;">
+                    <input type="text" id="editMatchPattern" placeholder="正则表达式 例如: 第(\d+)集" style="flex: 2 1 200px;">
+                    <select id="editMatchOperator" style="flex: 1 1 100px;">
+                        <option value="lt">小于</option>
+                        <option value="eq">等于</option>
+                        <option value="gt">大于</option>
+                    </select>
+                    <input id="editMatchValue" placeholder="值" min="0" style="flex: 1 1 100px;">
+                </div>
             </div>
             <div class="form-group">
                 <label for="editStatus">状态</label>

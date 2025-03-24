@@ -54,6 +54,7 @@ class MessageService {
                 .replace(/^(.*?)更新/gm, '🎉*$1*更新')
                 // 移除 HTML 标签并转换为 Telegram 代码格式
                 .replace(/<font color="warning">/g, '`')
+                .replace(/<font color="info">/g, '`')
                 .replace(/<\/font>/g, '`')
                 // 替换引用格式为列表项（确保在新行开始）
                 .replace(/>s*/g, '   - ');

@@ -1,26 +1,29 @@
 // 账号相关功能
-async function fetchAccounts() {
+async function fetchAccounts(updateSelect = false) {
     const response = await fetch('/api/accounts');
     const data = await response.json();
     if (data.success) {
         const tbody = document.querySelector('#accountTable tbody');
         const select = document.querySelector('#accountId');
         tbody.innerHTML = '';
-        select.innerHTML = '';
-        
+        if (updateSelect) {
+            select.innerHTML = '' 
+        }
         data.data.forEach(account => {
             tbody.innerHTML += `
                 <tr>
-                    <td><button class="btn-warning" onclick="deleteAccount(${account.id})">删除</button></td>
+                    <td><button class="btn-danger" onclick="deleteAccount(${account.id})">删除</button></td>
                     <td data-label='账号ID'>${account.id}</td>
                     <td data-label='账户名'>${account.username}</td>
                     <td data-label='个人容量'>${formatBytes(account.capacity.cloudCapacityInfo.usedSize) + '/' + formatBytes(account.capacity.cloudCapacityInfo.totalSize)}</td>
                     <td data-label='家庭容量'>${formatBytes(account.capacity.familyCapacityInfo.usedSize) + '/' + formatBytes(account.capacity.familyCapacityInfo.totalSize)}</td>
                 </tr>
             `;
-            select.innerHTML += `
+            if (updateSelect) {
+                select.innerHTML += `
                 <option value="${account.id}">${account.username}</option>
             `;
+            }
         });
     }
 }

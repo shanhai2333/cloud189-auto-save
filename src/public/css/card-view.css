@@ -49,7 +49,7 @@
 
 #taskTable td:not(:last-child),
 #accountTable td:not(:last-child) {
-    border-bottom: 1px solid #f0f0f0;
+    border-bottom: 0.5px solid #f0f0f0;
 }
 
 #taskTable td::before,

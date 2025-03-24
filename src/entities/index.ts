@@ -97,6 +97,13 @@ export class Task {
     
     @Column('text', { nullable: true })
     targetRegex!: string;
+
+    @Column('text', { nullable: true })
+    matchPattern!: string;
+    @Column('text', { nullable: true })
+    matchOperator!: string;
+    @Column('text', { nullable: true })
+    matchValue!: string;
 }
 
 export default { Account, Task };

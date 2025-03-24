@@ -33,6 +33,14 @@ input, select {
     box-sizing: border-box;
 }
 
+input:focus,
+select:focus,
+textarea:focus {
+    outline: none;
+    border-color: #6ebbeb;
+    box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
+}
+
 button {
     background-color: #1890ff;
     color: white;
@@ -45,4 +53,82 @@ button {
 
 .btn-warning {
     background-color: #fa8c16;
+}
+
+.btn-danger {
+    background-color: #f5222d;
+}
+
+.btn-default {
+    background: #fff;
+    border: 1px solid #d9d9d9;
+    color: rgba(0, 0, 0, 0.85);
+}
+
+.btn-primary {
+    background: #1890ff;
+    border: 1px solid #1890ff;
+    color: #fff;
+}
+
+.btn-default, .btn-primary {
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-left: 8px;
+}
+
+.btn-default:hover {
+    border-color: #40a9ff;
+    color: #40a9ff;
+}
+
+.btn-primary:hover {
+    background: #40a9ff;
+    border-color: #40a9ff;
+}
+/* 标题区域样式 */
+.header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+.header h1 {
+    font-size: 26px;
+    margin: 0;
+}
+
+.header-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    color: #666;
+}
+
+@media (max-width: 768px) {
+    .header h1 {
+        font-size: 18px;
+        margin: 0;
+    }
+}
+
+.github-icon {
+    width: 20px;
+    height: 20px;
+    display: inline-block;
+    background-color: currentColor;
+    -webkit-mask-size: cover;
+    mask-size: cover;
+    background-color: var(--text-color);  /* 使用文本颜色变量 */
+    -webkit-mask-image: url('/icons/github.svg');
+    mask-image: url('/icons/github.svg');
+}
+
+#version {
+    color: var(--text-color);
+    text-decoration: none;
+    transition: color 0.3s;
 }

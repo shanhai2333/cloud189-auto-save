@@ -52,15 +52,16 @@ async function fetchTasks() {
             tbody.innerHTML += `
                 <tr>
                     <td>
-                        <button class="btn-warning" onclick="deleteTask(${task.id})">删除</button>
-                        <button onclick="executeTask(${task.id})">执行</button>
-                        <button onclick="showEditTaskModal(${task.id}, '${task.realFolderId || ''}', ${task.currentEpisodes || 0}, ${task.totalEpisodes || 0}, '${task.status}','${task.shareLink}','${task.shareFolderId}','${task.shareFolderName}', '${task.resourceName}', '${task.realFolderName}')">修改</button>
+                        <button class="btn-danger" onclick="deleteTask(${task.id})">删除</button>
+                        <button class="btn-warning" onclick="executeTask(${task.id})">执行</button>
+                        <button onclick="showEditTaskModal(${task.id})">修改</button>
                     </td>
                     <td data-label="资源名称"><a href="${task.shareLink}" target="_blank" class='ellipsis' title="${task.shareFolderName ? (task.resourceName + '/' + task.shareFolderName) : task.resourceName || '未知'}">${task.shareFolderName?(task.resourceName + '/' + task.shareFolderName): task.resourceName || '未知'}</a></td>
                     <td data-label="账号ID">${task.accountId}</td>
-                    <td data-label="首次保存目录"><a href="https://cloud.189.cn/web/main/file/folder/${task.targetFolderId}" target="_blank">${task.targetFolderId}</a></td>
+                    <!--<td data-label="首次保存目录"><a href="https://cloud.189.cn/web/main/file/folder/${task.targetFolderId}" target="_blank">${task.targetFolderId}</a></td>-->
                      <td data-label="更新目录"><a href="javascript:void(0)" onclick="showFileListModal('${task.id}')" class='ellipsis'>${task.realFolderName || task.realFolderId}</a></td>
                     <td data-label="更新数/总数">${task.currentEpisodes || 0}/${task.totalEpisodes || '未知'}${progressRing}</td>
+                    <td data-label="上次转存时间">${task.lastFileUpdateTime || '未更新'}</td>
                     <td data-label="状态"><span class="status-badge status-${task.status}">${task.status}</span></td>
                 </tr>
             `;
@@ -112,6 +113,32 @@ async function executeTask(id, refresh = true) {
     }
 }
 
+// 执行所有任务
+async function executeAllTask() {
+    if (!confirm('确定要执行所有任务吗？')) return;
+    const executeAllBtn = document.querySelector('#executeAllBtn');
+    if (executeAllBtn) {
+        executeAllBtn.classList.add('loading');
+        executeAllBtn.disabled = true;
+    }
+    try {
+        const response = await fetch('/api/tasks/executeAll', {
+            method: 'POST'
+        });
+        if (response.ok) {
+            alert('任务执行完成');
+            fetchTasks();
+        } else {
+            alert('任务执行失败');
+        }
+    } catch (error) {
+        alert('任务执行失败:'+ error.message);
+    } finally {
+        executeAllBtn.classList.remove('loading');
+        executeAllBtn.disabled = false;
+    }
+}
+
 // 初始化任务表单
 function initTaskForm() {
     document.getElementById('taskForm').addEventListener('submit', async (e) => {
@@ -126,11 +153,18 @@ function initTaskForm() {
             const totalEpisodes = document.getElementById('totalEpisodes').value;
             const targetFolderId = document.getElementById('targetFolderId').value;
             const accessCode = document.getElementById('accessCode').value;
-    
+            const matchPattern = document.getElementById('matchPattern').value;
+            const matchOperator = document.getElementById('matchOperator').value;
+            const matchValue = document.getElementById('matchValue').value;
+            // 如果填了matchPattern那matchValue就必须填
+            if (matchPattern && !matchValue) {
+                alert('填了匹配模式, 那么匹配值就必须填');
+                return;
+            }
             const response = await fetch('/api/tasks', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ accountId, shareLink, totalEpisodes, targetFolderId, accessCode })
+                body: JSON.stringify({ accountId, shareLink, totalEpisodes, targetFolderId, accessCode, matchPattern, matchOperator, matchValue })
             });
     
             const data = await response.json();
@@ -275,7 +309,7 @@ function showBatchRenameOptions() {
                 description.textContent = '正则表达式文件重命名。 在第一行输入源文件名正则表达式，并在第二行输入新文件名正则表达式。如果新旧名称相同, 则跳过该文件。';
                 regexInputs.style.display = 'block';
                 sequentialInputs.style.display = 'none';
-                modal.querySelector('.saveAndAutoUpdate').style.display = 'block';
+                modal.querySelector('.saveAndAutoUpdate').style.display = 'inline-block';
             } else {
                 description.textContent = '新文件名将有一个数值起始值附加到它， 并且它将通过向起始值添加 1 来按顺序显示。 在第一行输入新的文件名，并在第二行输入起始值。';
                 regexInputs.style.display = 'none';
@@ -464,4 +498,19 @@ function escapeHtmlAttr(str) {
         .replace(/"/g, '\\"')
         .replace(/\n/g, '\\n')
         .replace(/\r/g, '\\r');
+}
+
+// 初始化表单展开/隐藏功能
+function initFormToggle() {
+    const toggleBtn = document.getElementById('toggleFormBtn');
+    const taskForm = document.getElementById('taskForm');
+    const toggleText = toggleBtn.querySelector('.toggle-text');
+    const toggleIcon = toggleBtn.querySelector('.toggle-icon');
+
+    toggleBtn.addEventListener('click', () => {
+        const isHidden = taskForm.style.display === 'none';
+        taskForm.style.display = isHidden ? 'block' : 'none';
+        toggleText.textContent = isHidden ? '隐藏' : '展开';
+        toggleIcon.textContent = isHidden ? '▲' : '▼';
+    });
 }

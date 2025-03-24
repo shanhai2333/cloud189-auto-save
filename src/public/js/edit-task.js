@@ -18,17 +18,21 @@ let editFolderSelector = new FolderSelector({
     }
 });
 
-function showEditTaskModal(id, realFolderId, currentEpisodes, totalEpisodes, status, shareLink, shareFolderId, shareFolderName, resourceName, realFolderName) {
+function showEditTaskModal(id) {
+    const task = getTaskById(id)
     document.getElementById('editTaskId').value = id;
-    document.getElementById('editResourceName').value = resourceName;
-    document.getElementById('editRealFolder').value = realFolderName?realFolderName:realFolderId;
-    document.getElementById('editRealFolderId').value = realFolderId;
-    document.getElementById('editCurrentEpisodes').value = currentEpisodes;
-    document.getElementById('editTotalEpisodes').value = totalEpisodes;
-    document.getElementById('editStatus').value = status;
-    document.getElementById('shareLink').value = shareLink;
-    document.getElementById('shareFolder').value = shareFolderName;
-    document.getElementById('shareFolderId').value = shareFolderId;
+    document.getElementById('editResourceName').value = task.resourceName;
+    document.getElementById('editRealFolder').value = task.realFolderName?task.realFolderName:task.realFolderId;
+    document.getElementById('editRealFolderId').value = task.realFolderId;
+    document.getElementById('editCurrentEpisodes').value = task.currentEpisodes;
+    document.getElementById('editTotalEpisodes').value = task.totalEpisodes;
+    document.getElementById('editStatus').value = task.status;
+    document.getElementById('shareLink').value = task.shareLink;
+    document.getElementById('shareFolder').value = task.shareFolderName;
+    document.getElementById('shareFolderId').value = task.shareFolderId;
+    document.getElementById('editMatchPattern').value = task.matchPattern;
+    document.getElementById('editMatchOperator').value = task.matchOperator;
+    document.getElementById('editMatchValue').value = task.matchValue;
     document.getElementById('editTaskModal').style.display = 'block';
 }
 
@@ -70,6 +74,9 @@ function initEditTaskForm() {
         const shareFolderId = document.getElementById('shareFolderId').value;
         const status = document.getElementById('editStatus').value;
 
+        const matchPattern = document.getElementById('editMatchPattern').value
+        const matchOperator = document.getElementById('editMatchOperator').value
+        const matchValue = document.getElementById('editMatchValue').value
         try {
             const response = await fetch(`/api/tasks/${id}`, {
                 method: 'PUT',
@@ -77,12 +84,15 @@ function initEditTaskForm() {
                 body: JSON.stringify({
                     resourceName,
                     realFolderId,
-                    currentEpisodes: parseInt(currentEpisodes),
-                    totalEpisodes: parseInt(totalEpisodes),
+                    currentEpisodes: currentEpisodes?parseInt(currentEpisodes):0,
+                    totalEpisodes: totalEpisodes?parseInt(totalEpisodes):0,
                     status,
                     shareFolderName,
                     shareFolderId,
-                    realFolderName
+                    realFolderName,
+                    matchPattern,
+                    matchOperator,
+                    matchValue
                 })
             });
 

@@ -1,31 +1,42 @@
 const messageManager = require('./message/MessageManager');
+const ConfigService = require('./ConfigService');
 
 class MessageUtil {
     constructor() {
+        this._init();
+    }
+
+    _init() {
+        const settings = ConfigService.getConfig()
         // 初始化消息推送配置
         messageManager.initialize({
             wework: {
-                enabled: process.env.WECOM_ENABLED === 'true',
-                webhook: process.env.WECOM_WEBHOOK
+                enabled: settings.wecom?.enable || false,
+                webhook: settings.wecom?.webhook || '',
             },
             telegram: {
-                enabled: process.env.TELEGRAM_ENABLED === 'true',
-                botToken: process.env.TELEGRAM_BOT_TOKEN,
-                chatId: process.env.TELEGRAM_CHAT_ID,
+                enabled: settings.telegram?.enable || false,
+                botToken: settings.telegram?.botToken || '',
+                chatId: settings.telegram?.chatId || '',
                 proxy: {
-                    type: process.env.PROXY_TYPE,
-                    host: process.env.PROXY_HOST,
-                    port: process.env.PROXY_PORT,
-                    username: process.env.PROXY_USERNAME,
-                    password: process.env.PROXY_PASSWORD
+                    type: "http",
+                    host: settings.proxy?.host || '',
+                    port: settings.proxy?.port || '',
+                    username: settings.proxy?.username || '',
+                    password: settings.proxy?.password || ''
                 },
-                cfProxyDomain: process.env.CF_PROXY_DOMAIN
+                cfProxyDomain: settings.telegram?.proxyDomain || ''
             },
             wxpusher: {
-                enabled: process.env.WXPUSHER_ENABLED === 'true',
-                spt: process.env.WXPUSHER_SPT
+                enabled: settings.wxpusher?.enable || false,
+                spt: settings.wxpusher?.spt || ''
             }
         });
+    }
+
+
+    async updateConfig() {
+        this._init();
     }
 
     // 发送消息

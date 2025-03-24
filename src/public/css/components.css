@@ -81,3 +81,94 @@
     60% { content: '...'; }
     80%, 100% { content: ''; }
 }
+
+/* 设置表单样式 */
+.form-text {
+    color: #666;
+    font-size: 0.875rem;
+    margin-top: 4px;
+}
+
+.push-settings {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.push-item {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+}
+
+.push-item label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 0;
+}
+
+.push-item input[type="checkbox"] {
+    width: auto;
+}
+
+.proxy-settings {
+    display: flex;
+    grid-template-columns: 2fr 1fr 1fr;
+    gap: 8px;
+}
+
+#settingsForm button {
+    margin-top: 20px;
+}
+
+/* 匹配规则表单样式 */
+.match-rule {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 5px;
+}
+
+.match-rule input,
+.match-rule select {
+    min-width: 0;  /* 允许 flex 项目收缩 */
+}
+
+@media (max-width: 768px) {
+    .match-rule input,
+    .match-rule select {
+        flex: 1 1 100% !important;  /* 移动端每项占满一行 */
+    }
+}
+
+.form-header {
+    margin-bottom: 1rem;
+    display: flex; 
+}
+
+.toggle-form-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    background: none;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    cursor: pointer;
+    color: var(--text-color);
+}
+
+.toggle-form-btn:hover {
+    background-color: var(--hover-bg-color);
+}
+
+.toggle-icon {
+    font-size: 12px;
+}
+#executeAllBtn {
+    margin-left: 1rem;
+}

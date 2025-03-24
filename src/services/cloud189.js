@@ -1,4 +1,5 @@
 const { CloudClient, FileTokenStore } = require('cloud189-sdk');
+const { logTaskEvent } = require('../utils/logUtils');
 const crypto = require('crypto');
 class Cloud189Service {
     static instances = new Map();
@@ -108,10 +109,10 @@ class Cloud189Service {
 
     // 创建转存任务
     async createSaveTask(taskInfos, targetFolderId, shareId) {
-        console.log("========== 开始创建转存任务 ============")
-        console.log("taskInfos: ", taskInfos)
-        console.log("targetFolderId: ", targetFolderId)
-        console.log("shareId: ", shareId)
+        logTaskEvent("========== 开始创建转存任务 ============")
+        logTaskEvent(`taskInfos: ${taskInfos}` )
+        logTaskEvent(`targetFolderId: ${targetFolderId}`)
+        logTaskEvent(`shareId: ${shareId}`)
         const response = await this.client.request('https://cloud.189.cn/api/open/batch/createBatchTask.action', {
             method: 'POST',
             form: {
