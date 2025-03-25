@@ -55,7 +55,7 @@ document.addEventListener('DOMContentLoaded', () => {
 function initTheme() {
     const themeToggle = document.getElementById('themeToggle');
     const themeDropdown = document.getElementById('themeDropdown');
-    const savedTheme = localStorage.getItem('theme') || 'light';
+    const savedTheme = localStorage.getItem('theme') || 'auto';
     
     // 设置初始主题
     setTheme(savedTheme);

@@ -215,57 +215,59 @@
     <div class="modal-content">
         <h2>修改任务</h2>
         <form id="editTaskForm">
-            <input type="hidden" id="editTaskId">
-            <div class="form-group">
-                <label for="editResourceName">资源名</label>
-                <div class="tree-select">
-                    <input type="text" id="editResourceName" required>
+            <div class="editTaskForm-body">
+                <input type="hidden" id="editTaskId">
+                <div class="form-group">
+                    <label for="editResourceName">资源名</label>
+                    <div class="tree-select">
+                        <input type="text" id="editResourceName" required>
+                    </div>
                 </div>
-            </div>
-            <div class="form-group">
-                <label for="shareFolderId">源目录(分享链接中的目录)</label>
-                <div class="tree-select">
-                    <input type="text" id="shareFolder" readonly required>
-                    <input type="hidden" id="shareFolderId" required>
-                    <div class="tree-select-dropdown"></div>
+                <div class="form-group">
+                    <label for="shareFolderId">源目录(分享链接中的目录)</label>
+                    <div class="tree-select">
+                        <input type="text" id="shareFolder" readonly required>
+                        <input type="hidden" id="shareFolderId" required>
+                        <div class="tree-select-dropdown"></div>
+                    </div>
                 </div>
-            </div>
-            <div class="form-group">
-                <label for="editRealFolderId">更新目录</label>
-                <div class="tree-select">
-                    <input type="text" id="editRealFolder" readonly required>
-                    <input type="hidden" id="editRealFolderId" required>
-                    <div class="tree-select-dropdown"></div>
+                <div class="form-group">
+                    <label for="editRealFolderId">更新目录</label>
+                    <div class="tree-select">
+                        <input type="text" id="editRealFolder" readonly required>
+                        <input type="hidden" id="editRealFolderId" required>
+                        <div class="tree-select-dropdown"></div>
+                    </div>
                 </div>
-            </div>
-            <div class="form-group">
-                <label for="editCurrentEpisodes">更新数</label>
-                <input type="number" id="editCurrentEpisodes" min="0">
-            </div>
-            <div class="form-group">
-                <label for="editTotalEpisodes">总数</label>
-                <input type="number" id="editTotalEpisodes" min="0">
-            </div>
-            <div class="form-group">
-                <label>文件名匹配规则（可选）</label>
-                <div class="match-rule" style="display: flex; flex-wrap: wrap; gap: 10px;">
-                    <input type="text" id="editMatchPattern" placeholder="正则表达式 例如: 第(\d+)集" style="flex: 2 1 200px;">
-                    <select id="editMatchOperator" style="flex: 1 1 100px;">
-                        <option value="lt">小于</option>
-                        <option value="eq">等于</option>
-                        <option value="gt">大于</option>
+                <div class="form-group">
+                    <label for="editCurrentEpisodes">更新数</label>
+                    <input type="number" id="editCurrentEpisodes" min="0">
+                </div>
+                <div class="form-group">
+                    <label for="editTotalEpisodes">总数</label>
+                    <input type="number" id="editTotalEpisodes" min="0">
+                </div>
+                <div class="form-group">
+                    <label>文件名匹配规则（可选）</label>
+                    <div class="match-rule" style="display: flex; flex-wrap: wrap; gap: 10px;">
+                        <input type="text" id="editMatchPattern" placeholder="正则表达式 例如: 第(\d+)集" style="flex: 2 1 200px;">
+                        <select id="editMatchOperator" style="flex: 1 1 100px;">
+                            <option value="lt">小于</option>
+                            <option value="eq">等于</option>
+                            <option value="gt">大于</option>
+                        </select>
+                        <input id="editMatchValue" placeholder="值" min="0" style="flex: 1 1 100px;">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="editStatus">状态</label>
+                    <select id="editStatus" required>
+                        <option value="pending">待处理</option>
+                        <option value="processing">追剧中</option>
+                        <option value="completed">已完结</option>
+                        <option value="failed">失败</option>
                     </select>
-                    <input id="editMatchValue" placeholder="值" min="0" style="flex: 1 1 100px;">
                 </div>
-            </div>
-            <div class="form-group">
-                <label for="editStatus">状态</label>
-                <select id="editStatus" required>
-                    <option value="pending">待处理</option>
-                    <option value="processing">追剧中</option>
-                    <option value="completed">已完结</option>
-                    <option value="failed">失败</option>
-                </select>
             </div>
             <div class="form-actions">
                 <button type="submit">保存</button>
