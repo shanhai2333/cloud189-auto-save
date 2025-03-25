@@ -402,6 +402,8 @@ class TaskService {
             } catch (error) {
                 console.error(`任务${task.id}执行失败:`, error);
             }
+            // 暂停500ms
+            await new Promise(resolve => setTimeout(resolve, 500));
         }
         if (saveResults.length > 0) {
             this.messageUtil.sendMessage(saveResults.join("\n\n"))

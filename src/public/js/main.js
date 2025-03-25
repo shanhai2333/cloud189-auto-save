@@ -18,11 +18,13 @@ document.addEventListener('DOMContentLoaded', () => {
     initTaskForm();
     initFormToggle();
     initEditTaskForm();
-     // 初始化主题
-     initTheme();
+    // 初始化主题
+    initTheme();
 
     // 初始化目录选择器
     const folderSelector = new FolderSelector({
+        enableFavorites: true,
+        favoritesKey: 'createTaskFavorites',
         onSelect: ({ id, name }) => {
             document.getElementById('targetFolder').value = name;
             document.getElementById('targetFolderId').value = id;
@@ -38,6 +40,17 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
         folderSelector.show(accountId);
+    });
+
+    // 添加常用目录按钮点击事件
+    document.getElementById('favoriteFolderBtn').addEventListener('click', (e) => {
+        e.preventDefault();
+        const accountId = document.getElementById('accountId').value;
+        if (!accountId) {
+            alert('请先选择账号');
+            return;
+        }
+        folderSelector.showFavorites(accountId);
     });
 
     // 初始化数据
@@ -97,4 +110,13 @@ function setTheme(theme) {
     } else {
         document.documentElement.setAttribute('data-theme', theme);
     }
+}
+
+// 从缓存获取数据
+function getFromCache(key) {
+    return localStorage.getItem(key);
+}
+// 保存数据到缓存
+function saveToCache(key, value) {
+    localStorage.setItem(key, value);
 }

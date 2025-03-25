@@ -5,7 +5,9 @@ class FolderSelector {
         this.selectedNode = null;
         this.modalId = 'folderModal_' + Math.random().toString(36).substr(2, 9);
         this.treeId = 'folderTree_' + Math.random().toString(36).substr(2, 9);
-        
+        this.enableFavorites = options.enableFavorites || false; // 是否启用常用目录功能
+        this.favoritesKey = options.favoritesKey || 'defaultFavoriteDirectories'; // 常用目录缓存key
+        this.isShowingFavorites = false;
         // API配置
         this.apiConfig = {
             url: options.apiUrl || '/api/folders', // 默认API地址
@@ -15,6 +17,35 @@ class FolderSelector {
         };
 
         this.initModal();
+    }
+
+    // 获取常用目录
+    getFavorites() {
+        const favorites = localStorage.getItem(this.favoritesKey);
+        return favorites ? JSON.parse(favorites) : [];
+    }
+
+    // 保存常用目录
+    saveFavorites(favorites) {
+        localStorage.setItem(this.favoritesKey, JSON.stringify(favorites));
+    }
+    // 添加到常用目录
+    addToFavorites(id, name) {
+        const favorites = this.getFavorites();
+        if (!favorites.find(f => f.id === id)) {
+            favorites.push({ id, name });
+            this.saveFavorites(favorites);
+        }
+    }
+
+    // 从常用目录移除
+    removeFromFavorites(id) {
+        const favorites = this.getFavorites();
+        const index = favorites.findIndex(f => f.id === id);
+        if (index !== -1) {
+            favorites.splice(index, 1);
+            this.saveFavorites(favorites);
+        }
     }
 
     initModal() {
@@ -65,7 +96,11 @@ class FolderSelector {
         refreshLink.classList.add('loading');
         
         try {
-            await this.loadFolderNodes('-11', this.folderTree, true);
+            if (this.isShowingFavorites) {
+                await this.loadFolderNodes(null, this.folderTree, false);
+            } else {
+                await this.loadFolderNodes('-11', this.folderTree, true);
+            }
         } finally {
             refreshLink.classList.remove('loading');
         }
@@ -85,6 +120,7 @@ class FolderSelector {
         // 设置z-index
         this.modal.style.zIndex = 1001;
         this.selectedNode = null;
+        this.isShowingFavorites = false;
         await this.loadFolderNodes('-11');
     }
 
@@ -109,15 +145,20 @@ class FolderSelector {
 
     async loadFolderNodes(folderId, parentElement = this.folderTree, refresh = false) {
         try {
-            const params = this.apiConfig.buildParams(this.accountId, folderId);
-            const response = await fetch(`${this.apiConfig.url}/${params}${refresh ? '&refresh=true' : ''}`);
-            const data = await response.json();
-            if (this.apiConfig.validateResponse(data)) {
-                const nodes = this.apiConfig.parseResponse(data);
-                this.renderFolderNodes(nodes, parentElement);
-            } else {
-                alert('获取目录失败: ' + (data.error || '未知错误'));
+            let nodes;
+            if (this.isShowingFavorites) {
+                // 从缓存加载常用目录数据
+                nodes = this.getFavorites();
+            }else{
+                const params = this.apiConfig.buildParams(this.accountId, folderId);
+                const response = await fetch(`${this.apiConfig.url}/${params}${refresh ? '&refresh=true' : ''}`);
+                const data = await response.json();
+                if (!this.apiConfig.validateResponse(data)) {
+                    throw new Error('获取目录失败: ' + (data.error || '未知错误'));
+                }
+                nodes = this.apiConfig.parseResponse(data);
             }
+            this.renderFolderNodes(nodes, parentElement);
         } catch (error) {
             console.error('加载目录失败:', error);
             alert('加载目录失败');
@@ -129,15 +170,43 @@ class FolderSelector {
         nodes.forEach(node => {
             const item = document.createElement('div');
             item.className = 'folder-tree-item';
+            // 常用目录视图不显示展开图标和复选框
+            const expandIcon = this.isShowingFavorites ? '' : '<span class="expand-icon">▶</span>';
+            const isFavorite = this.getFavorites().some(f => f.id === node.id);
+            const favoriteIcon = this.enableFavorites ? `
+                <span class="favorite-icon ${isFavorite ? 'active' : ''}" data-id="${node.id}" data-name="${node.name}">
+                    <img src="/icons/star.svg" alt="star" width="16" height="16">
+                </span>
+            ` : '';
+
             item.innerHTML = `
+                ${favoriteIcon}
                 <span class="folder-icon">📁</span>
                 <span class="folder-name">${node.name}</span>
-                <span class="expand-icon">▶</span>
+                ${expandIcon}
             `;
 
             const children = document.createElement('div');
-            children.className = 'folder-children';
-            item.appendChild(children);
+            if (!this.isShowingFavorites) {
+                children.className = 'folder-children';
+                item.appendChild(children);
+            }
+
+            if (this.enableFavorites) {
+                const favoriteBtn = item.querySelector('.favorite-icon');
+                favoriteBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const { id, name } = e.currentTarget.dataset;
+                    const isFavorite = this.getFavorites().some(f => f.id === id);
+                    if (!isFavorite) {
+                        this.addToFavorites(id, name);
+                        e.currentTarget.classList.add('active');
+                    } else {
+                        this.removeFromFavorites(id);
+                        e.currentTarget.classList.remove('active');
+                    }
+                });
+            }
 
             item.addEventListener('click', async (e) => {
                 e.stopPropagation();
@@ -161,6 +230,21 @@ class FolderSelector {
         }
         this.selectedNode = node;
         element.classList.add('selected');
+    }
+
+    showFavorites(accountId = '') {
+        if (accountId) {
+            this.accountId = accountId;
+        }
+        if (!this.accountId) {
+            alert('请先选择账号');
+            return;
+        }
+        this.modal.style.display = 'block';
+        this.modal.style.zIndex = 1001;
+        this.selectedNode = null;
+        this.isShowingFavorites = true;
+        this.loadFolderNodes(null, this.folderTree, false, true);
     }
 }
 

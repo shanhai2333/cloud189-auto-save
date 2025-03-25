@@ -141,6 +141,14 @@ async function executeAllTask() {
 
 // 初始化任务表单
 function initTaskForm() {
+    const lastTargetFolder = getFromCache('lastTargetFolder')
+    if (lastTargetFolder) {
+        console.log('lastTargetFolder', lastTargetFolder)
+        const { lastTargetFolderId, lastTargetFolderName } = JSON.parse(lastTargetFolder);
+        document.getElementById('targetFolderId').value = lastTargetFolderId;
+        document.getElementById('targetFolder').value = lastTargetFolderName; 
+    }
+    
     document.getElementById('taskForm').addEventListener('submit', async (e) => {
         e.preventDefault();
         const submitBtn = e.target.querySelector('button[type="submit"]');
@@ -169,7 +177,12 @@ function initTaskForm() {
     
             const data = await response.json();
             if (data.success) {
+                const targetFolderName = document.getElementById('targetFolder').value
+                // 存储本次选择的目录
+                saveToCache('lastTargetFolder', JSON.stringify({ lastTargetFolderId: targetFolderId, lastTargetFolderName:  targetFolderName}));
                 document.getElementById('taskForm').reset();
+                document.getElementById('targetFolderId').value = targetFolderId;
+                document.getElementById('targetFolder').value = targetFolderName;
                 const ids = data.data.map(item => item.id);
                 await Promise.all(ids.map(id => executeTask(id, false)));
                 alert('任务执行完成');
@@ -185,6 +198,7 @@ function initTaskForm() {
         }
     });
 }
+
 
 
 var chooseTask = undefined

@@ -100,10 +100,16 @@
                 </div>
                 <div class="form-group">
                     <label for="targetFolder">保存目录</label>
-                    <div class="tree-select">
-                        <input type="text" id="targetFolder" readonly required>
-                        <input type="hidden" id="targetFolderId" required>
-                        <div class="tree-select-dropdown"></div>
+                    <div class="tree-select" style="display: flex; gap: 10px;">
+                        <div style="flex: 1; position: relative;">
+                            <input type="text" id="targetFolder" readonly required>
+                            <input type="hidden" id="targetFolderId" required>
+                            <div class="tree-select-dropdown"></div>
+                        </div>
+                        <button type="button" class="btn-default" id="favoriteFolderBtn">
+                            <i class="fas fa-star"></i>
+                            常用目录
+                        </button>
                     </div>
                 </div>
                 <div class="form-group">
