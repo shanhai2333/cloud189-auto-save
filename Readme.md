@@ -64,6 +64,14 @@ docker run -d \
    - 点击确定
 5. 系统会自动检查更新并转存文件
 6. 支持手动触发任务执行
+7. 支持Cookie登录:
+   使用方法: 
+   1. 打开天翼云盘官网登录界面
+   2. 打开浏览器的开发者工具(ctrl+f12), 勾选保留日志
+   3. 正常发起登录, 然后在开发者工具中选择网络(network)
+   4. 在请求中找到loginSubmit.do, 点击打开详情
+   5. 拿到详情中的set-cookie: SSON=xxxxx, 只复制xxxx即可, 不要带上SSON
+   6. 填入账号创建中的cookie中即可
 
 ## 截图
 <img width="1505" alt="image" src="https://github.com/user-attachments/assets/359fb6e2-0d38-4a4c-a398-1b820ce47c8c" />

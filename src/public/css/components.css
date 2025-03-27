@@ -172,3 +172,34 @@
 #executeAllBtn {
     margin-left: 1rem;
 }
+
+.task-settings {
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 15px;
+    margin-top: 8px;
+}
+
+.task-item {
+    margin-bottom: 15px;
+}
+
+.task-item:last-child {
+    margin-bottom: 0;
+}
+
+.task-item label {
+    display: block;
+    margin-bottom: 5px;
+    color: #666;
+}
+.task-item input {
+    width: 100%;
+    margin-bottom: 5px;
+}
+
+
+.task-item .form-text {
+    color: #999;
+    font-size: 12px;
+}

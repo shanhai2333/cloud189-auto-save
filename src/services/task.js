@@ -1,3 +1,4 @@
+const { LessThan } = require('typeorm');
 const { Cloud189Service } = require('./cloud189');
 const { MessageUtil } = require('./message');
 const { logTaskEvent } = require('../utils/logUtils');
@@ -70,6 +71,9 @@ class TaskService {
      // 验证并创建目标目录
      async _validateAndCreateTargetFolder(cloud189, targetFolderId, shareInfo) {
         const folderInfo = await cloud189.listFiles(targetFolderId);
+        if (!folderInfo) {
+            throw new Error('获取文件列表失败');
+        }
         if (folderInfo.fileListAO.folderList.length > 0 && 
             folderInfo.fileListAO.folderList.find(folder => folder.name === shareInfo.fileName)) {
             throw new Error('目标已存在同名目录，请选择其他目录');
@@ -145,6 +149,9 @@ class TaskService {
             }
             // 校验访问码是否有效
             const accessCodeResponse = await cloud189.checkAccessCode(shareCode, taskDto.accessCode);
+            if (!accessCodeResponse) {
+                throw new Error('校验访问码失败');
+            }
             logTaskEvent(accessCodeResponse)
             if (!accessCodeResponse.shareId) {
                 throw new Error('访问码无效');
@@ -236,6 +243,9 @@ class TaskService {
                     task.realFolderId,
                     task.shareId
                 );
+                if (!taskResp) {
+                    throw new Error('创建任务失败');
+                }
                 if (taskResp.res_code != 0) {
                     throw new Error(taskResp.res_msg);
                 }
@@ -275,11 +285,7 @@ class TaskService {
             return saveResults.join('\n');
 
         } catch (error) {
-            logTaskEvent(error)
-            task.status = 'failed';
-            task.lastError = error.message;
-            await this.taskRepo.save(task);
-            return '';
+            return await this._handleTaskFailure(task, error);
         }
     }
 
@@ -296,8 +302,13 @@ class TaskService {
     async getPendingTasks() {
         return await this.taskRepo.find({
             where: [
-                { status: 'pending' },
-                { status: 'processing' }
+                {
+                    status: 'pending',
+                    nextRetryTime: null
+                },
+                {
+                    status: 'processing'
+                }
             ]
         });
     }
@@ -346,6 +357,9 @@ class TaskService {
             const destFileName = file.name.replace(new RegExp(task.sourceRegex), task.targetRegex);
             if (destFileName === file.name) continue;
             const renameResult = await cloud189.renameFile(file.id, destFileName);
+            if (!renameResult) {
+                throw new Error('重命名失败');
+            }
             if (renameResult.res_code != 0) {
                 logTaskEvent(`${file.name}重命名为${destFileName}失败, 原因:${destFileName}${renameResult.res_msg}`)
                 message.push(` > <font color="comment">${file.name} → ${destFileName}失败, 原因:${destFileName}${renameResult.res_msg}</font>`)
@@ -365,6 +379,9 @@ class TaskService {
         }
         // 轮询任务状态
         const task = await cloud189.checkTaskStatus(taskId)
+        if (!task) {
+            return false;
+        }
         if (task.taskStatus == 3) {
             // 暂停200毫秒
             await new Promise(resolve => setTimeout(resolve, 200));
@@ -376,6 +393,9 @@ class TaskService {
         // 如果status == 2 说明有冲突
         if (task.taskStatus == 2) {
             const conflictTaskInfo = await cloud189.getConflictTaskInfo(taskId);
+            if (!conflictTaskInfo) {
+                return false
+            }
             // 忽略冲突
             const taskInfos = conflictTaskInfo.taskInfos;
             for (const taskInfo of taskInfos) {
@@ -440,12 +460,77 @@ class TaskService {
 
     // 根据matchOperator判断值是否要转换为数字
     _handleMatchValue(matchOperator, matchResult, matchValue) {    
-    if (matchOperator === 'lt' || matchOperator === 'gt') {
-        return [parseFloat(matchResult), parseFloat(matchValue)];
+        if (matchOperator === 'lt' || matchOperator === 'gt') {
+            return [parseFloat(matchResult), parseFloat(matchValue)];
+        }
+        return [matchResult, matchValue];
     }
-    return [matchResult, matchValue];
-}
 
+    // 任务失败处理逻辑
+    async _handleTaskFailure(task, error) {
+        logTaskEvent(error);
+        const maxRetries = ConfigService.getConfigValue('task.maxRetries');
+        const retryInterval = ConfigService.getConfigValue('task.retryInterval');
+        
+        // 初始化重试次数
+        if (!task.retryCount) {
+            task.retryCount = 0;
+        }
+        
+        if (task.retryCount < maxRetries) {
+            task.retryCount++;
+            task.status = 'pending';
+            task.lastError = `${error.message} (重试 ${task.retryCount}/${maxRetries})`;
+            // 设置下次重试时间
+            task.nextRetryTime = new Date(Date.now() + retryInterval * 1000);
+            logTaskEvent(`任务将在 ${retryInterval} 秒后重试 (${task.retryCount}/${maxRetries})`);
+        } else {
+            task.status = 'failed';
+            task.lastError = `${error.message} (已达到最大重试次数 ${maxRetries})`;
+            logTaskEvent('任务达到最大重试次数，标记为失败');
+        }
+        
+        await this.taskRepo.save(task);
+        return '';
+    }
+
+     // 获取需要重试的任务
+     async getRetryTasks() {
+        const now = new Date();
+        return await this.taskRepo.find({
+            where: {
+                status: 'pending',
+                nextRetryTime: LessThan(now),
+                retryCount: LessThan(ConfigService.getConfigValue('task.maxRetries'))
+            }
+        });
+    }
+
+    // 处理重试任务
+    async processRetryTasks() {
+        logTaskEvent('开始处理重试任务');
+        const retryTasks = await this.getRetryTasks();
+        let saveResults = [];
+        
+        for (const task of retryTasks) {
+            try {
+                const result = await this.processTask(task);
+                if (result) {
+                    saveResults.push(result);
+                }
+            } catch (error) {
+                console.error(`重试任务${task.id}执行失败:`, error);
+            }
+            // 任务间隔
+            await new Promise(resolve => setTimeout(resolve, 500));
+        }
+        
+        if (saveResults.length > 0) {
+            this.messageUtil.sendMessage(saveResults.join("\n\n"));
+        }
+        logTaskEvent('重试任务处理完毕');
+        return saveResults;
+    }
 }
 
 module.exports = { TaskService };

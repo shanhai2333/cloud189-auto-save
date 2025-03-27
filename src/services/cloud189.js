@@ -1,6 +1,7 @@
 const { CloudClient, FileTokenStore } = require('cloud189-sdk');
 const { logTaskEvent } = require('../utils/logUtils');
 const crypto = require('crypto');
+const got = require('got');
 class Cloud189Service {
     static instances = new Map();
 
@@ -13,28 +14,70 @@ class Cloud189Service {
     }
 
     constructor(account) {
-        this.client = new CloudClient({ 
+        const _options = {
             username: account.username,
             password: account.password,
             token: new FileTokenStore(`data/${account.username}.json`)
-            }
-        );
+        }
+        if (!account.password && account.cookies) {
+            _options.ssonCookie = account.cookies
+            _options.password = null   
+        }
+        this.client = new CloudClient(_options);
+       
     }
 
+    // 封装统一请求
+    async request(action, body) {
+        body.headers = {'Accept': 'application/json;charset=UTF-8'}
+        try {
+            return await this.client.request('https://cloud.189.cn' + action, body).json();
+        }catch (error) {
+            if (error instanceof got.HTTPError) {
+                const responseBody = error.response.body;
+                logTaskEvent('请求天翼云盘接口失败:' + responseBody);
+            }else if (error instanceof got.TimeoutError) {
+                logTaskEvent('请求天翼云盘接口失败: 请求超时, 请检查是否能访问天翼云盘');
+            }else if(error instanceof got.RequestError) {
+                logTaskEvent('请求天翼云盘接口异常: ' + error.message);
+            }else{
+                logTaskEvent('其他异常:' + error.message)
+            }
+            return null
+        }
+    }
+    
+    async getUserSizeInfo() {
+        try {
+            return await this.client.getUserSizeInfo()    
+        }catch(error) {
+            if (error instanceof got.HTTPError) {
+                const responseBody = error.response.body;
+                logTaskEvent('请求天翼云盘接口失败:'+ responseBody);
+            }else if (error instanceof got.TimeoutError) {
+                logTaskEvent('请求天翼云盘接口失败: 请求超时, 请检查是否能访问天翼云盘');
+            }else if(error instanceof got.RequestError) {
+                logTaskEvent('请求天翼云盘接口异常: ' + error.message);
+            } else {
+                // 捕获其他类型的错误
+                logTaskEvent('获取用户空间信息失败:' +  error.message);
+            }
+            return null
+        }
+    
+    }
     // 解析分享链接获取文件信息
     async getShareInfo(shareCode) {
-        const response = await this.client.request.get('https://cloud.189.cn/api/open/share/getShareInfoByCodeV2.action', {
-            searchParams: { shareCode },
-            headers: {
-                'Accept': 'application/json;charset=UTF-8'
-            }
-        }).json();
-        return response;
+        return await this.request('/api/open/share/getShareInfoByCodeV2.action' , {
+            method: 'GET',
+            searchParams: { shareCode }
+        })
     }
 
     // 获取分享目录下的文件列表
     async listShareDir(shareId, fileId, shareMode, accessCode) {
-        const response = await this.client.request.get('https://cloud.189.cn/api/open/share/listShareDir.action', {
+        return await this.request('/api/open/share/listShareDir.action', {
+            method: 'GET',
             searchParams: {
                 shareId,
                 isFolder: true,
@@ -45,12 +88,8 @@ class Cloud189Service {
                 pageNum: 1,
                 pageSize: 1000,
                 accessCode
-            },
-            headers: {
-                'Accept': 'application/json;charset=UTF-8'
             }
-        }).json();
-        return response;
+        })
     }
 
     // 递归获取所有文件列表
@@ -73,38 +112,32 @@ class Cloud189Service {
 
     // 搜索个人网盘文件
     async searchFiles(filename) {
-        const response = await this.client.request('https://cloud.189.cn/api/open/file/searchFiles.action', {
-            searchParams: {
+        return await this.request('/api/open/share/getShareInfoByCodeV2.action' , {
+            method: 'GET',
+            searchParams: { 
                 folderId: '-11',
                 pageSize: '1000',
                 pageNum: '1',
                 recursive: 1,
                 mediaType: 0,
                 filename
-            },
-            headers: {
-                'Accept': 'application/json;charset=UTF-8'
-            }
-        }).json();
-        return response;
+             }
+        })
     }
 
     // 获取个人网盘文件列表
     async listFiles(folderId) {
-        const response = await this.client.request.get('https://cloud.189.cn/api/open/file/listFiles.action', {
-            searchParams: {
+        return await this.request('/api/open/file/listFiles.action' , {
+            method: 'GET',
+            searchParams: { 
                 folderId,
                 mediaType: 0,
                 orderBy: 'lastOpTime',
                 descending: true,
                 pageNum: 1,
                 pageSize: 1000
-            },
-            headers: {
-                'Accept': 'application/json;charset=UTF-8'
-            }
-        }).json();
-        return response;
+             }
+        })
     }
 
     // 创建转存任务
@@ -113,97 +146,74 @@ class Cloud189Service {
         logTaskEvent(`taskInfos: ${taskInfos}` )
         logTaskEvent(`targetFolderId: ${targetFolderId}`)
         logTaskEvent(`shareId: ${shareId}`)
-        const response = await this.client.request('https://cloud.189.cn/api/open/batch/createBatchTask.action', {
-            method: 'POST',
-            form: {
+        return await this.request('/api/open/batch/createBatchTask.action' , {
+            method: 'GET',
+            searchParams: { 
                 type: 'SHARE_SAVE',
                 taskInfos,
                 targetFolderId,
                 shareId
-            },
-            headers: {
-                'Accept': 'application/json;charset=UTF-8'
-            }
-        }).json();
-        return response;
+             }
+        })
     }
 
     // 查询转存任务状态
     async checkTaskStatus(taskId) {
         const params = {taskId: taskId, type: 'SHARE_SAVE'}
-        const response = await this.client.request('https://cloud.189.cn/api/open/batch/checkBatchTask.action', {
+        return await this.request('/api/open/batch/checkBatchTask.action' , {
             method: 'POST',
             form: params,
-            headers: {
-                'Accept': 'application/json;charset=UTF-8'
-            }
-        }).json();
-        return response;
+        })
     }
 
     // 获取目录树节点
     async getFolderNodes(folderId = '-11') {
-        const response = await this.client.request('https://cloud.189.cn/api/portal/getObjectFolderNodes.action', {
+        return await this.request('/api/portal/getObjectFolderNodes.action' , {
             method: 'POST',
             form: {
                 id: folderId,
                 orderBy: 1,
                 order: 'ASC'
             },
-            headers: {
-                'Accept': 'application/json;charset=UTF-8'
-            }
-        }).json();
-        return response;
+        })
     }
 
     // 新建目录
     async createFolder(folderName, parentFolderId) {
-        const response = await this.client.request('https://cloud.189.cn/api/open/file/createFolder.action', {
+        return await this.request('/api/open/file/createFolder.action' , {
             method: 'POST',
             form: {
                 parentFolderId: parentFolderId,
                 folderName: folderName
             },
-            headers: {
-                'Accept': 'application/json;charset=UTF-8'
-            },
-        }).json();
-        return response;
+        })
     }
 
      // 验证分享链接访问码
      async checkAccessCode(shareCode, accessCode) {
-        const response = await this.client.request.get('https://cloud.189.cn/api/open/share/checkAccessCode.action', {
+        return await this.request('/api/open/share/checkAccessCode.action' , {
+            method: 'GET',
             searchParams: {
                 shareCode,
                 accessCode,
                 uuid: crypto.randomUUID()
             },
-            headers: {
-                'Accept': 'application/json;charset=UTF-8'
-            }
-        }).json();
-        return response;
+        })
     }
     // 获取冲突的文件 
     async getConflictTaskInfo(taskId) {
-        const response = await this.client.request('https://cloud.189.cn/api/open/batch/getConflictTaskInfo.action', {
+        return await this.request('/api/open/batch/getConflictTaskInfo.action' , {
             method: 'POST',
             json: {
                 taskId,
                 type: 'SHARE_SAVE'
             },
-            headers: {
-                'Accept': 'application/json;charset=UTF-8'
-            }
-        }).json();
-        return response
+        })
     }
 
     // 处理冲突 taskInfos: [{"fileId":"","fileName":"","isConflict":1,"isFolder":0,"dealWay":1}]
     async manageBatchTask(taskId,targetFolderId, taskInfos) {
-        const response = await this.client.request('https://cloud.189.cn/api/open/batch/manageBatchTask.action', {
+        return await this.request('/api/open/batch/manageBatchTask.action' , {
             method: 'POST',
             json: {
                 taskId,
@@ -211,36 +221,31 @@ class Cloud189Service {
                 targetFolderId,
                 taskInfos
             },
-            headers: {
-                'Accept': 'application/json;charset=UTF-8'
-            }
-        }).json();
-        return response
+        })
     }
-
 
     // 重命名文件
     async renameFile(fileId, destFileName) {
-        try{
-            const response = await this.client.request('https://cloud.189.cn/api/open/file/renameFile.action', {
+        try {
+            const response = await this.request('/api/open/file/renameFile.action', {
                 method: 'POST',
                 form: {
                     fileId,
                     destFileName
                 },
-                headers: {
-                    'Accept': 'application/json;charset=UTF-8'
-                }
-            }).json();
-            return response;
-        }catch(e){
-            if (JSON.parse(e.response.body).res_code == "FileAlreadyExists") {
-                return {
-                    res_code: "FileAlreadyExists",
-                    res_msg: "文件已存在"
+            })
+            return response
+        }catch(error) {
+            if (error instanceof got.HTTPError) {
+                const responseBody = error.response.body;
+                if (responseBody.res_code === "FileAlreadyExists") {
+                    return {
+                        res_code: "FileAlreadyExists",
+                        res_msg: "文件已存在"
+                    }
                 }
             }
-            throw e;
+            throw error;
         }
     }
 }

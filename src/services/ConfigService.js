@@ -7,7 +7,9 @@ class ConfigService {
     this._configFile = this._configPath + '/config.json';
     this._config = {
       task: {
-        taskExpireDays: 3
+        taskExpireDays: 3,
+        maxRetries: 3,        // 最大重试次数
+        retryInterval: 300,   // 重试间隔（秒）
       },
       wecom: {
         enable: false,
