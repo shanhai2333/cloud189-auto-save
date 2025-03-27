@@ -1,7 +1,6 @@
 require('dotenv').config();
 const express = require('express');
 const cron = require('node-cron');
-const basicAuth = require('express-basic-auth');
 const { AppDataSource } = require('./database');
 const { Account, Task } = require('./entities');
 const { TaskService } = require('./services/task');
@@ -10,18 +9,71 @@ const { MessageUtil } = require('./services/message');
 const { CacheManager } = require('./services/CacheManager')
 const ConfigService = require('./services/ConfigService');
 const packageJson = require('../package.json');
+const session = require('express-session');
 
 const app = express();
 app.use(express.json());
-app.use(express.static('src/public'));
 
-// 添加HTTP基本认证
-app.use(basicAuth({
-    users: { [process.env.AUTH_USERNAME]: process.env.AUTH_PASSWORD },
-    challenge: true,
-    realm: encodeURIComponent('天翼云盘自动转存系统'),
+app.use(session({
+    secret: process.env.SESSION_SECRET || 'LhX2IyUcMAz2',
+    resave: false,
+    saveUninitialized: false,
+    cookie: { 
+        secure: process.env.NODE_ENV === 'production',
+        maxAge: 24 * 60 * 60 * 1000 * 30 // 30天
+    }
 }));
 
+// 验证会话的中间件
+const authenticateSession = (req, res, next) => {
+    if (req.session.authenticated) {
+        next();
+    } else {
+        // API 请求返回 401，页面请求重定向到登录页
+        if (req.path.startsWith('/api/')) {
+            res.status(401).json({ success: false, error: '未登录' });
+        } else {
+            res.redirect('/login');
+        }
+    }
+};
+
+// 添加根路径处理
+app.get('/', (req, res) => {
+    if (!req.session.authenticated) {
+        res.redirect('/login');
+    } else {
+        res.sendFile(__dirname + '/public/index.html');
+    }
+});
+
+
+// 登录页面
+app.get('/login', (req, res) => {
+    res.sendFile(__dirname + '/public/login.html');
+});
+
+// 登录接口
+app.post('/api/auth/login', (req, res) => {
+    const { username, password } = req.body;
+    
+    if (username === process.env.AUTH_USERNAME && 
+        password === process.env.AUTH_PASSWORD) {
+        req.session.authenticated = true;
+        req.session.username = username;
+        res.json({ success: true });
+    } else {
+        res.status(401).json({ success: false, error: '用户名或密码错误' });
+    }
+});
+app.use(express.static('src/public'));
+// 为所有路由添加认证（除了登录页和登录接口）
+app.use((req, res, next) => {
+    if (req.path === '/' || req.path === '/login' || req.path === '/api/auth/login' || req.path.match(/\.(css|js|png|jpg|jpeg|gif|ico)$/)) {
+        return next();
+    }
+    authenticateSession(req, res, next);
+});
 // 初始化数据库连接
 AppDataSource.initialize().then(() => {
     console.log('数据库连接成功');
@@ -104,6 +156,16 @@ AppDataSource.initialize().then(() => {
         }
     });
 
+    app.delete('/api/tasks/batch', async (req, res) => {
+        try {
+            const taskIds = req.body.taskIds;
+            await taskService.deleteTasks(taskIds);
+            res.json({ success: true });
+        } catch (error) {
+            res.json({ success: false, error: error.message });
+        }
+    });
+
     app.delete('/api/tasks/:id', async (req, res) => {
         try {
             await taskService.deleteTask(parseInt(req.params.id));
@@ -112,6 +174,7 @@ AppDataSource.initialize().then(() => {
             res.json({ success: false, error: error.message });
         }
     });
+
 
     app.put('/api/tasks/:id', async (req, res) => {
         try {

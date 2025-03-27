@@ -91,7 +91,16 @@
                     <span class="toggle-text">展开</span>
                     <span class="toggle-icon">▼</span>
                 </button>
-                <button type="button" onclick="executeAllTask()" id="executeAllBtn" class="btn-warning">执行所有</button>
+                <div class="task-operations">
+                    <button type="button" onclick="executeAllTask()" id="executeAllBtn" class="btn-warning">执行所有</button>
+                    <button type="button" onclick="deleteSelectedTasks()" id="batchDeleteBtn" class="btn-danger" style="display: none;">批量删除</button>
+                    <select id="taskFilter" class="task-filter">
+                        <option value="all">全部</option>
+                        <option value="processing">追剧中</option>
+                        <option value="completed">已完结</option>
+                        <option value="failed">失败</option>
+                    </select>
+                </div>
             </div>
             <form id="taskForm" style="display: none;">
                 <div class="form-group">
@@ -228,6 +237,7 @@
 
 <!-- 在 body 结束标签前添加以下脚本引用 -->
 <script src="/js/folderSelector.js"></script>
+<script src="/js/theme.js"></script>
 <script src="/js/tabs.js"></script>
 <script src="/js/accounts.js"></script>
 <script src="/js/tasks.js"></script>

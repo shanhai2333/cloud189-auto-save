@@ -1,6 +1,6 @@
 {
   "name": "cloud189-auto-save",
-  "version": "2.1.9",
+  "version": "2.2.0",
   "description": "天翼云盘自动转存系统",
   "main": "src/index.js",
   "scripts": {
@@ -13,6 +13,7 @@
     "dotenv": "^16.3.1",
     "express": "^4.18.2",
     "express-basic-auth": "^1.2.1",
+    "express-session": "^1.18.1",
     "http-proxy-agent": "^7.0.2",
     "https-proxy-agent": "^7.0.6",
     "node-cron": "^3.0.2",

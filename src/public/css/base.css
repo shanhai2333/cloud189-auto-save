@@ -180,3 +180,9 @@ button {
     justify-content: center;
     white-space: nowrap;
 }
+#executeAllBtn {
+    margin-left: 1rem;
+}
+.task-operations button {
+    flex-shrink: 0; /* 防止按钮被压缩 */
+}

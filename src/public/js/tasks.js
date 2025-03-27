@@ -50,7 +50,7 @@ async function fetchTasks() {
             taskList.push(task)
             const progressRing = task.totalEpisodes ? createProgressRing(task.currentEpisodes || 0, task.totalEpisodes) : '';
             tbody.innerHTML += `
-                <tr>
+                <tr data-status='${task.status}' data-task-id='${task.id}'>
                     <td>
                         <button class="btn-danger" onclick="deleteTask(${task.id})">删除</button>
                         <button class="btn-warning" onclick="executeTask(${task.id})">执行</button>
@@ -527,4 +527,61 @@ function initFormToggle() {
         toggleText.textContent = isHidden ? '隐藏' : '展开';
         toggleIcon.textContent = isHidden ? '▲' : '▼';
     });
+}
+
+
+document.addEventListener('DOMContentLoaded', function() {
+    // 任务筛选功能
+    const taskFilter = document.getElementById('taskFilter');
+    taskFilter.addEventListener('change', function() {
+        const status = this.value;
+        const tasks = document.querySelectorAll('#taskTable tbody tr');
+        tasks.forEach(task => {
+            const taskStatus = task.getAttribute('data-status');
+            if (status === 'all' || status === taskStatus) {
+                task.style.display = '';
+            } else {
+                task.style.display = 'none';
+            }
+        });
+    });
+
+    // 批量选择功能
+    const taskTable = document.getElementById('taskTable');
+    const batchDeleteBtn = document.getElementById('batchDeleteBtn');
+    
+    taskTable.addEventListener('click', function(e) {
+        const row = e.target.closest('tr');
+        if (!row) return;
+        
+        row.classList.toggle('selected');
+        const selectedTasks = document.querySelectorAll('#taskTable tbody tr.selected');
+        batchDeleteBtn.style.display = selectedTasks.length > 0 ? '' : 'none';
+    });
+});
+
+// 批量删除功能
+async function deleteSelectedTasks() {
+    if (!confirm('确定要删除选中的任务吗？')) return;
+
+    const selectedTasks = document.querySelectorAll('#taskTable tbody tr.selected');
+    const taskIds = Array.from(selectedTasks).map(row => row.getAttribute('data-task-id'));
+
+    try {
+        const response = await fetch('/api/tasks/batch', {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ taskIds })
+        });
+
+        const data = await response.json();
+        if (data.success) {
+            alert('批量删除成功');
+            fetchTasks();
+        } else {
+            alert('批量删除失败: ' + data.error);
+        }
+    } catch (error) {
+        alert('操作失败: ' + error.message);
+    }
 }

@@ -1,4 +1,4 @@
-const { LessThan } = require('typeorm');
+const { LessThan, In } = require('typeorm');
 const { Cloud189Service } = require('./cloud189');
 const { MessageUtil } = require('./message');
 const { logTaskEvent } = require('../utils/logUtils');
@@ -180,6 +180,14 @@ class TaskService {
         const task = await this.taskRepo.findOneBy({ id: taskId });
         if (!task) throw new Error('任务不存在');
         await this.taskRepo.remove(task);
+    }
+
+    // 批量删除
+    async deleteTasks(taskIds) {
+        console.log(taskIds)
+        const tasks = await this.taskRepo.findBy({ id: In(taskIds) });
+        if (!tasks || tasks.length === 0) throw new Error('任务不存在');
+        await this.taskRepo.remove(tasks);
     }
 
     // 获取文件夹下的所有文件
