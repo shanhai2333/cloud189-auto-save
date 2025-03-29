@@ -1,6 +1,7 @@
 const WeworkService = require('./WeworkService');
 const TelegramService = require('./TelegramService');
 const WxPusherService = require('./WxPusherService');
+const BarkService = require('./BarkService');
 
 class MessageManager {
     constructor() {
@@ -43,6 +44,16 @@ class MessageManager {
             });
             wxPusherService.initialize();
             this.services.push(wxPusherService);
+        }
+
+        // Bark配置
+        if (config.bark?.enabled) {
+            const barkService = new BarkService({
+                serverUrl: config.bark.serverUrl,
+                key: config.bark.key
+            });
+            barkService.initialize();
+            this.services.push(barkService);
         }
     }
 

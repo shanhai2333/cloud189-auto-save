@@ -61,7 +61,7 @@ async function fetchTasks() {
                     <!--<td data-label="首次保存目录"><a href="https://cloud.189.cn/web/main/file/folder/${task.targetFolderId}" target="_blank">${task.targetFolderId}</a></td>-->
                      <td data-label="更新目录"><a href="javascript:void(0)" onclick="showFileListModal('${task.id}')" class='ellipsis'>${task.realFolderName || task.realFolderId}</a></td>
                     <td data-label="更新数/总数">${task.currentEpisodes || 0}/${task.totalEpisodes || '未知'}${progressRing}</td>
-                    <td data-label="上次转存时间">${task.lastFileUpdateTime || '未更新'}</td>
+                    <td data-label="上次转存时间">${formatDateTime(task.lastFileUpdateTime)}</td>
                     <td data-label="状态"><span class="status-badge status-${task.status}">${task.status}</span></td>
                 </tr>
             `;
@@ -584,4 +584,10 @@ async function deleteSelectedTasks() {
     } catch (error) {
         alert('操作失败: ' + error.message);
     }
+}
+// 添加时间格式化函数
+function formatDateTime(dateStr) {
+    if (!dateStr) return '未更新';
+    const date = new Date(dateStr);
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')} ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
 }

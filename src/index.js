@@ -10,11 +10,17 @@ const { CacheManager } = require('./services/CacheManager')
 const ConfigService = require('./services/ConfigService');
 const packageJson = require('../package.json');
 const session = require('express-session');
+const FileStore = require('session-file-store')(session);
 
 const app = express();
 app.use(express.json());
 
 app.use(session({
+    store: new FileStore({
+        path: './data/sessions',  // session文件存储路径
+        ttl: 30 * 24 * 60 * 60,  // session过期时间，单位秒
+        reapInterval: 3600,       // 清理过期session间隔，单位秒
+    }),
     secret: process.env.SESSION_SECRET || 'LhX2IyUcMAz2',
     resave: false,
     saveUninitialized: false,
@@ -347,7 +353,6 @@ AppDataSource.initialize().then(() => {
     const RETRY_CHECK_INTERVAL = 60 * 1000; // 每分钟
     setInterval(async () => {
         try {
-            console.log('执行重试任务检查...');
             await taskService.processRetryTasks();
         }catch(error) {
             console.error('处理重试任务时出错:', error);

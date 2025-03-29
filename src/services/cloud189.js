@@ -34,8 +34,11 @@ class Cloud189Service {
             return await this.client.request('https://cloud.189.cn' + action, body).json();
         }catch (error) {
             if (error instanceof got.HTTPError) {
-                const responseBody = error.response.body;
-                logTaskEvent('请求天翼云盘接口失败:' + responseBody);
+                const responseBody = JSON.parse(error.response.body);
+                if (responseBody.res_code === "ShareAuditWaiting") {
+                    return responseBody;
+                }
+                logTaskEvent('请求天翼云盘接口失败:' + error.response.body);
             }else if (error instanceof got.TimeoutError) {
                 logTaskEvent('请求天翼云盘接口失败: 请求超时, 请检查是否能访问天翼云盘');
             }else if(error instanceof got.RequestError) {
@@ -75,12 +78,12 @@ class Cloud189Service {
     }
 
     // 获取分享目录下的文件列表
-    async listShareDir(shareId, fileId, shareMode, accessCode) {
+    async listShareDir(shareId, fileId, shareMode, accessCode, isFolder = true) {
         return await this.request('/api/open/share/listShareDir.action', {
             method: 'GET',
             searchParams: {
                 shareId,
-                isFolder: true,
+                isFolder: isFolder,
                 fileId: fileId,
                 orderBy: 'lastOpTime',
                 descending: true,
@@ -93,21 +96,12 @@ class Cloud189Service {
     }
 
     // 递归获取所有文件列表
-    async getAllShareFiles(shareId, fileId, shareMode, accessCode) {
-        const result = await this.listShareDir(shareId, fileId, shareMode, accessCode);
-        if (!result || (!result.fileListAO.folderList && !result.fileListAO.fileList)) {
+    async getShareFiles(shareId, fileId, shareMode, accessCode, isFolder = true) {
+        const result = await this.listShareDir(shareId, fileId, shareMode, accessCode, isFolder);
+        if (!result || !result.fileListAO.fileList) {
             return [];
         }
-
-        let allFiles = [...result.fileListAO.fileList];
-
-        // 递归获取子文件夹中的文件
-        for (const floder of result.fileListAO.folderList) {
-            const subFiles = await this.getAllShareFiles(shareId, floder.id, shareMode, accessCode);
-                allFiles = allFiles.concat(subFiles);
-        }
-
-        return allFiles;
+        return result.fileListAO.fileList;
     }
 
     // 搜索个人网盘文件

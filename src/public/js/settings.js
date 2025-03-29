@@ -29,6 +29,11 @@ async function loadSettings() {
             document.getElementById('proxyUsername').value = settings.proxy?.username || '';
             document.getElementById('proxyPassword').value = settings.proxy?.password || '';
 
+            // Bark 设置
+            document.getElementById('enableBark').checked = settings.bark?.enable || false;
+            document.getElementById('barkServerUrl').value = settings.bark?.serverUrl || '';
+            document.getElementById('barkKey').value = settings.bark?.key || '';
+            
         }
     } catch (error) {
         console.error('加载设置失败:', error);
@@ -62,6 +67,11 @@ document.getElementById('settingsForm').addEventListener('submit', async (e) => 
             port: parseInt(document.getElementById('proxyPort').value) || 0,
             username: document.getElementById('proxyUsername').value,
             password: document.getElementById('proxyPassword').value
+        },
+        bark: {
+            enable: document.getElementById('enableBark').checked,
+            serverUrl: document.getElementById('barkServerUrl').value,
+            key: document.getElementById('barkKey').value
         }
     };
     // taskRetryInterval不能少于60秒

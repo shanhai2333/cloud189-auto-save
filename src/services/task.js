@@ -41,6 +41,9 @@ class TaskService {
     async getShareInfo(cloud189, shareCode) {
          const shareInfo = await cloud189.getShareInfo(shareCode);
          if (!shareInfo) throw new Error('获取分享信息失败');
+         if(shareInfo.res_code == "ShareAuditWaiting") {
+            throw new Error('分享链接审核中, 请稍后再试');
+         }
          return shareInfo;
     }
 
@@ -86,7 +89,7 @@ class TaskService {
 
     // 处理文件夹分享
     async _handleFolderShare(cloud189, shareInfo, taskDto, rootFolder, tasks) {
-        const result = await cloud189.listShareDir(shareInfo.shareId, shareInfo.fileId, shareInfo.shareMode, shareInfo.userAccessCode);
+        const result = await cloud189.listShareDir(shareInfo.shareId, shareInfo.fileId, shareInfo.shareMode, taskDto.accessCode);
         if (!result?.fileListAO) return;
 
         const { fileList: rootFiles = [], folderList: subFolders = [] } = result.fileListAO;
@@ -119,7 +122,7 @@ class TaskService {
 
     // 处理单文件分享
     async _handleSingleShare(cloud189, shareInfo, taskDto, rootFolderId, tasks) {
-        const shareFiles = await cloud189.getAllShareFiles(shareInfo.shareId, shareInfo.fileId, shareInfo.shareMode, taskDto.accessCode);
+        const shareFiles = await cloud189.getShareFiles(shareInfo.shareId, shareInfo.fileId, shareInfo.shareMode, taskDto.accessCode, false);
         if (!shareFiles?.length) throw new Error('获取文件列表失败');
 
         const task = this.taskRepo.create(
@@ -144,7 +147,7 @@ class TaskService {
         const shareInfo = await this.getShareInfo(cloud189, shareCode);
         // 如果分享链接是加密链接, 且没有提供访问码, 则抛出错误
         if (shareInfo.shareMode == 1 ) {
-            if (!accessCode) {
+            if (!taskDto.accessCode) {
                 throw new Error('分享链接为加密链接, 请提供访问码');
             }
             // 校验访问码是否有效
@@ -152,7 +155,6 @@ class TaskService {
             if (!accessCodeResponse) {
                 throw new Error('校验访问码失败');
             }
-            logTaskEvent(accessCodeResponse)
             if (!accessCodeResponse.shareId) {
                 throw new Error('访问码无效');
             }
@@ -219,6 +221,11 @@ class TaskService {
             const cloud189 = Cloud189Service.getInstance(account);
              // 获取分享文件列表并进行增量转存
              const shareDir = await cloud189.listShareDir(task.shareId, task.shareFolderId, task.shareMode,task.accessCode);
+             // 如果res_code 为ShareAuditWaiting 则等待审核
+            //  if (shareDir.res_code == "ShareAuditWaiting") {
+            //      logTaskEvent(`${task.name}分享链接审核中跳过执行`)
+            //      return '';
+            //  } 
              if (!shareDir || !shareDir.fileListAO.fileList) {
                  logTaskEvent("获取文件列表失败: " + JSON.stringify(shareDir))
                  throw new Error('获取文件列表失败');
@@ -271,6 +278,7 @@ class TaskService {
                 task.status = 'processing';
                 task.lastFileUpdateTime = new Date();
                 task.currentEpisodes = existingFiles.size + newFiles.length;
+                task.retryCount = 0;
                 this.autoRename(cloud189, task)
             } else if (task.lastFileUpdateTime) {
                 // 检查是否超过3天没有新文件
@@ -516,18 +524,21 @@ class TaskService {
 
     // 处理重试任务
     async processRetryTasks() {
-        logTaskEvent('开始处理重试任务');
         const retryTasks = await this.getRetryTasks();
+        if (retryTasks.length === 0) {
+            return [];
+        }
         let saveResults = [];
         
         for (const task of retryTasks) {
+            logTaskEvent(`开始重试任务 ${task.name}`);
             try {
                 const result = await this.processTask(task);
                 if (result) {
                     saveResults.push(result);
                 }
             } catch (error) {
-                console.error(`重试任务${task.id}执行失败:`, error);
+                console.error(`重试任务${task.name}执行失败:`, error);
             }
             // 任务间隔
             await new Promise(resolve => setTimeout(resolve, 500));
@@ -536,7 +547,6 @@ class TaskService {
         if (saveResults.length > 0) {
             this.messageUtil.sendMessage(saveResults.join("\n\n"));
         }
-        logTaskEvent('重试任务处理完毕');
         return saveResults;
     }
 }

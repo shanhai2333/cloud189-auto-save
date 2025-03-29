@@ -30,6 +30,11 @@ class ConfigService {
         port: 0,
         username: '',
         password: ''
+      },
+      bark: {
+        enable: false,
+        serverUrl: '', 
+        key: ''
       }
     };
     this._init();
@@ -42,7 +47,8 @@ class ConfigService {
       }
       if (fs.existsSync(this._configFile)) {
         const data = fs.readFileSync(this._configFile, 'utf8');
-        this._config = { ...this._config, ...JSON.parse(data) };
+        const fileConfig = JSON.parse(data);
+        this._config = this._deepMerge(this._config, fileConfig);
       }else {
         this._saveConfig();
       }
@@ -50,6 +56,20 @@ class ConfigService {
       console.error('系统配置初始化失败:', error);
     }
   }
+
+  // 添加深度合并方法
+  _deepMerge(target, source) {
+    const result = { ...target };
+    for (const key in source) {
+      if (source[key] instanceof Object && !Array.isArray(source[key])) {
+        result[key] = this._deepMerge(result[key] || {}, source[key]);
+      } else {
+        result[key] = source[key];
+      }
+    }
+    return result;
+  }
+
 
   _saveConfig() {
     try {

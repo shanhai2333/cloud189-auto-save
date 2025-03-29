@@ -12,7 +12,19 @@ const AppDataSource = new DataSource({
     logging: false,
     entities: [Account, Task],
     subscribers: [],
-    migrations: []
+    migrations: [],
+    timezone: '+08:00',  // 添加时区设置
+    dateStrings: true,   // 将日期作为字符串返回
+    // 添加自定义日期处理
+    extra: {
+        dateStrings: true,
+        typeCast: function (field, next) {
+            if (field.type === 'DATETIME') {
+                return new Date(`${field.string()}+08:00`);
+            }
+            return next();
+        }
+    }
 });
 
 const initDatabase = async () => {
