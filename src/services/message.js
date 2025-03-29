@@ -30,6 +30,10 @@ class MessageUtil {
             wxpusher: {
                 enabled: settings.wxpusher?.enable || false,
                 spt: settings.wxpusher?.spt || ''
+            },
+            bark:{
+                serverUrl: settings.bark?.serverUrl || '',
+                key: settings.bark?.key || '',
             }
         });
     }

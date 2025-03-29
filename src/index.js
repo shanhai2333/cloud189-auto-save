@@ -20,12 +20,14 @@ app.use(session({
         path: './data/sessions',  // session文件存储路径
         ttl: 30 * 24 * 60 * 60,  // session过期时间，单位秒
         reapInterval: 3600,       // 清理过期session间隔，单位秒
+        retries: 0,           // 设置重试次数为0
+        logFn: () => {},      // 禁用内部日志
+        reapAsync: true,      // 异步清理过期session
     }),
     secret: process.env.SESSION_SECRET || 'LhX2IyUcMAz2',
     resave: false,
     saveUninitialized: false,
     cookie: { 
-        secure: process.env.NODE_ENV === 'production',
         maxAge: 24 * 60 * 60 * 1000 * 30 // 30天
     }
 }));
