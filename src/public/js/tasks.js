@@ -61,8 +61,8 @@ async function fetchTasks() {
                     <!--<td data-label="首次保存目录"><a href="https://cloud.189.cn/web/main/file/folder/${task.targetFolderId}" target="_blank">${task.targetFolderId}</a></td>-->
                      <td data-label="更新目录"><a href="javascript:void(0)" onclick="showFileListModal('${task.id}')" class='ellipsis'>${task.realFolderName || task.realFolderId}</a></td>
                     <td data-label="更新数/总数">${task.currentEpisodes || 0}/${task.totalEpisodes || '未知'}${progressRing}</td>
-                    <td data-label="上次转存时间">${formatDateTime(task.lastFileUpdateTime)}</td>
-                    <td data-label="状态"><span class="status-badge status-${task.status}">${task.status}</span></td>
+                    <td data-label="转存时间">${formatDateTime(task.lastFileUpdateTime)}</td>
+                    <td data-label="状态"><span class="status-badge status-${task.status}">${formatStatus(task.status)}</span></td>
                 </tr>
             `;
         });
@@ -590,4 +590,14 @@ function formatDateTime(dateStr) {
     if (!dateStr) return '未更新';
     const date = new Date(dateStr);
     return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}-${String(date.getUTCDate()).padStart(2, '0')} ${String(date.getUTCHours()).padStart(2, '0')}:${String(date.getUTCMinutes()).padStart(2, '0')}`;
+}
+
+const statusOptions = {
+    processing: '追剧中',
+    completed: '已完结',
+    failed: '失败'
+}
+// 格式化状态
+function formatStatus(status) {
+    return statusOptions[status] || status;
 }
