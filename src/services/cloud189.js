@@ -141,8 +141,8 @@ class Cloud189Service {
         logTaskEvent(`targetFolderId: ${targetFolderId}`)
         logTaskEvent(`shareId: ${shareId}`)
         return await this.request('/api/open/batch/createBatchTask.action' , {
-            method: 'GET',
-            searchParams: { 
+            method: 'POST',
+            form: { 
                 type: 'SHARE_SAVE',
                 taskInfos,
                 targetFolderId,
