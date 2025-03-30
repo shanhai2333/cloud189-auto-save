@@ -63,10 +63,7 @@ export class Task {
     } })
     lastCheckTime!: Date;
 
-    @Column('datetime', { nullable: true, transformer: {
-        from: (date: Date) => date && new Date(date.getTime() + (8 * 60 * 60 * 1000)),
-        to: (date: Date) => date
-    } })
+    @Column('datetime', { nullable: true})
     lastFileUpdateTime!: Date;
 
     @Column('text', { nullable: true })
