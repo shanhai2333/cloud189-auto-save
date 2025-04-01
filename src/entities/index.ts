@@ -1,4 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
 
 @Entity()
 export class Account {
@@ -41,6 +41,10 @@ export class Task {
 
     @Column('integer')
     accountId!: number;
+
+    @ManyToOne(() => Account, { nullable: true })
+    @JoinColumn({ name: 'accountId' })
+    account!: Account;
 
     @Column('text')
     shareLink!: string;

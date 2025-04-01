@@ -107,6 +107,9 @@ AppDataSource.initialize().then(() => {
                 account.capacity.cloudCapacityInfo = capacity.cloudCapacityInfo;
                 account.capacity.familyCapacityInfo = capacity.familyCapacityInfo;
             }
+            // 去掉cookies和密码
+            account.cookies = '';
+            account.password = '';
         }
         res.json({ success: true, data: accounts });
     });
@@ -150,7 +153,15 @@ AppDataSource.initialize().then(() => {
     // 任务相关API
     app.get('/api/tasks', async (req, res) => {
         const tasks = await taskRepo.find({
-            order: { id: 'DESC' }
+            order: { id: 'DESC' },
+            relations: {
+                account: true
+            },
+            select: {
+                account: {
+                    username: true
+                }
+            }
         });
         res.json({ success: true, data: tasks });
     });

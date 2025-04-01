@@ -15,7 +15,6 @@ async function fetchAccounts(updateSelect = false) {
                     <td>${account.cookies && !account.password ? 
                         `<button class="btn-warning" onclick="updateCookie(${account.id})">修改Cookie</button>` 
                         : ''}<button class="btn-danger" onclick="deleteAccount(${account.id})">删除</button></td>
-                    <td data-label='账号ID'>${account.id}</td>
                     <td data-label='账户名'>${account.username}</td>
                     <td data-label='个人容量'>${formatBytes(account.capacity.cloudCapacityInfo.usedSize) + '/' + formatBytes(account.capacity.cloudCapacityInfo.totalSize)}</td>
                     <td data-label='家庭容量'>${formatBytes(account.capacity.familyCapacityInfo.usedSize) + '/' + formatBytes(account.capacity.familyCapacityInfo.totalSize)}</td>
