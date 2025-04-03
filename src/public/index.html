@@ -86,66 +86,96 @@
 
         <div id="taskTab" class="tab-content active">
             <div class="form-header">
-                <button type="button" id="toggleFormBtn" class="toggle-form-btn">
-                    <span class="toggle-text">展开</span>
-                    <span class="toggle-icon">▼</span>
-                </button>
                 <div class="task-operations">
-                    <button type="button" onclick="executeAllTask()" id="executeAllBtn" class="btn-warning">执行所有</button>
-                    <button type="button" onclick="deleteSelectedTasks()" id="batchDeleteBtn" class="btn-danger" style="display: none;">批量删除</button>
-                    <select id="taskFilter" class="task-filter">
-                        <option value="all">全部</option>
-                        <option value="processing">追剧中</option>
-                        <option value="completed">已完结</option>
-                        <option value="failed">失败</option>
-                    </select>
+                    <div class="operation-group">
+                        <div class="button-group">
+                            <button type="button" onclick="openCreateTaskModal()" class="btn-primary">创建任务</button>
+                            <button type="button" onclick="executeAllTask()" id="executeAllBtn" class="btn-warning">执行所有</button>
+                            <button type="button" onclick="deleteSelectedTasks()" id="batchDeleteBtn" class="btn-danger" style="display: none;">批量删除</button>
+                        </div>
+                        <div class="search-bar">
+                            <div class="search-input">
+                                <select id="taskFilter">
+                                    <option value="all">全部任务</option>
+                                    <option value="processing">追剧中</option>
+                                    <option value="completed">已完结</option>
+                                    <option value="failed">失败</option>
+                                </select>
+                                <input type="text" id="taskSearch" placeholder="搜索资源名称">
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
-            <form id="taskForm" style="display: none;">
-                <div class="form-group">
-                    <label for="accountId">选择账号</label>
-                    <select id="accountId" required></select>
-                </div>
-                <div class="form-group">
-                    <label for="shareLink">分享链接</label>
-                    <div style="display: flex; gap: 10px;">
-                        <input type="text" id="shareLink" required style="flex: 2;">
-                        <input type="text" id="accessCode" placeholder="访问码（可选）" style="flex: 1;">
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label for="targetFolder">保存目录</label>
-                    <div class="tree-select" style="display: flex; gap: 10px;">
-                        <div style="flex: 1; position: relative;">
-                            <input type="text" id="targetFolder" readonly required>
-                            <input type="hidden" id="targetFolderId" required>
-                            <div class="tree-select-dropdown"></div>
+            <div id="createTaskModal" class="modal">
+                <div class="modal-content">
+                    <h3>创建任务</h3>
+                    <form id="taskForm">
+                        <div class="form-body">
+                            <div class="form-group">
+                                <label for="accountId">选择账号</label>
+                                <select id="accountId" required></select>
+                            </div>
+                            <div class="form-group">
+                                <label for="shareLink">分享链接</label>
+                                <div style="display: flex; gap: 10px;">
+                                    <input type="text" id="shareLink" required style="flex: 2;">
+                                    <input type="text" id="accessCode" placeholder="访问码（可选）" style="flex: 1;">
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label for="targetFolder">保存目录</label>
+                                <div class="tree-select" style="display: flex; gap: 10px;">
+                                    <div style="flex: 1; position: relative;">
+                                        <input type="text" id="targetFolder" readonly required>
+                                        <input type="hidden" id="targetFolderId" required>
+                                        <div class="tree-select-dropdown"></div>
+                                    </div>
+                                    <button type="button" class="btn-default" id="favoriteFolderBtn">
+                                        <i class="fas fa-star"></i>
+                                        常用目录
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label for="totalEpisodes">总集数</label>
+                                <input type="number" id="totalEpisodes" min="0">
+                            </div>
+                            <div class="form-group">
+                                <label>文件名匹配规则（可选）</label>
+                                <div class="match-rule" style="display: flex; flex-wrap: wrap; gap: 10px;">
+                                    <input type="text" id="matchPattern" placeholder="正则表达式 例如: 第(\d+)集" style="flex: 2 1 200px;">
+                                    <select id="matchOperator" style="flex: 1 1 100px;">
+                                        <option value="lt">小于</option>
+                                        <option value="eq">等于</option>
+                                        <option value="gt">大于</option>
+                                    </select>
+                                    <input id="matchValue" placeholder="值" min="0" style="flex: 1 1 100px;">
+                                </div>
+                                <small class="form-text">用于匹配文件名中的数字并进行比较，例如：匹配"第12集"中的12</small>
+                            </div>
+                            <div class="form-group">
+                                <label for="remark">备注</label>
+                                <input type="text" id="remark" >
+                            </div>
+                            <div class="form-group">
+                                <div class="push-item">
+                                    <label for="enableCron"><input type="checkbox" id="enableCron">启用自定义定时任务</label>
+                                    <div class="cronExpression-box">
+                                        <input type="text" id="cronExpression" placeholder="Cron表达式，如：0 */30 * * * *">
+                                        <small class="form-text">每30分钟执行：0 */30 * * * *</small><br/>
+                                        <small class="form-text">每天凌晨2点执行：0 0 2 * * *</small>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
-                        <button type="button" class="btn-default" id="favoriteFolderBtn">
-                            <i class="fas fa-star"></i>
-                            常用目录
-                        </button>
-                    </div>
+                        <div class="form-actions">
+                            <button type="submit">创建</button>
+                            <button type="button" onclick="closeCreateTaskModal()">取消</button>
+                        </div>
+                    </form>
                 </div>
-                <div class="form-group">
-                    <label for="totalEpisodes">总集数</label>
-                    <input type="number" id="totalEpisodes" min="0">
-                </div>
-                <div class="form-group">
-                    <label>文件名匹配规则（可选）</label>
-                    <div class="match-rule" style="display: flex; flex-wrap: wrap; gap: 10px;">
-                        <input type="text" id="matchPattern" placeholder="正则表达式 例如: 第(\d+)集" style="flex: 2 1 200px;">
-                        <select id="matchOperator" style="flex: 1 1 100px;">
-                            <option value="lt">小于</option>
-                            <option value="eq">等于</option>
-                            <option value="gt">大于</option>
-                        </select>
-                        <input id="matchValue" placeholder="值" min="0" style="flex: 1 1 100px;">
-                    </div>
-                    <small class="form-text">用于匹配文件名中的数字并进行比较，例如：匹配"第12集"中的12; 如果选择等于, 则只会转存匹配与结果一致的数据</small>
-                </div>
-                <button type="submit">创建任务</button>
-            </form>
+            </div>
             <div class="table-container">
                 <table id="taskTable">
                     <thead>
@@ -169,21 +199,34 @@
             <form id="settingsForm">
                 <div class="form-group">
                     <label>任务设置</label>
-                    <div class="task-settings">
-                        <div class="task-item">
+                    <div class="push-settings">
+                        <div class="push-item">
                             <label for="taskExpireDays">任务过期天数</label>
                             <input type="number" id="taskExpireDays" min="1" placeholder="默认3天">
                             <small class="form-text">超过指定天数未新增资源的任务将状态改为已完成</small>
                         </div>
-                        <div class="task-item">
+                        <div class="push-item">
                             <label for="taskMaxRetries">最大重试次数</label>
                             <input type="number" id="taskMaxRetries" min="0" placeholder="默认3次">
                             <small class="form-text">任务执行失败时的最大重试次数</small>
                         </div>
-                        <div class="task-item">
+                        <div class="push-item">
                             <label for="taskRetryInterval">重试间隔（秒）</label>
                             <input type="number" id="taskRetryInterval" min="0" placeholder="默认300秒">
                             <small class="form-text">任务重试的时间间隔</small>
+                        </div>
+                        <div class="push-item">
+                            <label>任务定时检查</label>
+                            <input type="text" id="taskCheckCron" placeholder="Cron表达式">
+                            <small class="form-text">默认：0 19-23 * * * (每天19点到23点整点执行一次)</small>
+                        </div>
+                        <div class="push-item">
+                            <label>
+                                <input type="checkbox" id="enableAutoClearRecycle">
+                                自动清空回收站
+                            </label>
+                            <input type="text" id="cleanRecycleCron" placeholder="Cron表达式">
+                            <small class="form-text">默认：0 */8 * * * (每8小时)</small>
                         </div>
                     </div>
                 </div>
@@ -258,7 +301,7 @@
 <!-- 修改任务弹窗 -->
 <div id="editTaskModal" class="modal">
     <div class="modal-content">
-        <h2>修改任务</h2>
+        <h3>修改任务</h3>
         <form id="editTaskForm">
             <div class="editTaskForm-body">
                 <input type="hidden" id="editTaskId">
@@ -308,10 +351,24 @@
                     <label for="editStatus">状态</label>
                     <select id="editStatus" required>
                         <option value="pending">待处理</option>
-                        <option value="processing">追剧中</option>
+                        <option value="processing">追集中</option>
                         <option value="completed">已完结</option>
                         <option value="failed">失败</option>
                     </select>
+                </div>
+                <div class="form-group">
+                    <label for="editRemark">备注</label>
+                    <input type="text" id="editRemark">
+                </div>
+                <div class="form-group">
+                    <div class="push-item">
+                        <label for="editEnableCron"><input type="checkbox" id="editEnableCron">自定义定时任务</label>
+                        <div class="cronExpression-box">
+                            <input type="text" id="editCronExpression" placeholder="Cron表达式，如：0 */30 * * * *">
+                            <small class="form-text">每30分钟执行：0 */30 * * * *</small><br/>
+                            <small class="form-text">每天凌晨2点执行：0 0 2 * * *</small>
+                        </div>
+                    </div>
                 </div>
             </div>
             <div class="form-actions">

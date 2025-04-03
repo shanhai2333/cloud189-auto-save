@@ -21,8 +21,6 @@
 AUTH_USERNAME=admin    # 网页登录用户名
 AUTH_PASSWORD=password # 网页登录密码
 
-# 任务检查间隔（Cron 表达式）
-TASK_CHECK_INTERVAL=*/30 * * * *
 ```
 
 ## Docker 部署

@@ -16,7 +16,6 @@ document.addEventListener('DOMContentLoaded', () => {
     initTabs();
     initAccountForm();
     initTaskForm();
-    initFormToggle();
     initEditTaskForm();
     // 初始化主题
     initTheme();

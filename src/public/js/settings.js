@@ -6,8 +6,11 @@ async function loadSettings() {
             const settings = data.data;
             // 任务设置
             document.getElementById('taskExpireDays').value = settings.task?.taskExpireDays || 3;
+            document.getElementById('taskCheckCron').value = settings.task?.taskCheckCron || '0 19-23 * * *';
+            document.getElementById('cleanRecycleCron').value = settings.task?.cleanRecycleCron || '0 */8 * * * ';
             document.getElementById('taskMaxRetries').value = settings.task?.taskMaxRetries || 3;
             document.getElementById('taskRetryInterval').value = settings.task?.taskRetryInterval || 300;
+            document.getElementById('enableAutoClearRecycle').checked = settings.task?.enableAutoClearRecycle || false;
 
             // 企业微信设置
             document.getElementById('enableWecom').checked = settings.wecom?.enable || false;
@@ -45,8 +48,11 @@ document.getElementById('settingsForm').addEventListener('submit', async (e) => 
     const settings = {
         task: {
             taskExpireDays: parseInt(document.getElementById('taskExpireDays').value) || 3,
+            taskCheckCron: document.getElementById('taskCheckCron').value || '0 19-23 * * *',
+            cleanRecycleCron: document.getElementById('cleanRecycleCron').value || '0 */8 * * *',
             taskMaxRetries: parseInt(document.getElementById('taskMaxRetries').value) || 3,
-            taskRetryInterval: parseInt(document.getElementById('taskRetryInterval').value) || 300
+            taskRetryInterval: parseInt(document.getElementById('taskRetryInterval').value) || 300,
+            enableAutoClearRecycle: document.getElementById('enableAutoClearRecycle').checked
         },
         wecom: {
             enable: document.getElementById('enableWecom').checked,

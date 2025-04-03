@@ -8,6 +8,10 @@ class CreateTaskDto {
         this.matchPattern = data.matchPattern;
         this.matchOperator = data.matchOperator;
         this.matchValue = data.matchValue;
+        this.overwriteFolder = data.overwriteFolder;
+        this.remark = data.remark;
+        this.enableCron = data.enableCron;
+        this.cronExpression = data.cronExpression;
     }
 
     validate() {

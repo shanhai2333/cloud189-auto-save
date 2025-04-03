@@ -1,6 +1,5 @@
 require('dotenv').config();
 const express = require('express');
-const cron = require('node-cron');
 const { AppDataSource } = require('./database');
 const { Account, Task } = require('./entities');
 const { TaskService } = require('./services/task');
@@ -11,6 +10,7 @@ const ConfigService = require('./services/ConfigService');
 const packageJson = require('../package.json');
 const session = require('express-session');
 const FileStore = require('session-file-store')(session);
+const { SchedulerService } = require('./services/scheduler');
 
 const app = express();
 app.use(express.json());
@@ -83,7 +83,7 @@ app.use((req, res, next) => {
     authenticateSession(req, res, next);
 });
 // 初始化数据库连接
-AppDataSource.initialize().then(() => {
+AppDataSource.initialize().then(async () => {
     console.log('数据库连接成功');
     const accountRepo = AppDataSource.getRepository(Account);
     const taskRepo = AppDataSource.getRepository(Task);
@@ -91,6 +91,9 @@ AppDataSource.initialize().then(() => {
     const messageUtil = new MessageUtil();
     // 初始化缓存管理器
     const folderCache = new CacheManager(parseInt(process.env.FOLDER_CACHE_TTL || 600));
+    
+    // 初始化任务定时器
+    await SchedulerService.initTaskJobs(taskRepo, taskService);
     
     // 账号相关API
     app.get('/api/accounts', async (req, res) => {
@@ -107,6 +110,8 @@ AppDataSource.initialize().then(() => {
                 account.capacity.cloudCapacityInfo = capacity.cloudCapacityInfo;
                 account.capacity.familyCapacityInfo = capacity.familyCapacityInfo;
             }
+            // username脱敏
+            account.username = account.username.replace(/(.{3}).*(.{4})/, '$1****$2');
             // 去掉cookies和密码
             account.cookies = '';
             account.password = '';
@@ -163,6 +168,10 @@ AppDataSource.initialize().then(() => {
                 }
             }
         });
+        // username脱敏
+        tasks.forEach(task => {
+            task.account.username = task.account.username.replace(/(.{3}).*(.{4})/, '$1****$2');
+        });
         res.json({ success: true, data: tasks });
     });
 
@@ -198,9 +207,7 @@ AppDataSource.initialize().then(() => {
     app.put('/api/tasks/:id', async (req, res) => {
         try {
             const taskId = parseInt(req.params.id);
-            const { resourceName, realFolderId, currentEpisodes = 0, totalEpisodes = 0, status, shareFolderName, shareFolderId, matchPattern, matchOperator, matchValue } = req.body;
-            const updates = { resourceName, realFolderId, currentEpisodes, totalEpisodes, status, shareFolderName, shareFolderId, matchPattern, matchOperator, matchValue };
-            const updatedTask = await taskService.updateTask(taskId, updates);
+            const updatedTask = await taskService.updateTask(taskId, req.body);
             res.json({ success: true, data: updatedTask });
         } catch (error) {
             res.json({ success: false, error: error.message });
@@ -347,6 +354,33 @@ AppDataSource.initialize().then(() => {
 
     app.post('/api/settings', async (req, res) => {
         const settings = req.body;
+        // 如果定时任务和清空回收站任务与配置文件不一致, 则修改定时任务
+        if (settings.task.taskCheckCron && settings.task.taskCheckCron != ConfigService.getConfigValue('task.taskCheckCron')) {
+            SchedulerService.saveDefaultTaskJob('任务定时检查', settings.task.taskCheckCron, async () => {
+                taskService.processAllTasks();
+            });
+        }
+
+        const currentEnabled = ConfigService.getConfigValue('task.enableAutoClearRecycle');
+        const currentCron = ConfigService.getConfigValue('task.cleanRecycleCron');
+        const newEnabled = settings.task.enableAutoClearRecycle;
+        const newCron = settings.task.cleanRecycleCron;
+       // 情况1: 当前未开启 -> 开启
+       if (!currentEnabled && newEnabled && newCron) {
+            SchedulerService.saveDefaultTaskJob('自动清空回收站', newCron, async () => {
+                taskService.clearRecycleBin();
+            });
+        }
+        // 情况2: 当前开启 -> 开启，但cron不同
+        else if (currentEnabled && newEnabled && currentCron !== newCron) {
+            SchedulerService.saveDefaultTaskJob('自动清空回收站', newCron, async () => {
+                taskService.clearRecycleBin();
+            });
+        }
+        // 情况3: 提交为关闭
+        else if (!newEnabled) {
+            SchedulerService.removeTaskJob('自动清空回收站');
+        }
         ConfigService.setConfig(settings)
         // 修改配置, 重新实例化消息推送
         messageUtil.updateConfig()
@@ -357,21 +391,6 @@ AppDataSource.initialize().then(() => {
         res.json({ version: packageJson.version });
     });
     
-    // 启动定时任务
-    cron.schedule(process.env.TASK_CHECK_INTERVAL, async () => {
-        console.log('执行定时任务检查...');
-        taskService.processAllTasks();
-    });
-
-    const RETRY_CHECK_INTERVAL = 60 * 1000; // 每分钟
-    setInterval(async () => {
-        try {
-            await taskService.processRetryTasks();
-        }catch(error) {
-            console.error('处理重试任务时出错:', error);
-        }
-    }, RETRY_CHECK_INTERVAL);
-
     // 启动服务器
     const port = process.env.PORT || 3000;
     app.listen(port, () => {

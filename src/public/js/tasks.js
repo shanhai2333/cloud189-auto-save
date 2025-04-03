@@ -49,19 +49,22 @@ async function fetchTasks() {
         data.data.forEach(task => {
             taskList.push(task)
             const progressRing = task.totalEpisodes ? createProgressRing(task.currentEpisodes || 0, task.totalEpisodes) : '';
+            const taskName = task.shareFolderName?(task.resourceName + '/' + task.shareFolderName): task.resourceName || '未知'
+            const cronIcon = task.enableCron ? '<span class="cron-icon" title="已开启自定义定时任务">⏰</span>' : '';
             tbody.innerHTML += `
-                <tr data-status='${task.status}' data-task-id='${task.id}'>
+                <tr data-status='${task.status}' data-task-id='${task.id}' data-name='${taskName}'>
                     <td>
                         <button class="btn-danger" onclick="deleteTask(${task.id})">删除</button>
                         <button class="btn-warning" onclick="executeTask(${task.id})">执行</button>
                         <button onclick="showEditTaskModal(${task.id})">修改</button>
                     </td>
-                    <td data-label="资源名称"><a href="${task.shareLink}" target="_blank" class='ellipsis' title="${task.shareFolderName ? (task.resourceName + '/' + task.shareFolderName) : task.resourceName || '未知'}">${task.shareFolderName?(task.resourceName + '/' + task.shareFolderName): task.resourceName || '未知'}</a></td>
+                    <td data-label="资源名称">${cronIcon}<a href="${task.shareLink}" target="_blank" class='ellipsis' title="${taskName}">${taskName}</a></td>
                     <td data-label="账号">${task.account.username}</td>
                     <!--<td data-label="首次保存目录"><a href="https://cloud.189.cn/web/main/file/folder/${task.targetFolderId}" target="_blank">${task.targetFolderId}</a></td>-->
                      <td data-label="更新目录"><a href="javascript:void(0)" onclick="showFileListModal('${task.id}')" class='ellipsis'>${task.realFolderName || task.realFolderId}</a></td>
                     <td data-label="更新数/总数">${task.currentEpisodes || 0}/${task.totalEpisodes || '未知'}${progressRing}</td>
                     <td data-label="转存时间">${formatDateTime(task.lastFileUpdateTime)}</td>
+                    <td data-label="备注">${task.remark?task.remark:''}</td>
                     <td data-label="状态"><span class="status-badge status-${task.status}">${formatStatus(task.status)}</span></td>
                 </tr>
             `;
@@ -139,6 +142,16 @@ async function executeAllTask() {
     }
 }
 
+function openCreateTaskModal() {
+    document.getElementsByClassName('cronExpression-box')[0].style.display = 'none';
+    document.getElementById('createTaskModal').style.display = 'block';
+}
+
+function closeCreateTaskModal() {
+    document.getElementById('createTaskModal').style.display = 'none';
+    document.getElementById('taskForm').reset();
+}
+
 // 初始化任务表单
 function initTaskForm() {
     const lastTargetFolder = getFromCache('lastTargetFolder')
@@ -148,46 +161,68 @@ function initTaskForm() {
         document.getElementById('targetFolderId').value = lastTargetFolderId;
         document.getElementById('targetFolder').value = lastTargetFolderName; 
     }
-    
+     
+    // 修改原有的表单提交处理
     document.getElementById('taskForm').addEventListener('submit', async (e) => {
         e.preventDefault();
+        const accountId = document.getElementById('accountId').value;
+        const shareLink = document.getElementById('shareLink').value;
+        const totalEpisodes = document.getElementById('totalEpisodes').value;
+        const targetFolderId = document.getElementById('targetFolderId').value;
+        const accessCode = document.getElementById('accessCode').value;
+        const matchPattern = document.getElementById('matchPattern').value;
+        const matchOperator = document.getElementById('matchOperator').value;
+        const matchValue = document.getElementById('matchValue').value;
+        const remark = document.getElementById('remark').value;
+        const enableCron = document.getElementById('enableCron').checked;
+        const cronExpression = document.getElementById('cronExpression').value;
+    
+        // 如果填了matchPattern那matchValue就必须填
+        if (matchPattern && !matchValue) {
+            alert('填了匹配模式, 那么匹配值就必须填');
+            return;
+        }
+        if (enableCron && !cronExpression) {
+            alert('开启了自定义定时任务, 那么定时表达式就必须填');
+            return;
+        }
+        const body = { accountId, shareLink, totalEpisodes, targetFolderId, accessCode, matchPattern, matchOperator, matchValue, overwriteFolder: 0, remark, enableCron, cronExpression };
+        await createTask(e,body)
+            
+    });
+
+    async function createTask(e, body) {
         const submitBtn = e.target.querySelector('button[type="submit"]');
         submitBtn.classList.add('loading');
         submitBtn.disabled = true;
-    
         try {
-            const accountId = document.getElementById('accountId').value;
-            const shareLink = document.getElementById('shareLink').value;
-            const totalEpisodes = document.getElementById('totalEpisodes').value;
-            const targetFolderId = document.getElementById('targetFolderId').value;
-            const accessCode = document.getElementById('accessCode').value;
-            const matchPattern = document.getElementById('matchPattern').value;
-            const matchOperator = document.getElementById('matchOperator').value;
-            const matchValue = document.getElementById('matchValue').value;
-            // 如果填了matchPattern那matchValue就必须填
-            if (matchPattern && !matchValue) {
-                alert('填了匹配模式, 那么匹配值就必须填');
-                return;
-            }
             const response = await fetch('/api/tasks', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ accountId, shareLink, totalEpisodes, targetFolderId, accessCode, matchPattern, matchOperator, matchValue })
+                body: JSON.stringify(body)
             });
     
             const data = await response.json();
             if (data.success) {
                 const targetFolderName = document.getElementById('targetFolder').value
                 // 存储本次选择的目录
-                saveToCache('lastTargetFolder', JSON.stringify({ lastTargetFolderId: targetFolderId, lastTargetFolderName:  targetFolderName}));
+                saveToCache('lastTargetFolder', JSON.stringify({ lastTargetFolderId: body.targetFolderId, lastTargetFolderName:  targetFolderName}));
                 document.getElementById('taskForm').reset();
-                document.getElementById('targetFolderId').value = targetFolderId;
+                document.getElementById('targetFolderId').value = body.targetFolderId;
                 document.getElementById('targetFolder').value = targetFolderName;
                 const ids = data.data.map(item => item.id);
                 await Promise.all(ids.map(id => executeTask(id, false)));
                 alert('任务执行完成');
                 fetchTasks();
+                closeCreateTaskModal();
             } else {
+                if (data.error == 'folder already exists') {
+                    if (confirm('该目录已经存在, 确定要覆盖吗?')) {
+                        body.overwriteFolder = 1
+                        await createTask(e,body)
+                    }
+                    return
+                }
                 alert('任务创建失败: ' + data.error);
             }
         } catch (error) {
@@ -196,7 +231,7 @@ function initTaskForm() {
             submitBtn.classList.remove('loading');
             submitBtn.disabled = false;
         }
-    });
+    }
 }
 
 
@@ -211,21 +246,23 @@ async function showFileListModal(taskId) {
     const modal = document.createElement('div');
     modal.className = 'modal files-list-modal'; 
     modal.innerHTML = `
-        <div class="modal-content" style="width: 80%; max-width: 1000px;">
-            <h2>文件列表</h2>
-            <button class="batch-rename-btn" onclick="showBatchRenameOptions()">批量重命名</button>
-            <div style="max-height: 40vh; overflow-y: auto;">
-            <table>
-                <thead>
-                    <tr>
-                        <th><input type="checkbox" id="selectAll" onclick="toggleSelectAll()"></th>
-                        <th>文件名</th>
-                        <th>大小</th>
-                        <th>修改时间</th>
-                    </tr>
-                </thead>
-                <tbody id="fileListBody"></tbody>
-            </table>
+        <div class="modal-content" style="max-width: 1000px;">
+            <h3>文件列表</h3>
+            <div class='modal-body'>
+                <button class="batch-rename-btn" onclick="showBatchRenameOptions()">批量重命名</button>
+                <div style="max-height: 40vh; overflow-y: auto;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th><input type="checkbox" id="selectAll" onclick="toggleSelectAll()"></th>
+                            <th>文件名</th>
+                            <th>大小</th>
+                            <th>修改时间</th>
+                        </tr>
+                    </thead>
+                    <tbody id="fileListBody"></tbody>
+                </table>
+                </div>
             </div>
             <div class="modal-footer">
                 <button onclick="closeFileListModal()">关闭</button>
@@ -531,20 +568,38 @@ function initFormToggle() {
 
 
 document.addEventListener('DOMContentLoaded', function() {
+    function debounce(func, wait) {
+        let timeout;
+        return function (...args) {
+            clearTimeout(timeout);
+            timeout = setTimeout(() => func.apply(this, args), wait);
+        };
+    }
+    const debouncedFilterTasks = debounce(filterTasks, 300);
     // 任务筛选功能
     const taskFilter = document.getElementById('taskFilter');
+    const taskSearch = document.getElementById('taskSearch');
     taskFilter.addEventListener('change', function() {
-        const status = this.value;
+        debouncedFilterTasks();
+    });
+
+    taskSearch.addEventListener('input', function() {
+        debouncedFilterTasks();
+    });
+
+    function filterTasks() {
+        const status = taskFilter.value;
+        const searchText = taskSearch.value.toLowerCase();
         const tasks = document.querySelectorAll('#taskTable tbody tr');
+        
         tasks.forEach(task => {
             const taskStatus = task.getAttribute('data-status');
-            if (status === 'all' || status === taskStatus) {
-                task.style.display = '';
-            } else {
-                task.style.display = 'none';
-            }
+            const taskName = task.getAttribute('data-name').toLowerCase();
+            const statusMatch = status === 'all' || status === taskStatus;
+            const searchMatch = !searchText || taskName.includes(searchText);
+            task.style.display = statusMatch && searchMatch ? '' : 'none';
         });
-    });
+    }
 
     // 批量选择功能
     const taskTable = document.getElementById('taskTable');
@@ -559,6 +614,8 @@ document.addEventListener('DOMContentLoaded', function() {
         batchDeleteBtn.style.display = selectedTasks.length > 0 ? '' : 'none';
     });
 });
+
+
 
 // 批量删除功能
 async function deleteSelectedTasks() {
@@ -601,3 +658,10 @@ const statusOptions = {
 function formatStatus(status) {
     return statusOptions[status] || status;
 }
+
+// 监听enableCron的变化
+document.getElementById('enableCron').addEventListener('change', function() {
+    // 如果为选中 则显示cron表达式输入框
+    const cronInput = document.getElementsByClassName('cronExpression-box')[0];
+    cronInput.style.display = this.checked? 'block' : 'none';
+});

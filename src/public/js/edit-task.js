@@ -33,7 +33,18 @@ function showEditTaskModal(id) {
     document.getElementById('editMatchPattern').value = task.matchPattern;
     document.getElementById('editMatchOperator').value = task.matchOperator;
     document.getElementById('editMatchValue').value = task.matchValue;
+    document.getElementById('editRemark').value = task.remark;
     document.getElementById('editTaskModal').style.display = 'block';
+    document.getElementById('editEnableCron').checked = task.enableCron;
+    document.getElementById('editCronExpression').value = task.cronExpression;
+
+    document.getElementsByClassName('cronExpression-box')[1].style.display = task.enableCron?'block':'none';
+    document.getElementById('editEnableCron').addEventListener('change', function() {
+        // 如果为选中 则显示cron表达式输入框
+        const cronInput = document.getElementsByClassName('cronExpression-box')[1];
+        cronInput.style.display = this.checked? 'block' : 'none';
+    });
+    
 }
 
 function closeEditTaskModal() {
@@ -77,6 +88,11 @@ function initEditTaskForm() {
         const matchPattern = document.getElementById('editMatchPattern').value
         const matchOperator = document.getElementById('editMatchOperator').value
         const matchValue = document.getElementById('editMatchValue').value
+        const remark = document.getElementById('editRemark').value
+
+        const enableCron = document.getElementById('editEnableCron').checked;
+        const cronExpression = document.getElementById('editCronExpression').value;
+
         try {
             const response = await fetch(`/api/tasks/${id}`, {
                 method: 'PUT',
@@ -92,7 +108,10 @@ function initEditTaskForm() {
                     realFolderName,
                     matchPattern,
                     matchOperator,
-                    matchValue
+                    matchValue,
+                    remark,
+                    enableCron,
+                    cronExpression
                 })
             });
 

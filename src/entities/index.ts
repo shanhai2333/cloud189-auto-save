@@ -32,6 +32,9 @@ export class Account {
         }
     })
     updatedAt!: Date;
+
+    @Column('boolean', { nullable: true, default: false })
+    clearRecycle!: boolean;
 }
 
 @Entity()
@@ -142,6 +145,15 @@ export class Task {
         to: (date: Date) => date
     } })
     nextRetryTime!: Date;
+
+    @Column('text', { nullable: true })
+    remark!: string;
+
+    @Column({ nullable: true })
+    cronExpression!: string;
+
+    @Column({ default: false })
+    enableCron!: boolean;
 }
 
 export default { Account, Task };

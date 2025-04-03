@@ -153,9 +153,8 @@
 
 .task-operations {
     display: flex;
+    flex-direction: column;
     gap: 10px;
-    align-items: center;
-    height: 32px;
 }
 
 .task-filter {
@@ -171,4 +170,35 @@
 
 #taskTable tbody tr {
     cursor: pointer;
+}
+
+.search-bar {
+    margin-top: 10px;
+}
+
+.search-input {
+    display: flex;
+    gap: 10px;
+    padding: 8px;
+    background: var(--input-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+}
+
+.search-input select {
+    border-right: 1px solid var(--border-color);
+    padding-right: 15px;
+    width: 100px;
+    flex: none; /* 防止下拉框被拉伸 */
+}
+
+.search-input input {
+    flex: 1;
+    min-width: 100px; /* 确保输入框有最小宽度 */
+}
+
+
+.search-input select:focus,
+.search-input input:focus {
+    outline: none;
 }

@@ -134,26 +134,20 @@ class Cloud189Service {
         })
     }
 
-    // 创建转存任务
-    async createSaveTask(taskInfos, targetFolderId, shareId) {
-        logTaskEvent("========== 开始创建转存任务 ============")
-        logTaskEvent(`taskInfos: ${taskInfos}` )
-        logTaskEvent(`targetFolderId: ${targetFolderId}`)
-        logTaskEvent(`shareId: ${shareId}`)
-        return await this.request('/api/open/batch/createBatchTask.action' , {
+    // 创建批量执行任务
+    async createBatchTask(batchTaskDto) {
+        logTaskEvent("========== 开始创建批量任务 ============")
+        logTaskEvent(`type: ${batchTaskDto.type}` )
+        logTaskEvent(`taskInfos: ${batchTaskDto.taskInfos}` )
+        return await this.request('/api/open/batch/createBatchTask.action', {
             method: 'POST',
-            form: { 
-                type: 'SHARE_SAVE',
-                taskInfos,
-                targetFolderId,
-                shareId
-             }
+            form: batchTaskDto
         })
     }
 
     // 查询转存任务状态
-    async checkTaskStatus(taskId) {
-        const params = {taskId: taskId, type: 'SHARE_SAVE'}
+    async checkTaskStatus(taskId, type = "SHARE_SAVE") {
+        const params = {taskId, type}
         return await this.request('/api/open/batch/checkBatchTask.action' , {
             method: 'POST',
             form: params,

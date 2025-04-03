@@ -4,6 +4,9 @@ const { MessageUtil } = require('./message');
 const { logTaskEvent } = require('../utils/logUtils');
 const ConfigService = require('./ConfigService');
 const { CreateTaskDto } = require('../dto/TaskDto');
+const { BatchTaskDto } = require('../dto/BatchTaskDto');
+const { SchedulerService } = require('./scheduler');
+
 class TaskService {
     constructor(taskRepo, accountRepo, taskLogRepo) {
         this.taskRepo = taskRepo;
@@ -67,22 +70,38 @@ class TaskService {
             accessCode: taskDto.accessCode,
             matchPattern: taskDto.matchPattern,
             matchOperator: taskDto.matchOperator,
-            matchValue: taskDto.matchValue
+            matchValue: taskDto.matchValue,
+            remark: taskDto.remark
         };
     }
 
      // 验证并创建目标目录
-     async _validateAndCreateTargetFolder(cloud189, targetFolderId, shareInfo) {
-        const folderInfo = await cloud189.listFiles(targetFolderId);
+     async _validateAndCreateTargetFolder(cloud189, taskDto, shareInfo) {
+        const folderInfo = await cloud189.listFiles(taskDto.targetFolderId);
         if (!folderInfo) {
             throw new Error('获取文件列表失败');
         }
-        if (folderInfo.fileListAO.folderList.length > 0 && 
-            folderInfo.fileListAO.folderList.find(folder => folder.name === shareInfo.fileName)) {
-            throw new Error('目标已存在同名目录，请选择其他目录');
+        // 检查目标文件夹是否存在
+        const { folderList = [] } = folderInfo.fileListAO;
+        const existFolder = folderList.find(folder => folder.name === shareInfo.fileName);
+        if (existFolder) {
+            if (!taskDto.overwriteFolder) {
+                throw new Error('folder already exists');
+            }
+            // 如果用户需要覆盖, 则删除目标目录
+            const batchTaskDto = new BatchTaskDto({
+                taskInfos: JSON.stringify([{
+                    fileId: existFolder.id,
+                    fileName: existFolder.name,
+                    isFolder: 1
+                }]),
+                type: 'DELETE',
+                targetFolderId: ''
+            });
+            await this.createBatchTask(cloud189, batchTaskDto)
         }
         
-        const targetFolder = await cloud189.createFolder(shareInfo.fileName, targetFolderId);
+        const targetFolder = await cloud189.createFolder(shareInfo.fileName, taskDto.targetFolderId);
         if (!targetFolder || !targetFolder.id) throw new Error('创建目录失败');
         return targetFolder;
     }
@@ -164,7 +183,7 @@ class TaskService {
             throw new Error('获取分享信息失败');
         }
         // 检查并创建目标目录
-        const rootFolder = await this._validateAndCreateTargetFolder(cloud189, taskDto.targetFolderId, shareInfo);
+        const rootFolder = await this._validateAndCreateTargetFolder(cloud189, taskDto, shareInfo);
         const tasks = [];
         if (shareInfo.isFolder) {
             await this._handleFolderShare(cloud189, shareInfo, taskDto, rootFolder, tasks);
@@ -173,6 +192,11 @@ class TaskService {
          // 处理单文件或空文件夹情况
          if (tasks.length === 0) {
             await this._handleSingleShare(cloud189, shareInfo, taskDto, rootFolder, tasks);
+        }
+        if (taskDto.enableCron) {
+            for(const task of tasks) {
+                SchedulerService.saveTaskJob(task, this)   
+            }
         }
         return tasks;
     }
@@ -186,7 +210,6 @@ class TaskService {
 
     // 批量删除
     async deleteTasks(taskIds) {
-        console.log(taskIds)
         const tasks = await this.taskRepo.findBy({ id: In(taskIds) });
         if (!tasks || tasks.length === 0) throw new Error('任务不存在');
         await this.taskRepo.remove(tasks);
@@ -221,11 +244,10 @@ class TaskService {
             const cloud189 = Cloud189Service.getInstance(account);
              // 获取分享文件列表并进行增量转存
              const shareDir = await cloud189.listShareDir(task.shareId, task.shareFolderId, task.shareMode,task.accessCode);
-             // 如果res_code 为ShareAuditWaiting 则等待审核
-            //  if (shareDir.res_code == "ShareAuditWaiting") {
-            //      logTaskEvent(`${task.name}分享链接审核中跳过执行`)
-            //      return '';
-            //  } 
+             if(shareDir.res_code == "ShareAuditWaiting") {
+                logTaskEvent("分享链接审核中, 等待下次执行")
+                return ''
+             }
              if (!shareDir || !shareDir.fileListAO.fileList) {
                  logTaskEvent("获取文件列表失败: " + JSON.stringify(shareDir))
                  throw new Error('获取文件列表失败');
@@ -253,22 +275,13 @@ class TaskService {
                     });
                     fileNameList.push(` > <font color="warning">${file.name}</font>`);
                 }
-                const taskResp = await cloud189.createSaveTask(
-                    JSON.stringify(taskInfoList),
-                    task.realFolderId,
-                    task.shareId
-                );
-                if (!taskResp) {
-                    throw new Error('创建任务失败');
-                }
-                if (taskResp.res_code != 0) {
-                    throw new Error(taskResp.res_msg);
-                }
-
-                const status = await this.checkTaskStatus(cloud189,taskResp.taskId);
-                if (!status) {
-                    throw new Error('保存任务失败');
-                }
+                const batchTaskDto = new BatchTaskDto({
+                    taskInfos: JSON.stringify(taskInfoList),
+                    type: 'SHARE_SAVE',
+                    targetFolderId: task.realFolderId,
+                    shareId: task.shareId
+                });
+                await this.createBatchTask(cloud189, batchTaskDto)
                 const resourceName = task.shareFolderName? `${task.resourceName}/${task.shareFolderName}` : task.resourceName;
                 // 防止文件数量过长, 消息推送只保留前5个和最后5个
                 if (fileNameList.length > 20) {
@@ -320,10 +333,12 @@ class TaskService {
             where: [
                 {
                     status: 'pending',
-                    nextRetryTime: null
+                    nextRetryTime: null,
+                    enableCron: false
                 },
                 {
-                    status: 'processing'
+                    status: 'processing',
+                    enableCron: false
                 }
             ]
         });
@@ -335,11 +350,18 @@ class TaskService {
         if (!task) throw new Error('任务不存在');
 
         // 只允许更新特定字段
-        const allowedFields = ['resourceName', 'realFolderId', 'currentEpisodes', 'totalEpisodes', 'status', 'shareFolderName', 'shareFolderId', 'matchPattern','matchOperator','matchValue'];
+        const allowedFields = ['resourceName', 'realFolderId', 'currentEpisodes', 'totalEpisodes', 'status', 'shareFolderName', 'shareFolderId', 'matchPattern','matchOperator','matchValue','remark', 'enableCron', 'cronExpression'];
         for (const field of allowedFields) {
             if (updates[field] !== undefined) {
                 task[field] = updates[field];
             }
+        }
+        // 如果currentEpisodes和totalEpisodes为null 则设置为0
+        if (task.currentEpisodes === null) {
+            task.currentEpisodes = 0;
+        }
+        if (task.totalEpisodes === null) {
+            task.totalEpisodes = 0;
         }
         
         // 验证状态值
@@ -358,7 +380,12 @@ class TaskService {
         if (task.matchPattern && !task.matchValue) {
             throw new Error('匹配模式需要提供匹配值');
         }
-        return await this.taskRepo.save(task);
+        const newTask = await this.taskRepo.save(task)
+        SchedulerService.removeTaskJob(task.id)
+        if (task.enableCron && task.cronExpression) {
+            SchedulerService.saveTaskJob(newTask, this)
+        }
+        return newTask;
     }
 
     // 自动重命名
@@ -389,19 +416,19 @@ class TaskService {
     }
 
     // 检查任务状态
-    async checkTaskStatus(cloud189, taskId, count = 0) {
+    async checkTaskStatus(cloud189, taskId, count = 0, type = "SHARE_SAVE") {
         if (count > 5) {
              return false;
         }
         // 轮询任务状态
-        const task = await cloud189.checkTaskStatus(taskId)
+        const task = await cloud189.checkTaskStatus(taskId, type)
         if (!task) {
             return false;
         }
         if (task.taskStatus == 3) {
             // 暂停200毫秒
             await new Promise(resolve => setTimeout(resolve, 200));
-            return await this.checkTaskStatus(cloud189,taskId, count++)
+            return await this.checkTaskStatus(cloud189,taskId, count++, type)
         }
         if (task.taskStatus == 4) {
             return true;
@@ -419,7 +446,7 @@ class TaskService {
             }
             await cloud189.manageBatchTask(taskId, conflictTaskInfo.targetFolderId, taskInfos);
             await new Promise(resolve => setTimeout(resolve, 200));
-            return await this.checkTaskStatus(cloud189, taskId, count++)
+            return await this.checkTaskStatus(cloud189, taskId, count++, type)
         }
         return false;
     }
@@ -503,7 +530,7 @@ class TaskService {
         } else {
             task.status = 'failed';
             task.lastError = `${error.message} (已达到最大重试次数 ${maxRetries})`;
-            logTaskEvent('任务达到最大重试次数，标记为失败');
+            logTaskEvent(`任务达到最大重试次数 ${maxRetries}，标记为失败`);
         }
         
         await this.taskRepo.save(task);
@@ -548,6 +575,41 @@ class TaskService {
             this.messageUtil.sendMessage(saveResults.join("\n\n"));
         }
         return saveResults;
+    }
+    // 创建批量任务
+    async createBatchTask(cloud189, batchTaskDto) {
+        const resp = await cloud189.createBatchTask(batchTaskDto);
+        if (!resp) {
+            throw new Error('批量任务处理失败');
+        }
+        if (resp.res_code != 0) {
+            throw new Error(resp.res_msg);
+        }
+        if (!await this.checkTaskStatus(cloud189,resp.taskId, 0 , batchTaskDto.type)) {
+            throw new Error('批量任务处理失败');
+        }
+    }
+    // 定时清空回收站
+    async clearRecycleBin() {
+        const autoClearRecycle  = ConfigService.getConfigValue('task.enableAutoClearRecycle')
+        if (!autoClearRecycle) {
+            return
+        }
+        const accounts = await this.accountRepo.find()
+        if (accounts) {
+            for (const account of accounts) {
+                try {
+                    const cloud189 = Cloud189Service.getInstance(account);    
+                    const batchTaskDto = new BatchTaskDto({
+                        taskInfos: '[]',
+                        type: 'EMPTY_RECYCLE'
+                    });
+                    await this.createBatchTask(cloud189, batchTaskDto)
+                } catch (error) {
+                    console.error(`定时清空回收站任务执行失败:`, error);
+                }
+            }
+        }
     }
 }
 

@@ -8,8 +8,11 @@ class ConfigService {
     this._config = {
       task: {
         taskExpireDays: 3,
+        taskCheckCron: '0 19-23 * * *',
+        cleanRecycleCron: '0 */8 * * *',
         maxRetries: 3,        // 最大重试次数
         retryInterval: 300,   // 重试间隔（秒）
+        enableAutoClearRecycle: false
       },
       wecom: {
         enable: false,

@@ -186,3 +186,27 @@ button {
 .task-operations button {
     flex-shrink: 0; /* 防止按钮被压缩 */
 }
+
+.task-search {
+    padding: 5px 10px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    min-width: 200px;
+    background-color: var(--input-bg);
+    color: var(--text-color);
+}
+
+.form-body {
+    max-height: calc(55vh - 140px);
+    overflow-y: auto;
+    padding: 10px;
+}
+#createTaskModal .form-actions {
+    padding: 20px;
+}
+
+
+
+.cronExpression-box{
+    display: none;
+}
