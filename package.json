@@ -1,10 +1,10 @@
 {
   "name": "cloud189-auto-save",
-  "version": "2.2.4",
+  "version": "2.2.5",
   "description": "天翼云盘自动转存系统",
   "main": "src/index.js",
   "scripts": {
-    "start": "ts-node src/index.js",
+    "start": "node src/index.js",
     "build": "tsc",
     "dev": "nodemon --exec ts-node src/index.js"
   },

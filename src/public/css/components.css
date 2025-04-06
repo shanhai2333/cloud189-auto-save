@@ -202,3 +202,53 @@
 .search-input input:focus {
     outline: none;
 }
+
+
+/* 任务操作区域响应式布局 */
+.task-operations {
+    width: 100%;
+}
+
+.operation-group {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.button-group {
+    display: flex;
+    gap: 8px;
+    flex-wrap: nowrap;
+}
+
+.search-bar {
+    display: flex;
+    align-items: center;
+}
+
+.search-input {
+    display: flex;
+    gap: 8px;
+}
+
+/* 移动端适配 */
+@media (max-width: 768px) {
+    .operation-group {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .button-group, .search-bar {
+        width: 100%;
+    }
+    
+    .search-input {
+        width: 100%;
+    }
+    
+    .search-input select, 
+    .search-input input {
+        flex: 1;
+    }
+}

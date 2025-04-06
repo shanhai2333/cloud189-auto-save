@@ -1,5 +1,5 @@
 const { DataSource } = require('typeorm');
-const { Account, Task } = require('../entities').default;
+const { Account, Task } = require('../entities');
 const path = require('path');
 const dotenv = require('dotenv');
 
@@ -10,6 +10,9 @@ const AppDataSource = new DataSource({
     database: process.env.DB_PATH || path.join(__dirname, '../../data/database.sqlite'),
     synchronize: true,
     logging: false,
+    maxQueryExecutionTime: 1000, // 查询超时设置
+    enableWAL: true,   // 启用 WAL 模式提升性能
+    busyTimeout: 3000, // 设置超时时间
     entities: [Account, Task],
     subscribers: [],
     migrations: [],

@@ -312,7 +312,6 @@ class TaskService {
             task.lastCheckTime = new Date();
             await this.taskRepo.save(task);
             return saveResults.join('\n');
-
         } catch (error) {
             return await this._handleTaskFailure(task, error);
         }
@@ -514,7 +513,6 @@ class TaskService {
         logTaskEvent(error);
         const maxRetries = ConfigService.getConfigValue('task.maxRetries');
         const retryInterval = ConfigService.getConfigValue('task.retryInterval');
-        
         // 初始化重试次数
         if (!task.retryCount) {
             task.retryCount = 0;
@@ -590,21 +588,41 @@ class TaskService {
         }
     }
     // 定时清空回收站
-    async clearRecycleBin() {
-        const autoClearRecycle  = ConfigService.getConfigValue('task.enableAutoClearRecycle')
-        if (!autoClearRecycle) {
-            return
+    async clearRecycleBin(familyId = null) {
+        const accounts = await this.accountRepo.find()
+        if (accounts) {
+            for (const account of accounts) {
+                try {
+                    const cloud189 = Cloud189Service.getInstance(account); 
+                    const params = {
+                        taskInfos: '[]',
+                        type: 'EMPTY_RECYCLE',
+                    }   
+                    if (familyId != null) {
+                        params.familyId = familyId
+                    }
+                    const batchTaskDto = new BatchTaskDto(params);
+                    await this.createBatchTask(cloud189, batchTaskDto)
+                } catch (error) {
+                    console.error(`定时清空回收站任务执行失败:`, error);
+                }
+            }
         }
+    }
+    // 定时清空家庭回收站
+    async clearFamilyRecycleBin() {
         const accounts = await this.accountRepo.find()
         if (accounts) {
             for (const account of accounts) {
                 try {
                     const cloud189 = Cloud189Service.getInstance(account);    
-                    const batchTaskDto = new BatchTaskDto({
-                        taskInfos: '[]',
-                        type: 'EMPTY_RECYCLE'
-                    });
-                    await this.createBatchTask(cloud189, batchTaskDto)
+                    // 获取家庭id
+                    const familyInfo = cloud189.getFamilyInfo()
+                    if (familyInfo == null) {
+                        logTaskEvent(`用户${account.username}没有家庭主账号, 跳过`)
+                        continue
+                    }
+                    await this.clearRecycleBin(familyInfo.familyId)
                 } catch (error) {
                     console.error(`定时清空回收站任务执行失败:`, error);
                 }

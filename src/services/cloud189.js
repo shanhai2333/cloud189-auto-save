@@ -137,8 +137,7 @@ class Cloud189Service {
     // 创建批量执行任务
     async createBatchTask(batchTaskDto) {
         logTaskEvent("========== 开始创建批量任务 ============")
-        logTaskEvent(`type: ${batchTaskDto.type}` )
-        logTaskEvent(`taskInfos: ${batchTaskDto.taskInfos}` )
+        logTaskEvent(`batchTaskDto: ${JSON.stringify(batchTaskDto)}`)
         return await this.request('/api/open/batch/createBatchTask.action', {
             method: 'POST',
             form: batchTaskDto
@@ -235,6 +234,19 @@ class Cloud189Service {
             }
             throw error;
         }
+    }
+    // 获取家庭信息
+    async getFamilyInfo() {
+        const familyList = await this.client.getFamilyList()
+        if (!familyList || !familyList.length) {
+            return null
+        }
+        for (const family of familyList) {
+            if (family.userRole == 1) {
+                return family
+            }
+        }
+        return null
     }
 }
 

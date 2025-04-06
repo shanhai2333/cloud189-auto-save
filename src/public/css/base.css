@@ -197,10 +197,12 @@ button {
 }
 
 .form-body {
-    max-height: calc(55vh - 140px);
     overflow-y: auto;
     padding: 10px;
 }
+
+
+
 #createTaskModal .form-actions {
     padding: 20px;
 }
@@ -209,4 +211,12 @@ button {
 
 .cronExpression-box{
     display: none;
+}
+
+@media (max-width: 768px) {
+    .form-body {
+        max-height: calc(60vh - 100px);
+        overflow-y: auto;
+        padding: 10px;
+    }
 }

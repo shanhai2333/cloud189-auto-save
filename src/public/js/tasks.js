@@ -307,33 +307,35 @@ function showBatchRenameOptions() {
     modal.innerHTML = `
         <div class="modal-content">
             <h3>批量重命名</h3>
-            <div class="rename-type-selector">
-                <label class="radio-label">
-                    <input type="radio" name="renameType" value="regex" checked>
-                    正则表达式重命名
-                </label>
-                <label class="radio-label">
-                    <input type="radio" name="renameType" value="sequential">
-                    顺序重命名
-                </label>
-            </div>
-            <div id="renameDescription" class="rename-description">
-                正则表达式文件重命名。在第一行输入源文件名正则表达式，并在第二行输入新文件名正则表达式。
-            </div>
-            <div id="regexInputs" class="rename-inputs">
-                <div class="form-group">
-                    <input type="text" id="sourceRegex" class="form-input" placeholder="源文件名正则表达式" value="${sourceRegex}">
+            <div class="form-body">
+                <div class="rename-type-selector">
+                    <label class="radio-label">
+                        <input type="radio" name="renameType" value="regex" checked>
+                        正则表达式重命名
+                    </label>
+                    <label class="radio-label">
+                        <input type="radio" name="renameType" value="sequential">
+                        顺序重命名
+                    </label>
                 </div>
-                <div class="form-group">
-                    <input type="text" id="targetRegex" class="form-input" placeholder="新文件名正则表达式" value="${targetRegex}">
+                <div id="renameDescription" class="rename-description">
+                    正则表达式文件重命名。在第一行输入源文件名正则表达式，并在第二行输入新文件名正则表达式。
                 </div>
-            </div>
-            <div id="sequentialInputs" class="rename-inputs" style="display: none;">
-                <div class="form-group">
-                    <input type="text" id="newNameFormat" class="form-input" placeholder="新文件名格式">
+                <div id="regexInputs" class="rename-inputs">
+                    <div class="form-group">
+                        <input type="text" id="sourceRegex" class="form-input" placeholder="源文件名正则表达式" value="${sourceRegex}">
+                    </div>
+                    <div class="form-group">
+                        <input type="text" id="targetRegex" class="form-input" placeholder="新文件名正则表达式" value="${targetRegex}">
+                    </div>
                 </div>
-                <div class="form-group">
-                    <input type="number" id="startNumber" class="form-input" value="" min="1" placeholder="起始序号">
+                <div id="sequentialInputs" class="rename-inputs" style="display: none;">
+                    <div class="form-group">
+                        <input type="text" id="newNameFormat" class="form-input" placeholder="新文件名格式">
+                    </div>
+                    <div class="form-group">
+                        <input type="number" id="startNumber" class="form-input" value="" min="1" placeholder="起始序号">
+                    </div>
                 </div>
             </div>
             <div class="form-actions">
@@ -351,7 +353,7 @@ function showBatchRenameOptions() {
     const description = modal.querySelector('#renameDescription');
     const regexInputs = modal.querySelector('#regexInputs');
     const sequentialInputs = modal.querySelector('#sequentialInputs')
-    modal.querySelector('.modal-content').style.height = '40%';
+    modal.querySelector('.modal-content').style.height = '55vh';
 
     radioButtons.forEach(radio => {
         radio.addEventListener('change', (e) => {
@@ -419,7 +421,7 @@ function showRenamePreview(newNames, autoUpdate) {
     const modal = document.createElement('div');
     modal.className = 'modal preview-rename-modal';
     modal.innerHTML = `
-        <div class="modal-content" style="width: 80%; max-width: 1000px;">
+        <div class="modal-content" style=" max-width: 1000px;">
             <h3>重命名预览</h3>
             <div class="preview-container" style="max-height: 40vh; overflow-y: auto;">
                 <table>
@@ -446,6 +448,7 @@ function showRenamePreview(newNames, autoUpdate) {
             </div>
         </div>
     `;
+    modal.querySelector('.modal-content').style.height = '65vh';
     document.body.appendChild(modal);
     modal.style.display = 'flex';
 }

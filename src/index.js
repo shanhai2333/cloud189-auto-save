@@ -354,33 +354,7 @@ AppDataSource.initialize().then(async () => {
 
     app.post('/api/settings', async (req, res) => {
         const settings = req.body;
-        // 如果定时任务和清空回收站任务与配置文件不一致, 则修改定时任务
-        if (settings.task.taskCheckCron && settings.task.taskCheckCron != ConfigService.getConfigValue('task.taskCheckCron')) {
-            SchedulerService.saveDefaultTaskJob('任务定时检查', settings.task.taskCheckCron, async () => {
-                taskService.processAllTasks();
-            });
-        }
-
-        const currentEnabled = ConfigService.getConfigValue('task.enableAutoClearRecycle');
-        const currentCron = ConfigService.getConfigValue('task.cleanRecycleCron');
-        const newEnabled = settings.task.enableAutoClearRecycle;
-        const newCron = settings.task.cleanRecycleCron;
-       // 情况1: 当前未开启 -> 开启
-       if (!currentEnabled && newEnabled && newCron) {
-            SchedulerService.saveDefaultTaskJob('自动清空回收站', newCron, async () => {
-                taskService.clearRecycleBin();
-            });
-        }
-        // 情况2: 当前开启 -> 开启，但cron不同
-        else if (currentEnabled && newEnabled && currentCron !== newCron) {
-            SchedulerService.saveDefaultTaskJob('自动清空回收站', newCron, async () => {
-                taskService.clearRecycleBin();
-            });
-        }
-        // 情况3: 提交为关闭
-        else if (!newEnabled) {
-            SchedulerService.removeTaskJob('自动清空回收站');
-        }
+        SchedulerService.handleScheduleTasks(settings,taskService);
         ConfigService.setConfig(settings)
         // 修改配置, 重新实例化消息推送
         messageUtil.updateConfig()

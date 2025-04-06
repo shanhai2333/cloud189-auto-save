@@ -12,7 +12,8 @@ class ConfigService {
         cleanRecycleCron: '0 */8 * * *',
         maxRetries: 3,        // 最大重试次数
         retryInterval: 300,   // 重试间隔（秒）
-        enableAutoClearRecycle: false
+        enableAutoClearRecycle: false,
+        enableAutoClearFamilyRecycle: false
       },
       wecom: {
         enable: false,
@@ -91,14 +92,14 @@ class ConfigService {
     this._saveConfig();
   }
 
-  getConfigValue(key) {
+  getConfigValue(key, defaultValue = null) {
     const keys = key.split('.');
     let value = this._config;
     for (const k of keys) {
       value = value?.[k];
       if (value === undefined) break;
     }
-    return value;
+    return value ?? defaultValue;
   }
 
   setConfigValue(key, value) {
