@@ -11,6 +11,7 @@ const packageJson = require('../package.json');
 const session = require('express-session');
 const FileStore = require('session-file-store')(session);
 const { SchedulerService } = require('./services/scheduler');
+const { logTaskEvent } = require('./utils/logUtils');
 
 const app = express();
 app.use(express.json());
@@ -24,7 +25,7 @@ app.use(session({
         logFn: () => {},      // 禁用内部日志
         reapAsync: true,      // 异步清理过期session
     }),
-    secret: process.env.SESSION_SECRET || 'LhX2IyUcMAz2',
+    secret: 'LhX2IyUcMAz2',
     resave: false,
     saveUninitialized: false,
     cookie: { 
@@ -65,8 +66,8 @@ app.get('/login', (req, res) => {
 app.post('/api/auth/login', (req, res) => {
     const { username, password } = req.body;
     
-    if (username === process.env.AUTH_USERNAME && 
-        password === process.env.AUTH_PASSWORD) {
+    if (username === ConfigService.getConfigValue('system.username') && 
+        password === ConfigService.getConfigValue('system.password')) {
         req.session.authenticated = true;
         req.session.username = username;
         res.json({ success: true });
@@ -90,7 +91,7 @@ AppDataSource.initialize().then(async () => {
     const taskService = new TaskService(taskRepo, accountRepo);
     const messageUtil = new MessageUtil();
     // 初始化缓存管理器
-    const folderCache = new CacheManager(parseInt(process.env.FOLDER_CACHE_TTL || 600));
+    const folderCache = new CacheManager(parseInt(600));
     
     // 初始化任务定时器
     await SchedulerService.initTaskJobs(taskRepo, taskService);
@@ -218,10 +219,15 @@ AppDataSource.initialize().then(async () => {
         try {
             const task = await taskRepo.findOneBy({ id: parseInt(req.params.id) });
             if (!task) throw new Error('任务不存在');
+            logTaskEvent(`================================`);
+            const taskName = task.shareFolderName?(task.resourceName + '/' + task.shareFolderName): task.resourceName || '未知'
+            logTaskEvent(`任务[${taskName}]开始执行`);
             const result = await taskService.processTask(task);
             if (result) {
                 messageUtil.sendMessage(result)
             }
+            logTaskEvent(`任务[${taskName}]执行完成`);
+            logTaskEvent(`================================`);
             res.json({ success: true, data: result });
         } catch (error) {
             res.json({ success: false, error: error.message });
@@ -343,7 +349,7 @@ AppDataSource.initialize().then(async () => {
     });
 
     app.post('/api/tasks/executeAll', async (req, res) => {
-        await taskService.processAllTasks();
+        taskService.processAllTasks(true);
         res.json({ success: true, data: null });
     });
     
@@ -366,7 +372,7 @@ AppDataSource.initialize().then(async () => {
     });
     
     // 启动服务器
-    const port = process.env.PORT || 3000;
+    const port = 3000;
     app.listen(port, () => {
         console.log(`服务器运行在 http://localhost:${port}`);
     });

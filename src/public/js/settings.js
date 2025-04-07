@@ -12,6 +12,8 @@ async function loadSettings() {
             document.getElementById('taskRetryInterval').value = settings.task?.retryInterval || 300;
             document.getElementById('enableAutoClearRecycle').checked = settings.task?.enableAutoClearRecycle || false;
             document.getElementById('enableAutoClearFamilyRecycle').checked = settings.task?.enableAutoClearFamilyRecycle || false;
+            document.getElementById('mediaSuffix').value = settings.task?.mediaSuffix || '.mkv;.iso;.ts;.mp4;.avi;.rmvb;.wmv;.m2ts;.mpg;.flv;.rm;.mov';
+            document.getElementById('enableOnlySaveMedia').checked = settings.task?.enableOnlySaveMedia || false;
 
             // 企业微信设置
             document.getElementById('enableWecom').checked = settings.wecom?.enable || false;
@@ -37,6 +39,10 @@ async function loadSettings() {
             document.getElementById('enableBark').checked = settings.bark?.enable || false;
             document.getElementById('barkServerUrl').value = settings.bark?.serverUrl || '';
             document.getElementById('barkKey').value = settings.bark?.key || '';
+
+            // 账号密码设置
+            document.getElementById('systemUserName').value = settings.system?.username || '';
+            document.getElementById('systemPassword').value = settings.system?.password || '';
             
         }
     } catch (error) {
@@ -54,7 +60,9 @@ document.getElementById('settingsForm').addEventListener('submit', async (e) => 
             maxRetries: parseInt(document.getElementById('taskMaxRetries').value) || 3,
             retryInterval: parseInt(document.getElementById('taskRetryInterval').value) || 300,
             enableAutoClearRecycle: document.getElementById('enableAutoClearRecycle').checked,
-            enableAutoClearFamilyRecycle: document.getElementById('enableAutoClearFamilyRecycle').checked
+            enableAutoClearFamilyRecycle: document.getElementById('enableAutoClearFamilyRecycle').checked,
+            mediaSuffix: document.getElementById('mediaSuffix').value,
+            enableOnlySaveMedia: document.getElementById('enableOnlySaveMedia').checked
         },
         wecom: {
             enable: document.getElementById('enableWecom').checked,
@@ -80,6 +88,10 @@ document.getElementById('settingsForm').addEventListener('submit', async (e) => 
             enable: document.getElementById('enableBark').checked,
             serverUrl: document.getElementById('barkServerUrl').value,
             key: document.getElementById('barkKey').value
+        },
+        system: {
+            username: document.getElementById('systemUserName').value,
+            password: document.getElementById('systemPassword').value
         }
     };
     // taskRetryInterval不能少于60秒

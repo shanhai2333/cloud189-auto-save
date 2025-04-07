@@ -129,8 +129,7 @@ async function executeAllTask() {
             method: 'POST'
         });
         if (response.ok) {
-            alert('任务执行完成');
-            fetchTasks();
+            alert('任务已在后台执行, 请稍后查看结果');
         } else {
             alert('任务执行失败');
         }

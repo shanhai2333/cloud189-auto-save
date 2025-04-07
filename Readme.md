@@ -6,22 +6,11 @@
 
 - 支持多账号管理
 - 自动监控分享链接更新, 自动重命名
-- 支持企业微信、Telegram 消息推送
+- 支持企业微信、Telegram, Bark, Wxpusher 消息推送
 - Web 界面管理，响应式布局, 操作便捷
 - Docker 部署，方便维护
 
 ## 快速开始
-
-### 配置文件
-
-修改 `.env.example` 文件为 `.env`，然后配置以下参数：
-
-```plaintext
-# Web 认证信息
-AUTH_USERNAME=admin    # 网页登录用户名
-AUTH_PASSWORD=password # 网页登录密码
-
-```
 
 ## Docker 部署
 
@@ -30,17 +19,16 @@ AUTH_PASSWORD=password # 网页登录密码
 ```bash
 docker run -d \
   -v /yourpath/data:/home/data \
-  -v /yourpath/.env:/home/.env \
   -p 3000:3000 \
   --restart unless-stopped \
   --name cloud189 \
   xia1307/cloud189-auto-save
   ```
-注意: 镜像构建不那么及时, 最好自行构建, 或者下载源码, 将源码的src目录挂载到/home/src
+注意: `yourpath`请替换为你宿主机的目录; 镜像构建不那么及时, 最好自行构建, 或者下载源码, 将源码的src目录挂载到/home/src
 
 ### 访问系统
 
-浏览器访问 `http://localhost:3000`，使用 `.env` 中配置的用户名和密码登录。
+浏览器访问 `http://localhost:3000`，默认账号密码为admin admin 登录后请在系统页修改密码
 
 ## 使用说明
 
@@ -80,7 +68,6 @@ docker run -d \
 
 ## 注意事项
 
-- 请确保 `.env` 文件权限设置正确
 - 更新目录可以任意移动但不能被删除, 否则任务无法执行; 
 - 数据库文件会持久化保存在宿主机
 - 支持容器自动重启

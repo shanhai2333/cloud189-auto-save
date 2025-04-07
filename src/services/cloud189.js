@@ -136,14 +136,13 @@ class Cloud189Service {
 
     // 创建批量执行任务
     async createBatchTask(batchTaskDto) {
-        logTaskEvent("========== 开始创建批量任务 ============")
-        logTaskEvent(`batchTaskDto: ${JSON.stringify(batchTaskDto)}`)
-        return await this.request('/api/open/batch/createBatchTask.action', {
+        logTaskEvent("创建批量任务")
+        logTaskEvent(`batchTaskDto: ${batchTaskDto.toString()}`)
+        return await this.request('/api/open/batch/createBatchTask.action?noCache=0.123781348273431793', {
             method: 'POST',
             form: batchTaskDto
         })
     }
-
     // 查询转存任务状态
     async checkTaskStatus(taskId, type = "SHARE_SAVE") {
         const params = {taskId, type}
@@ -238,10 +237,11 @@ class Cloud189Service {
     // 获取家庭信息
     async getFamilyInfo() {
         const familyList = await this.client.getFamilyList()
-        if (!familyList || !familyList.length) {
+        if (!familyList || !familyList.familyInfoResp) {
             return null
         }
-        for (const family of familyList) {
+        const resp = familyList.familyInfoResp
+        for (const family of resp) {
             if (family.userRole == 1) {
                 return family
             }

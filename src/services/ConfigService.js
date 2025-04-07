@@ -13,7 +13,9 @@ class ConfigService {
         maxRetries: 3,        // 最大重试次数
         retryInterval: 300,   // 重试间隔（秒）
         enableAutoClearRecycle: false,
-        enableAutoClearFamilyRecycle: false
+        enableAutoClearFamilyRecycle: false,
+        mediaSuffix: '.mkv;.iso;.ts;.mp4;.avi;.rmvb;.wmv;.m2ts;.mpg;.flv;.rm;.mov', // 媒体文件后缀
+        enableOnlySaveMedia: false, // 只保存媒体文件
       },
       wecom: {
         enable: false,
@@ -39,6 +41,10 @@ class ConfigService {
         enable: false,
         serverUrl: '', 
         key: ''
+      },
+      system: {
+        username: 'admin',
+        password: 'admin'
       }
     };
     this._init();

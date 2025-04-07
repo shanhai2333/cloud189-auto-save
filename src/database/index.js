@@ -7,7 +7,7 @@ dotenv.config();
 
 const AppDataSource = new DataSource({
     type: 'sqlite',
-    database: process.env.DB_PATH || path.join(__dirname, '../../data/database.sqlite'),
+    database: path.join(__dirname, '../../data/database.sqlite'),
     synchronize: true,
     logging: false,
     maxQueryExecutionTime: 1000, // 查询超时设置

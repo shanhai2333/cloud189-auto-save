@@ -52,13 +52,16 @@ class SchedulerService {
         if (task.enableCron && task.cronExpression) {
             logTaskEvent(`创建定时任务 ${taskName}, 表达式: ${task.cronExpression}`)
             const job = cron.schedule(task.cronExpression, async () => {
-                logTaskEvent(`任务[${task.id}]自定义定时检查...`);
+                logTaskEvent(`================================`);
+                logTaskEvent(`任务[${taskName}]自定义定时检查...`);
                 const result = await taskService.processTask(task);
                 if (result) {
                     this.messageUtil.sendMessage(result)
                 }
+                logTaskEvent(`================================`);
             });
             this.taskJobs.set(task.id, job);
+            logTaskEvent(`定时任务 ${name}, 表达式: ${cronExpression} 已设置`)
         }
     }
 
@@ -74,6 +77,7 @@ class SchedulerService {
         }
         const job = cron.schedule(cronExpression, task);
         this.taskJobs.set(name, job);
+        logTaskEvent(`定时任务 ${name}, 表达式: ${cronExpression} 已设置`)
         return job;
     }
 
@@ -81,6 +85,7 @@ class SchedulerService {
         if (this.taskJobs.has(taskId)) {
             this.taskJobs.get(taskId).stop();
             this.taskJobs.delete(taskId);
+            logTaskEvent(`定时任务[${taskId}]已移除`);
         }
     }
 

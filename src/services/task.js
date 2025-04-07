@@ -239,6 +239,7 @@ class TaskService {
         try {
             const account = await this.accountRepo.findOneBy({ id: task.accountId });
             if (!account) {
+                logTaskEvent(`账号不存在，accountId: ${task.accountId}`);
                 throw new Error('账号不存在');
             }
             const cloud189 = Cloud189Service.getInstance(account);
@@ -248,25 +249,40 @@ class TaskService {
                 logTaskEvent("分享链接审核中, 等待下次执行")
                 return ''
              }
-             if (!shareDir || !shareDir.fileListAO.fileList) {
-                 logTaskEvent("获取文件列表失败: " + JSON.stringify(shareDir))
-                 throw new Error('获取文件列表失败');
+             if (!shareDir?.fileListAO?.fileList) {
+                logTaskEvent("获取文件列表失败: " + JSON.stringify(shareDir));
+                throw new Error('获取文件列表失败');
             }
-            let shareFiles = [...shareDir.fileListAO.fileList];
-            let existingFiles = new Set();
-            
+            let shareFiles = [...shareDir.fileListAO.fileList];            
             const folderFiles = await this.getAllFolderFiles(cloud189, task.realFolderId);
-            existingFiles = new Set(
-                    folderFiles
-                        .filter(file => !file.isFolder)
-                        .map(file => file.md5)
-                );
+            const enableOnlySaveMedia = ConfigService.getConfigValue('task.enableOnlySaveMedia');
+            // mediaSuffixs转为小写
+            const mediaSuffixs = ConfigService.getConfigValue('task.mediaSuffix').split(';').map(suffix => suffix.toLowerCase())
+            const { existingFiles, existingFileNames, existingMediaCount } = folderFiles.reduce((acc, file) => {
+                if (!file.isFolder) {
+                    acc.existingFiles.add(file.md5);
+                    acc.existingFileNames.add(file.name);
+                    if ((task.totalEpisodes == null || task.totalEpisodes <= 0) || this._checkFileSuffix(file, false, mediaSuffixs)) {
+                        acc.existingMediaCount++;
+                    }
+                }
+                return acc;
+            }, { 
+                existingFiles: new Set(), 
+                existingFileNames: new Set(), 
+                existingMediaCount: 0 
+            });
             const newFiles = shareFiles
-                .filter(file => !file.isFolder && !existingFiles.has(file.md5) && this._handleMatchMode(task, file));
+                .filter(file => 
+                    !file.isFolder && !existingFiles.has(file.md5) 
+                   && !existingFileNames.has(file.name)
+                   && this._checkFileSuffix(file, enableOnlySaveMedia, mediaSuffixs)
+                && this._handleMatchMode(task, file));
 
             if (newFiles.length > 0) {
                 const taskInfoList = [];
                 const fileNameList = [];
+                let fileCount = 0;
                 for (const file of newFiles) {
                     taskInfoList.push({
                         fileId: file.id,
@@ -274,6 +290,7 @@ class TaskService {
                         isFolder: 0
                     });
                     fileNameList.push(` > <font color="warning">${file.name}</font>`);
+                    if (this._checkFileSuffix(file, false, mediaSuffixs)) fileCount++;
                 }
                 const batchTaskDto = new BatchTaskDto({
                     taskInfos: JSON.stringify(taskInfoList),
@@ -290,7 +307,7 @@ class TaskService {
                 saveResults.push(`${resourceName}更新${taskInfoList.length}集: \n ${fileNameList.join('\n')}`);
                 task.status = 'processing';
                 task.lastFileUpdateTime = new Date();
-                task.currentEpisodes = existingFiles.size + newFiles.length;
+                task.currentEpisodes = existingMediaCount + fileCount;
                 task.retryCount = 0;
                 this.autoRename(cloud189, task)
             } else if (task.lastFileUpdateTime) {
@@ -301,12 +318,12 @@ class TaskService {
                 if (daysDiff >= ConfigService.getConfigValue('task.taskExpireDays')) {
                     task.status = 'completed';
                 }
-                logTaskEvent(`====== ${task.resourceName} 没有增量剧集 =======`)
+                logTaskEvent(`${task.resourceName} 没有增量剧集`)
             }
             // 检查是否达到总数
             if (task.totalEpisodes && task.currentEpisodes >= task.totalEpisodes) {
                 task.status = 'completed';
-                logTaskEvent(`======= ${task.resourceName} 已完结 ========`)
+                logTaskEvent(`${task.resourceName} 已完结`)
             }
 
             task.lastCheckTime = new Date();
@@ -327,17 +344,17 @@ class TaskService {
     }
 
     // 获取待处理任务
-    async getPendingTasks() {
+    async getPendingTasks(ignore = false) {
         return await this.taskRepo.find({
             where: [
                 {
                     status: 'pending',
                     nextRetryTime: null,
-                    enableCron: false
+                    ...(ignore ? {} : { enableCron: false })
                 },
                 {
                     status: 'processing',
-                    enableCron: false
+                    ...(ignore ? {} : { enableCron: false })
                 }
             ]
         });
@@ -451,18 +468,26 @@ class TaskService {
     }
 
     // 执行所有任务
-    async processAllTasks() {
-        logTaskEvent('开始执行所有任务')
-        const tasks = await this.getPendingTasks();
+    async processAllTasks(ignore = false) {
+        const tasks = await this.getPendingTasks(ignore);
+        if (tasks.length === 0) {
+            logTaskEvent('没有待处理的任务');
+            return;
+        }
         let saveResults = []
+        logTaskEvent(`================================`);
         for (const task of tasks) {
+            const taskName = task.shareFolderName?(task.resourceName + '/' + task.shareFolderName): task.resourceName || '未知'
+            logTaskEvent(`任务[${taskName}]开始执行`);
             try {
-            const result = await this.processTask(task);
+                const result = await this.processTask(task);
             if (result) {
                 saveResults.push(result)
             }
             } catch (error) {
                 console.error(`任务${task.id}执行失败:`, error);
+            }finally {
+                logTaskEvent(`任务[${taskName}]执行完成`);
             }
             // 暂停500ms
             await new Promise(resolve => setTimeout(resolve, 500));
@@ -470,7 +495,7 @@ class TaskService {
         if (saveResults.length > 0) {
             this.messageUtil.sendMessage(saveResults.join("\n\n"))
         }
-        logTaskEvent('所有任务执行完毕')
+        logTaskEvent(`================================`);
         return saveResults
     }
     // 处理匹配模式
@@ -554,9 +579,10 @@ class TaskService {
             return [];
         }
         let saveResults = [];
-        
+        logTaskEvent(`================================`);
         for (const task of retryTasks) {
-            logTaskEvent(`开始重试任务 ${task.name}`);
+            const taskName = task.shareFolderName?(task.resourceName + '/' + task.shareFolderName): task.resourceName || '未知'
+            logTaskEvent(`任务[${taskName}]开始重试`);
             try {
                 const result = await this.processTask(task);
                 if (result) {
@@ -564,6 +590,8 @@ class TaskService {
                 }
             } catch (error) {
                 console.error(`重试任务${task.name}执行失败:`, error);
+            }finally {
+                logTaskEvent(`任务[${taskName}]重试完成`);
             }
             // 任务间隔
             await new Promise(resolve => setTimeout(resolve, 500));
@@ -572,6 +600,7 @@ class TaskService {
         if (saveResults.length > 0) {
             this.messageUtil.sendMessage(saveResults.join("\n\n"));
         }
+        logTaskEvent(`================================`);
         return saveResults;
     }
     // 创建批量任务
@@ -588,46 +617,49 @@ class TaskService {
         }
     }
     // 定时清空回收站
-    async clearRecycleBin(familyId = null) {
+    async clearRecycleBin(family = false) {
         const accounts = await this.accountRepo.find()
         if (accounts) {
             for (const account of accounts) {
+                let username = account.username.replace(/(.{3}).*(.{4})/, '$1****$2');
+                logTaskEvent(`定时[${username}]清空回收站任务开始执行`)
                 try {
                     const cloud189 = Cloud189Service.getInstance(account); 
                     const params = {
                         taskInfos: '[]',
                         type: 'EMPTY_RECYCLE',
                     }   
-                    if (familyId != null) {
-                        params.familyId = familyId
+                    if (family) {
+                        // 获取家庭id
+                        const familyInfo = await cloud189.getFamilyInfo()
+                        if (familyInfo == null) {
+                            logTaskEvent(`用户${username}没有家庭主账号, 跳过`)
+                            continue
+                        }
+                        params.familyId = familyInfo.familyId
                     }
                     const batchTaskDto = new BatchTaskDto(params);
                     await this.createBatchTask(cloud189, batchTaskDto)
                 } catch (error) {
-                    console.error(`定时清空回收站任务执行失败:`, error);
+                    logTaskEvent(`定时[${username}]清空回收站任务执行失败:${error.message}`);
                 }
             }
         }
     }
     // 定时清空家庭回收站
     async clearFamilyRecycleBin() {
-        const accounts = await this.accountRepo.find()
-        if (accounts) {
-            for (const account of accounts) {
-                try {
-                    const cloud189 = Cloud189Service.getInstance(account);    
-                    // 获取家庭id
-                    const familyInfo = cloud189.getFamilyInfo()
-                    if (familyInfo == null) {
-                        logTaskEvent(`用户${account.username}没有家庭主账号, 跳过`)
-                        continue
-                    }
-                    await this.clearRecycleBin(familyInfo.familyId)
-                } catch (error) {
-                    console.error(`定时清空回收站任务执行失败:`, error);
-                }
-            }
+        await this.clearRecycleBin(true)
+    }
+    // 校验文件后缀
+    _checkFileSuffix(file,enableOnlySaveMedia, mediaSuffixs) {
+        // 获取文件后缀
+        const fileExt = '.' + file.name.split('.').pop().toLowerCase();
+        const isMedia = mediaSuffixs.includes(fileExt)
+        // 如果启用了只保存媒体文件, 则检查文件后缀是否在配置中
+        if (enableOnlySaveMedia && !isMedia) {
+            return false
         }
+        return true
     }
 }
 

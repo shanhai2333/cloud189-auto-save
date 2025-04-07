@@ -233,6 +233,15 @@
                             <input type="text" id="cleanRecycleCron" placeholder="Cron表达式">
                             <small class="form-text">默认：0 */8 * * * (每8小时)</small>
                         </div>
+                        <div class="push-item">
+                            <label for="mediaSuffix">媒体文件后缀</label>
+                            <input type="text" id="mediaSuffix" placeholder="例如: .mp4, .mkv">
+                            <small class="form-text">仅用于计算当前已转存集数,其他文件一样会转存。当任务总集数填写后,会根据当前填写的后缀匹配媒体文件,满足后缀的文件会计入已更新数。</small>
+                            <label>
+                                <input type="checkbox" id="enableOnlySaveMedia">
+                                仅转存指定后缀的媒体文件
+                            </label>
+                        </div>
                     </div>
                 </div>
 
@@ -282,6 +291,14 @@
                         <input type="number" id="proxyPort" placeholder="代理端口">
                         <input type="text" id="proxyUsername" placeholder="账号 如果有">
                         <input type="text" id="proxyPassword" placeholder="密码 如果有">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="proxySettings">用户名密码设置</label>
+                    <div class="proxy-settings">
+                        <input type="text" id="systemUserName" placeholder="登录账号">
+                        <input type="password" id="systemPassword" placeholder="登录密码">
                     </div>
                 </div>
 
