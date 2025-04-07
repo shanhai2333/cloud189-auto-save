@@ -262,7 +262,7 @@ class TaskService {
                 if (!file.isFolder) {
                     acc.existingFiles.add(file.md5);
                     acc.existingFileNames.add(file.name);
-                    if ((task.totalEpisodes == null || task.totalEpisodes <= 0) || this._checkFileSuffix(file, false, mediaSuffixs)) {
+                    if ((task.totalEpisodes == null || task.totalEpisodes <= 0) || this._checkFileSuffix(file, true, mediaSuffixs)) {
                         acc.existingMediaCount++;
                     }
                 }
@@ -290,7 +290,7 @@ class TaskService {
                         isFolder: 0
                     });
                     fileNameList.push(` > <font color="warning">${file.name}</font>`);
-                    if (this._checkFileSuffix(file, false, mediaSuffixs)) fileCount++;
+                    if (this._checkFileSuffix(file, true, mediaSuffixs)) fileCount++;
                 }
                 const batchTaskDto = new BatchTaskDto({
                     taskInfos: JSON.stringify(taskInfoList),

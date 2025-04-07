@@ -61,7 +61,7 @@ class SchedulerService {
                 logTaskEvent(`================================`);
             });
             this.taskJobs.set(task.id, job);
-            logTaskEvent(`定时任务 ${name}, 表达式: ${cronExpression} 已设置`)
+            logTaskEvent(`定时任务 ${taskName}, 表达式: ${task.cronExpression} 已设置`)
         }
     }
 
