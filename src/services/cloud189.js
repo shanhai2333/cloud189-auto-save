@@ -31,7 +31,8 @@ class Cloud189Service {
     async request(action, body) {
         body.headers = {'Accept': 'application/json;charset=UTF-8'}
         try {
-            return await this.client.request('https://cloud.189.cn' + action, body).json();
+            const noCache = Math.random().toString()
+            return await this.client.request('https://cloud.189.cn' + action+'?noCach='+noCache, body).json();
         }catch (error) {
             if (error instanceof got.HTTPError) {
                 const responseBody = JSON.parse(error.response.body);
@@ -138,7 +139,7 @@ class Cloud189Service {
     async createBatchTask(batchTaskDto) {
         logTaskEvent("创建批量任务")
         logTaskEvent(`batchTaskDto: ${batchTaskDto.toString()}`)
-        return await this.request('/api/open/batch/createBatchTask.action?noCache=0.123781348273431793', {
+        return await this.request('/api/open/batch/createBatchTask.action', {
             method: 'POST',
             form: batchTaskDto
         })
@@ -146,7 +147,7 @@ class Cloud189Service {
     // 查询转存任务状态
     async checkTaskStatus(taskId, type = "SHARE_SAVE") {
         const params = {taskId, type}
-        return await this.request('/api/open/batch/checkBatchTask.action' , {
+        return await this.request('/api/open/batch/checkBatchTask.action', {
             method: 'POST',
             form: params,
         })

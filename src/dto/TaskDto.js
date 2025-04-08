@@ -12,6 +12,7 @@ class CreateTaskDto {
         this.remark = data.remark;
         this.enableCron = data.enableCron;
         this.cronExpression = data.cronExpression;
+        this.realRootFolderId = data.realRootFolderId;
     }
 
     validate() {

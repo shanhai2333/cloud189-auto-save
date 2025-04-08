@@ -74,10 +74,14 @@ async function fetchTasks() {
 
  // 删除任务
  async function deleteTask(id) {
-    if (!confirm('确定要删除这个任务吗？')) return;
-
+    const deleteCloud = document.getElementById('deleteCloudOption').checked;
+    if (!confirm(deleteCloud?'确定要删除这个任务并且从网盘中也删除吗？':'确定要删除这个任务吗？')) return;
     const response = await fetch(`/api/tasks/${id}`, {
-        method: 'DELETE'
+        method: 'DELETE',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ deleteCloud })
     });
 
     const data = await response.json();
@@ -245,11 +249,11 @@ async function showFileListModal(taskId) {
     const modal = document.createElement('div');
     modal.className = 'modal files-list-modal'; 
     modal.innerHTML = `
-        <div class="modal-content" style="max-width: 1000px;">
+        <div class="modal-content">
             <h3>文件列表</h3>
             <div class='modal-body'>
                 <button class="batch-rename-btn" onclick="showBatchRenameOptions()">批量重命名</button>
-                <div style="max-height: 40vh; overflow-y: auto;">
+                <div class='form-body'>
                 <table>
                     <thead>
                         <tr>
@@ -263,7 +267,7 @@ async function showFileListModal(taskId) {
                 </table>
                 </div>
             </div>
-            <div class="modal-footer">
+            <div class="form-actions">
                 <button onclick="closeFileListModal()">关闭</button>
             </div>
         </div>
@@ -352,8 +356,7 @@ function showBatchRenameOptions() {
     const description = modal.querySelector('#renameDescription');
     const regexInputs = modal.querySelector('#regexInputs');
     const sequentialInputs = modal.querySelector('#sequentialInputs')
-    modal.querySelector('.modal-content').style.height = '55vh';
-
+    
     radioButtons.forEach(radio => {
         radio.addEventListener('change', (e) => {
             modal.querySelector('.saveAndAutoUpdate').style.display = 'none';
@@ -420,9 +423,9 @@ function showRenamePreview(newNames, autoUpdate) {
     const modal = document.createElement('div');
     modal.className = 'modal preview-rename-modal';
     modal.innerHTML = `
-        <div class="modal-content" style=" max-width: 1000px;">
+        <div class="modal-content">
             <h3>重命名预览</h3>
-            <div class="preview-container" style="max-height: 40vh; overflow-y: auto;">
+            <div class="form-body">
                 <table>
                     <thead>
                         <tr>
@@ -447,7 +450,6 @@ function showRenamePreview(newNames, autoUpdate) {
             </div>
         </div>
     `;
-    modal.querySelector('.modal-content').style.height = '65vh';
     document.body.appendChild(modal);
     modal.style.display = 'flex';
 }
@@ -570,6 +572,21 @@ function initFormToggle() {
 
 
 document.addEventListener('DOMContentLoaded', function() {
+    const dropdownToggle = document.querySelector('.dropdown-toggle');
+    const dropdownGroup = document.querySelector('.dropdown-button-group');
+
+    dropdownToggle.addEventListener('click', function(e) {
+        e.stopPropagation();
+        dropdownGroup.classList.toggle('active');
+    });
+
+    // 点击其他地方关闭下拉菜单
+    document.addEventListener('click', function(e) {
+        if (!dropdownGroup.contains(e.target)) {
+            dropdownGroup.classList.remove('active');
+        }
+    });
+
     function debounce(func, wait) {
         let timeout;
         return function (...args) {
@@ -621,16 +638,20 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // 批量删除功能
 async function deleteSelectedTasks() {
-    if (!confirm('确定要删除选中的任务吗？')) return;
-
     const selectedTasks = document.querySelectorAll('#taskTable tbody tr.selected');
     const taskIds = Array.from(selectedTasks).map(row => row.getAttribute('data-task-id'));
-
+    if (taskIds.length === 0) {
+        alert('请选择要删除的任务');
+        return;
+    }
+    const deleteCloud = document.getElementById('deleteCloudOption').checked;
+    if (!confirm(deleteCloud?'确定要删除选中任务并且从网盘中也删除吗？':'确定要删除选中的任务吗？')) return;
+    
     try {
         const response = await fetch('/api/tasks/batch', {
             method: 'DELETE',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ taskIds })
+            body: JSON.stringify({ taskIds, deleteCloud })
         });
 
         const data = await response.json();
@@ -667,3 +688,32 @@ document.getElementById('enableCron').addEventListener('change', function() {
     const cronInput = document.getElementsByClassName('cronExpression-box')[0];
     cronInput.style.display = this.checked? 'block' : 'none';
 });
+
+// 生成STRM
+async function generateStrm() {
+    const selectedTasks = document.querySelectorAll('#taskTable tbody tr.selected');
+    const taskIds = Array.from(selectedTasks).map(row => row.getAttribute('data-task-id'));
+    if (taskIds.length === 0) {
+        alert('请选择要生成STRM的任务');
+        return;
+    }
+    let overwrite = false;
+    if (confirm('是否覆盖已存在的STRM文件')){
+        overwrite = true;
+    }
+    try {
+        const response = await fetch('/api/tasks/strm', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ taskIds, overwrite })
+        });
+        const data = await response.json();
+        if (data.success) {
+            alert('任务后台执行中, 请稍后查看结果');
+        } else {
+            alert('生成STRM失败: ' + data.error);
+        }
+    } catch (error) {
+        alert('操作失败: ' + error.message);
+    }
+}

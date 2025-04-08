@@ -106,3 +106,21 @@ function formatBytes(bytes) {
     
     return value.toFixed(exponent > 0 ? 2 : 0) + units[exponent];
 }
+async function clearRecycleBin() {
+    if (!confirm('确定要清空所有账号的回收站吗？')) {
+        return;
+    }
+    try {
+        const response = await fetch('/api/accounts/recycle', {
+            method: 'DELETE'
+        });
+        const data = await response.json();
+        if (data.success) {
+            alert('后台任务执行中, 请稍后查看结果');
+        } else {
+            alert('清空回收站失败: ' + data.error);
+        }
+    } catch (error) {
+        alert('操作失败: ' + error.message);
+    }
+}

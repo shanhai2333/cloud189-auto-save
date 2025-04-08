@@ -5,14 +5,17 @@ const { logTaskEvent } = require('../utils/logUtils');
 const ConfigService = require('./ConfigService');
 const { CreateTaskDto } = require('../dto/TaskDto');
 const { BatchTaskDto } = require('../dto/BatchTaskDto');
+const { TaskCompleteEventDto } = require('../dto/TaskCompleteEventDto');
 const { SchedulerService } = require('./scheduler');
+const EventEmitter = require('events');
 
 class TaskService {
-    constructor(taskRepo, accountRepo, taskLogRepo) {
+    constructor(taskRepo, accountRepo) {
         this.taskRepo = taskRepo;
         this.accountRepo = accountRepo;
-        this.taskLogRepo = taskLogRepo;
         this.messageUtil = new MessageUtil();
+
+        this.eventEmitter = new EventEmitter();
     }
 
     // 解析分享码
@@ -71,7 +74,8 @@ class TaskService {
             matchPattern: taskDto.matchPattern,
             matchOperator: taskDto.matchOperator,
             matchValue: taskDto.matchValue,
-            remark: taskDto.remark
+            remark: taskDto.remark,
+            realRootFolderId: taskDto.realRootFolderId
         };
     }
 
@@ -89,16 +93,7 @@ class TaskService {
                 throw new Error('folder already exists');
             }
             // 如果用户需要覆盖, 则删除目标目录
-            const batchTaskDto = new BatchTaskDto({
-                taskInfos: JSON.stringify([{
-                    fileId: existFolder.id,
-                    fileName: existFolder.name,
-                    isFolder: 1
-                }]),
-                type: 'DELETE',
-                targetFolderId: ''
-            });
-            await this.createBatchTask(cloud189, batchTaskDto)
+            await this.deleteCloudFile(cloud189, existFolder, 1)
         }
         
         const targetFolder = await cloud189.createFolder(shareInfo.fileName, taskDto.targetFolderId);
@@ -123,19 +118,20 @@ class TaskService {
             );
             tasks.push(await this.taskRepo.save(rootTask));
         }
-
-        // 处理子文件夹
-        for (const folder of subFolders) {
-            const realFolder = await cloud189.createFolder(folder.name, rootFolder.id);
-            if (!realFolder?.id) throw new Error('创建目录失败');
-
-            const subTask = this.taskRepo.create(
-                this._createTaskConfig(
-                    taskDto,
-                    shareInfo, realFolder, shareInfo.fileName, 0, folder.id, folder.name
-                )
-            );
-            tasks.push(await this.taskRepo.save(subTask));
+        if (subFolders.length > 0) {
+            taskDto.realRootFolderId = rootFolder.id;
+             // 处理子文件夹
+            for (const folder of subFolders) {
+                const realFolder = await cloud189.createFolder(folder.name, rootFolder.id);
+                if (!realFolder?.id) throw new Error('创建目录失败');
+                const subTask = this.taskRepo.create(
+                    this._createTaskConfig(
+                        taskDto,
+                        shareInfo, realFolder, shareInfo.fileName, 0, folder.id, folder.name
+                    )
+                );
+                tasks.push(await this.taskRepo.save(subTask));
+            }
         }
     }
 
@@ -202,16 +198,30 @@ class TaskService {
     }
 
     // 删除任务
-    async deleteTask(taskId) {
+    async deleteTask(taskId, deleteCloud) {
         const task = await this.taskRepo.findOneBy({ id: taskId });
         if (!task) throw new Error('任务不存在');
+        if (deleteCloud) {
+            const account = await this.accountRepo.findOneBy({ id: task.accountId });
+            if (!account) throw new Error('账号不存在');
+            const cloud189 = Cloud189Service.getInstance(account);
+            await this.deleteCloudFile(cloud189,await this.getRootFolder(task), 1);
+        }
         await this.taskRepo.remove(task);
     }
 
     // 批量删除
-    async deleteTasks(taskIds) {
+    async deleteTasks(taskIds, deleteCloud) {
         const tasks = await this.taskRepo.findBy({ id: In(taskIds) });
         if (!tasks || tasks.length === 0) throw new Error('任务不存在');
+        if (deleteCloud) {
+            for (const task of tasks) {
+                const account = await this.accountRepo.findOneBy({ id: task.accountId });
+                if (!account) throw new Error('账号不存在');
+                const cloud189 = Cloud189Service.getInstance(account);
+                await this.deleteCloudFile(cloud189,await this.getRootFolder(task), 1);
+            }
+        }
         await this.taskRepo.remove(tasks);
     }
 
@@ -309,7 +319,12 @@ class TaskService {
                 task.lastFileUpdateTime = new Date();
                 task.currentEpisodes = existingMediaCount + fileCount;
                 task.retryCount = 0;
-                this.autoRename(cloud189, task)
+                this.eventEmitter.emit('taskComplete', new TaskCompleteEventDto({
+                    task,
+                    cloud189,
+                    fileList: newFiles,
+                    overwriteStrm: false
+                }));
             } else if (task.lastFileUpdateTime) {
                 // 检查是否超过3天没有新文件
                 const now = new Date();
@@ -441,7 +456,8 @@ class TaskService {
         if (!task) {
             return false;
         }
-        if (task.taskStatus == 3) {
+        logTaskEvent(`任务编号: ${task.taskId}, 任务状态: ${task.taskStatus}`)
+        if (task.taskStatus == 3 || task.taskStatus == 1) {
             // 暂停200毫秒
             await new Promise(resolve => setTimeout(resolve, 200));
             return await this.checkTaskStatus(cloud189,taskId, count++, type)
@@ -612,43 +628,54 @@ class TaskService {
         if (resp.res_code != 0) {
             throw new Error(resp.res_msg);
         }
+        logTaskEvent(`批量任务处理中: ${JSON.stringify(resp)}`)
         if (!await this.checkTaskStatus(cloud189,resp.taskId, 0 , batchTaskDto.type)) {
-            throw new Error('批量任务处理失败');
+            throw new Error('检查批量任务状态: 批量任务处理失败');
         }
+        logTaskEvent(`批量任务处理完成`)
     }
     // 定时清空回收站
-    async clearRecycleBin(family = false) {
+    async clearRecycleBin(enableAutoClearRecycle, enableAutoClearFamilyRecycle) {
         const accounts = await this.accountRepo.find()
         if (accounts) {
             for (const account of accounts) {
                 let username = account.username.replace(/(.{3}).*(.{4})/, '$1****$2');
-                logTaskEvent(`定时[${username}]清空回收站任务开始执行`)
                 try {
                     const cloud189 = Cloud189Service.getInstance(account); 
-                    const params = {
-                        taskInfos: '[]',
-                        type: 'EMPTY_RECYCLE',
-                    }   
-                    if (family) {
-                        // 获取家庭id
-                        const familyInfo = await cloud189.getFamilyInfo()
-                        if (familyInfo == null) {
-                            logTaskEvent(`用户${username}没有家庭主账号, 跳过`)
-                            continue
-                        }
-                        params.familyId = familyInfo.familyId
-                    }
-                    const batchTaskDto = new BatchTaskDto(params);
-                    await this.createBatchTask(cloud189, batchTaskDto)
+                    await this._clearRecycleBin(cloud189, username, enableAutoClearRecycle, enableAutoClearFamilyRecycle)
                 } catch (error) {
                     logTaskEvent(`定时[${username}]清空回收站任务执行失败:${error.message}`);
                 }
             }
         }
     }
-    // 定时清空家庭回收站
-    async clearFamilyRecycleBin() {
-        await this.clearRecycleBin(true)
+
+    // 执行清空回收站
+    async _clearRecycleBin(cloud189, username, enableAutoClearRecycle, enableAutoClearFamilyRecycle) {
+        const params = {
+            taskInfos: '[]',
+            type: 'EMPTY_RECYCLE',
+        }   
+        const batchTaskDto = new BatchTaskDto(params);
+        if (enableAutoClearRecycle) {
+            logTaskEvent(`开始清空[${username}]个人回收站`)
+            await this.createBatchTask(cloud189, batchTaskDto)
+            logTaskEvent(`清空[${username}]个人回收站完成`)
+            // 延迟10秒
+            await new Promise(resolve => setTimeout(resolve, 10000));
+        }
+        if (enableAutoClearFamilyRecycle) {
+            // 获取家庭id
+            const familyInfo = await cloud189.getFamilyInfo()
+            if (familyInfo == null) {
+                logTaskEvent(`用户${username}没有家庭主账号, 跳过`)
+                return
+            }
+            logTaskEvent(`开始清空[${username}]家庭回收站`)
+            batchTaskDto.familyId = familyInfo.familyId
+            await this.createBatchTask(cloud189, batchTaskDto)
+            logTaskEvent(`清空[${username}]家庭回收站完成`)
+        }
     }
     // 校验文件后缀
     _checkFileSuffix(file,enableOnlySaveMedia, mediaSuffixs) {
@@ -660,6 +687,73 @@ class TaskService {
             return false
         }
         return true
+    }
+    // 根据realRootFolderId获取根目录
+    async getRootFolder(task) {
+        if (task.realRootFolderId) {
+            return {id: task.realRootFolderId, name: task.shareFolderName}
+        }
+        logTaskEvent(`任务[${task.resourceName}]为老版本系统创建, 无法删除网盘内容, 跳过`)
+        return null
+    }
+    // 删除网盘文件
+    async deleteCloudFile(cloud189, file, isFolder) {
+        if (!file) return;
+        const taskInfos = []
+        taskInfos.push({
+            fileId: file.id,
+            fileName: file.name,
+            isFolder: isFolder
+        })
+        const batchTaskDto = new BatchTaskDto({
+            taskInfos: JSON.stringify(taskInfos),
+            type: 'DELETE',
+            targetFolderId: ''
+        });
+        await this.createBatchTask(cloud189, batchTaskDto)
+    }
+
+    // 添加事件监听方法
+    onTaskComplete(listener) {
+        this.eventEmitter.on('taskComplete', listener);
+    }
+
+    // 根据任务创建STRM文件
+    async createStrmFileByTask(taskIds, overwrite) {
+        const tasks = await this.taskRepo.find({
+            where: {
+                id: In(taskIds)
+            }
+        })
+        if (tasks.length == 0) {
+            throw new Error('任务不存在')
+        }
+        for (const task of tasks) {
+            let account = await this._getAccountById(task.accountId)
+            if (!account) {
+                logTaskEvent(`任务[${task.resourceName}]账号不存在, 跳过`)
+                continue
+            }
+            const cloud189 = Cloud189Service.getInstance(account);
+            // 获取文件列表
+            const fileList = await this.getAllFolderFiles(cloud189, task.realFolderId)
+            this.eventEmitter.emit('taskComplete', new TaskCompleteEventDto({
+                task,
+                cloud189,
+                fileList,
+                overwriteStrm: overwrite
+            }));
+        }
+        
+    }
+
+    // 根据accountId获取账号
+    async _getAccountById(accountId) {
+        return await this.accountRepo.findOne({
+            where: {
+                id: accountId
+            }
+        })
     }
 }
 

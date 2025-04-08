@@ -215,6 +215,14 @@ __decorate([
     (0, typeorm_1.Column)({ default: false }),
     __metadata("design:type", Boolean)
 ], Task.prototype, "enableCron", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", String)
+], Task.prototype, "realRootFolderId", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", String)
+], Task.prototype, "embyId", void 0);
 exports.Task = Task = __decorate([
     (0, typeorm_1.Entity)()
 ], Task);

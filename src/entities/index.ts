@@ -154,6 +154,12 @@ export class Task {
 
     @Column({ default: false })
     enableCron!: boolean;
+
+    @Column({ nullable: true })
+    realRootFolderId!: string;
+
+    @Column({ nullable: true })
+    embyId!: string;
 }
 
 export default { Account, Task };

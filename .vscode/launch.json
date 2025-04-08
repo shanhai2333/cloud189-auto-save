@@ -11,7 +11,7 @@
             "skipFiles": [
                 "<node_internals>/**"
             ],
-            "runtimeExecutable": "${workspaceFolder}/node_modules/.bin/ts-node",
+            "runtimeExecutable": "node",
             "program": "${workspaceFolder}/src/index.js",
             "args": ["--task"],
             "env": {

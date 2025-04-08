@@ -12,312 +12,131 @@
     padding-top: 5vh;
 }
 
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 5px 10px;
+    border-bottom: 1px solid #eee;
+}
+
 .modal-content {
     background-color: var(--bg-color);
-    padding: 20px;
     border-radius: 8px;
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
     position: relative;
     width: 90%;
     max-width: 600px;
-    max-height: 85vh;
-    overflow-y: auto;
     margin: 0 auto;
-}
-
-.modal-content::-webkit-scrollbar {
-    width: 8px;
-}
-.files-list-modal {
-    align-items: flex-start;
-}
-
-.files-list-modal .modal-content {
-    max-height: 90vh;
-    margin-top: 2vh;
-}
-
-.modal-content::-webkit-scrollbar-track {
-    border-radius: 4px;
-}
-
-.modal-content::-webkit-scrollbar-thumb {
-    border-radius: 4px;
-}
-
-@media screen and (max-width: 768px) {
-    .modal-content {
-        width: 95%;
-        margin: 5% auto;
-        padding: 12px;
-    }
-
-    .modal-body {
-        max-height: 60vh;
-    }
-
-    .folder-children {
-        padding-left: 20px;
-    }
-
-    .folder-tree-item {
-        padding: 10px 8px;
-    }
-
-    .modal-btn {
-        padding: 10px 12px;
-        width: calc(50% - 10px);
-        margin: 5px;
-    }
-
-    .modal-footer {
-        display: flex;
-        justify-content: center;
-        flex-wrap: wrap;
-    }
-}
-
-.refresh-link {
-    color: #666;
-    text-decoration: none;
-    font-size: 14px;
     display: flex;
-    align-items: center;
-    gap: 4px;
-    cursor: pointer;
+    flex-direction: column;
+    padding: 0;
+}
+.modal-content h3 {
+    margin-left: 15px;
+}
+/* 移除 form-body 的 flex: 1，改用固定高度 */
+.form-body {
+    height: calc(70vh - 120px); /* 减去头部和底部的高度 */
+    overflow-y: auto;
+    padding: 20px;
 }
 
-.refresh-link:hover {
-    color: #1890ff;
-}
-
-.refresh-link.loading .refresh-icon {
-    display: inline-block;
-    animation: spin 1s linear infinite;
-}
-.modal-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+.form-actions {
+    position: sticky;
+    bottom: 0;
+    background-color: var(--bg-color);
     padding: 15px 20px;
-    border-bottom: 1px solid #eee;
+    border-top: 1px solid var(--border-color);
+    margin: 0;
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    z-index: 1;
 }
 
-.modal-title {
-    margin: 0;
-    font-size: 18px;
-    color: #333;
+@media (max-width: 768px) {
+    .form-body {
+        height: calc(85vh - 140px);
+        padding: 15px;
+    }
 }
 
 .modal-body {
-    overflow-y: auto;
-}
-
-.form-actions, 
-.modal-footer {
-    margin-top: 20px;
     padding: 10px;
-    border-top: 1px solid #eee;
-    text-align: right;
+}
+.modal-footer {
+    padding: 20px;
 }
 
-/* 树状目录样式 */
-.folder-tree {
-    margin: 0;
-    padding: 0;
-    list-style: none;
+@media (max-width: 768px) {
+    .form-body {
+        max-height: calc(60vh - 100px);
+        overflow-y: auto;
+        padding: 10px;
+    }
 }
 
-.folder-tree-item {
-    padding: 8px 12px;
-    cursor: pointer;
-    display: block;
-    transition: background-color 0.2s;
-    position: relative;
-}
-
-.folder-tree-item:hover {
-    background-color: #f5f5f5;
-}
-
-.folder-tree-item.selected {
-    background-color: #e6f7ff;
-}
-
-.folder-icon {
-    display: inline-block;
-    margin-right: 8px;
-    color: #1890ff;
-    vertical-align: middle;
-}
-
-.folder-name {
-    display: inline-block;
-    vertical-align: middle;
-}
-
-.expand-icon {
-    display: inline-block;
-    margin-left: 8px;
-    transition: transform 0.2s;
-    vertical-align: middle;
-}
-
-.expanded > .expand-icon {
-    transform: rotate(90deg);
-}
-
-.folder-tree-item {
-    position: relative;
-}
-
-.folder-children {
-    position: relative;
-}
-
-.folder-children::before {
-    content: '';
-    position: absolute;
-    left: 20px;
-    top: 0;
+.form-actions {
+    position: sticky;
     bottom: 0;
-    width: 1px;
-    background-color: #e8e8e8;
-}
-
-.folder-children .folder-tree-item::before {
-    content: '';
-    position: absolute;
-    left: -20px;
-    top: 50%;
-    width: 20px;
-    height: 1px;
-    background-color: #e8e8e8;
-}
-
-.folder-children {
-    margin-top: 0;
-    padding-left: 40px;
-    display: none;
-    position: relative;
-}
-
-.expanded > .folder-children {
-    display: block;
-}
-
-/* 按钮样式 */
-.modal-btn {
-    padding: 8px 16px;
-    margin-left: 10px;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 14px;
-}
-
-.modal-btn-primary {
-    background-color: #1890ff;
-    color: white;
-}
-
-.modal-btn-primary:hover {
-    background-color: #40a9ff;
-}
-
-.modal-btn-default {
-    background-color: #f5f5f5;
-    color: #333;
-}
-
-.modal-btn-default:hover {
-    background-color: #e8e8e8;
-}
-
-
-.preview-container {
-    max-height: 400px;
-    overflow-y: auto;
-    margin: 20px 0;
-}
-
-.rename-options {
+    background-color: var(--bg-color);
+    padding: 15px 20px;
+    border-top: 1px solid var(--border-color);
+    margin: 0;
     display: flex;
-    gap: 10px;
-    margin: 20px 0;
-}
-
-/* .form-actions {
-    display: flex;
-    gap: 10px;
     justify-content: flex-end;
-    margin-top: 20px;
-} */
-
-.batch-rename-btn {
-    margin-bottom: 10px;
+    gap: 10px;
+    border-radius: 0 0 8px 8px;
 }
+
 .rename-type-selector {
     display: flex;
     gap: 32px;
     margin-bottom: 20px;
 }
-
 .radio-label {
     display: flex;
     align-items: center;
     gap: 8px;
 }
-
 .radio-label input[type="radio"] {
     width: auto;
     order: -1;
 }
-.form-input {
-    border: 1px solid #d9d9d9;
-    border-radius: 4px;
-    padding: 8px 12px;
-    width: 100%;
-    font-size: 14px;
+
+.files-list-modal .modal-content {
+    max-width: 1000px;
 }
 
-.form-input:focus {
-    border-color: #1890ff;
-    outline: none;
-    box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
+.files-list-modal .form-body {
+    height: calc(60vh - 100px);
+    padding: 0;
 }
-.modal .modal-content {
-    padding: 0px;
-}
-
-.modal h3 {
-    margin: 0;
-    padding: 10px;
-    border-bottom: 1px solid var(--border-color);
+/* 移除这些重复的样式 */
+.files-list-modal .modal-content {
+    max-height: 70vh;
+    margin-top: 2vh;
 }
 
-#editTaskModal .editTaskForm-body {
-    max-height: calc(70vh - 140px); /* 减去头部和底部的高度 */
-    overflow-y: auto;
-    padding: 20px;
+.rename-options-modal .form-body {
+    height: calc(55vh - 100px);
+}
+/* 移除这些重复的样式 */
+.rename-options-modal .modal-content {
+    max-height: 60vh;
+    margin-top: 2vh;
 }
 
-#editTaskModal .form-actions {
-    padding: 20px;
-    margin: 0;
-    border-top: 1px solid var(--border-color);
+.preview-rename-modal .modal-content {
+    max-width: 1000px;
 }
 
-.modal-body {
-    padding: 10px;
+.preview-rename-modal .form-body {
+    height: calc(55vh - 100px);
 }
-.modal-footer {
-    padding: 20px;
-}
-@media (max-width: 768px) {
-    #editTaskModal .editTaskForm-body {
-        max-height: calc(60vh - 100px);
-        overflow-y: auto;
-        padding: 20px;
-    }
+/* 移除这些重复的样式 */
+.preview-rename-modal .modal-content {
+    max-height: 60vh;
+    margin-top: 2vh;
 }

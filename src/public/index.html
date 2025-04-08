@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>天翼云盘自动转存系统</title>
     <link rel="stylesheet" href="/css/base.css">
+    <link rel="stylesheet" href="/css/folder-tree.css">
     <link rel="stylesheet" href="/css/modal.css">
     <link rel="stylesheet" href="/css/card-view.css">
     <link rel="stylesheet" href="/css/components.css">
@@ -48,6 +49,7 @@
         <div class="tabs">
             <div class="tab" data-tab="account">账号</div>
             <div class="tab active" data-tab="task">任务</div>
+            <div class="tab" data-tab="media">媒体</div>
             <div class="tab" data-tab="settings">系统</div>
         </div>
 
@@ -68,7 +70,10 @@
                 <div class="form-group">
                 <small class="form-text">密码和Cookie至少填写一个, 如果都填写, 则只有账号密码生效</small>
                 </div>
-                <button type="submit">添加账号</button>
+                <div class="form-actions" style="justify-content: flex-start;">
+                    <button type="submit">添加账号</button>
+                    <button type="button" onclick="clearRecycleBin()" class="btn-warning">清空回收站</button>
+                </div>
             </form>
             <div class="table-container">
                 <table id="accountTable">
@@ -90,8 +95,17 @@
                     <div class="operation-group">
                         <div class="button-group">
                             <button type="button" onclick="openCreateTaskModal()" class="btn-primary">创建任务</button>
-                            <button type="button" onclick="executeAllTask()" id="executeAllBtn" class="btn-warning">执行所有</button>
-                            <button type="button" onclick="deleteSelectedTasks()" id="batchDeleteBtn" class="btn-danger" style="display: none;">批量删除</button>
+                            <div class="dropdown-button-group">
+                                <button type="button" class="dropdown-toggle">
+                                    更多操作
+                                    <span class="dropdown-icon">▼</span>
+                                </button>
+                                <div class="dropdown-content">
+                                    <a onclick="executeAllTask()">执行所有</a>
+                                    <a onclick="deleteSelectedTasks()">批量删除</a>
+                                    <a onclick="generateStrm()">生成STRM</a>
+                                </div>
+                            </div>
                         </div>
                         <div class="search-bar">
                             <div class="search-input">
@@ -104,6 +118,12 @@
                                 <input type="text" id="taskSearch" placeholder="搜索资源名称">
                             </div>
                         </div>
+                    </div>
+                    <div class="delete-cloud-option">
+                        <label>
+                            <input type="checkbox" id="deleteCloudOption">
+                            同步删除网盘文件
+                        </label>
                     </div>
                 </div>
             </div>
@@ -142,9 +162,9 @@
                                 <input type="number" id="totalEpisodes" min="0">
                             </div>
                             <div class="form-group">
-                                <label>文件名匹配规则（可选）</label>
+                                <label>文件名正则匹配（可选）</label>
                                 <div class="match-rule" style="display: flex; flex-wrap: wrap; gap: 10px;">
-                                    <input type="text" id="matchPattern" placeholder="正则表达式 例如: 第(\d+)集" style="flex: 2 1 200px;">
+                                    <input type="text" id="matchPattern" placeholder="正则表达式 例如: (?<=E)\d+" style="flex: 2 1 200px;">
                                     <select id="matchOperator" style="flex: 1 1 100px;">
                                         <option value="lt">小于</option>
                                         <option value="eq">等于</option>
@@ -152,7 +172,7 @@
                                     </select>
                                     <input id="matchValue" placeholder="值" min="0" style="flex: 1 1 100px;">
                                 </div>
-                                <small class="form-text">用于匹配文件名中的数字并进行比较，例如：匹配"第12集"中的12</small>
+                                <small class="form-text">例如：沙尘暴 - S01E06 - 第6集.mkv 想要转存大于8集的剧集, 正则就填写 (?<=E)\d+ 值填写8, 逻辑是用正则匹配出S01E06中的06与值8进行比较</small>
                             </div>
                             <div class="form-group">
                                 <label for="remark">备注</label>
@@ -218,7 +238,7 @@
                         <div class="push-item">
                             <label>任务定时检查</label>
                             <input type="text" id="taskCheckCron" placeholder="Cron表达式">
-                            <small class="form-text">默认：0 19-23 * * * (每天19点到23点整点执行一次)</small>
+                            <small class="form-text">默认：0 19-23 * * * (每天19点到23点整点执行一次) 允许多个表达式, 使用|分隔, 例如: 0 19-23 * * *|0 16-23 * * *</small>
                         </div>
                         <div class="push-item">
                             <label>
@@ -254,9 +274,6 @@
                                 企微 推送
                             </label>
                             <input type="text" id="wecomWebhook" placeholder="机器人webhook">
-                        </div>
-                        
-                        <div class="push-item">
                             <label>
                                 <input type="checkbox" id="enableTelegram">
                                 Telegram 推送
@@ -264,16 +281,12 @@
                             <input type="text" id="proxyDomain" placeholder="反代地址, 选填">
                             <input type="text" id="telegramBotToken" placeholder="Bot Token">
                             <input type="text" id="telegramChatId" placeholder="Chat ID">
-                        </div>
 
-                        <div class="push-item">
                             <label>
                                 <input type="checkbox" id="enableWXPusher">
                                 WXPusher 推送
                             </label>
                             <input type="text" id="wXPusherSPT" placeholder="WXPusher SPT">
-                        </div>
-                        <div class="push-item">
                             <label>
                                 <input type="checkbox" id="enableBark">
                                 Bark 推送
@@ -281,6 +294,7 @@
                             <input type="text" id="barkServerUrl" placeholder="Bark serverUrl">
                             <input type="text" id="barkKey" placeholder="Bark key">
                         </div>
+                        
                     </div>
                 </div>
 
@@ -305,6 +319,45 @@
                 <button type="submit">保存设置</button>
             </form>
         </div>
+
+        <div id="mediaTab" class="tab-content">
+            <form id="mediaForm">
+                <div class="form-group">
+                    <label>STRM 设置</label>
+                    <div class="push-settings">
+                        <div class="push-item">
+                            <label>
+                                <input type="checkbox" id="enableStrm">
+                                启用 STRM 生成
+                            </label>
+                            <label for="strmPrefix">STRM 前缀</label>
+                            <input type="text" id="strmPrefix" placeholder="域名前缀或者路径前缀">
+                            <small class="form-text">例如: 如果播放地址是<span style="background-color: #f0f0f0;">http://127.0.0.1:5244/天翼云盘/剧集/北上(2025)/Season 01/S01E01.mkv</span> 那么你的前缀就应该写 <span style="background-color: #f0f0f0;">http://127.0.0.1:5244/天翼云盘/剧集</span></small>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Emby 设置</label>
+                    <div class="push-settings">
+                        <div class="push-item">
+                            <label>
+                                <input type="checkbox" id="enableEmby">
+                                启用 Emby 通知
+                            </label>
+                            <label for="embyServer">Emby 服务器地址</label>
+                            <input type="text" id="embyServer" placeholder="例如: http://localhost:8096">
+                            <small class="form-text">Emby 服务器的访问地址</small>
+                            <label for="embyApiKey">API Key</label>
+                            <input type="text" id="embyApiKey" placeholder="Emby API Key">
+                            <small class="form-text">在 Emby 管理面板中生成的 API Key</small>
+                        </div>
+                    </div>
+                </div>
+
+                <button type="submit">保存设置</button>
+            </form>
+        </div>
     </div>
 
 <!-- 在 body 结束标签前添加以下脚本引用 -->
@@ -316,6 +369,7 @@
 <script src="/js/edit-task.js"></script>
 <script src="/js/main.js"></script>
 <script src="/js/settings.js"></script>
+<script src="/js/media.js"></script>
 
 </body>
 </html>
@@ -325,7 +379,7 @@
     <div class="modal-content">
         <h3>修改任务</h3>
         <form id="editTaskForm">
-            <div class="editTaskForm-body">
+            <div class="form-body">
                 <input type="hidden" id="editTaskId">
                 <div class="form-group">
                     <label for="editResourceName">资源名</label>

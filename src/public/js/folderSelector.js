@@ -59,10 +59,10 @@ class FolderSelector {
                             <span class="refresh-icon">🔄</span> 刷新
                         </a>
                     </div>
-                    <div class="modal-body">
+                    <div class="form-body">
                         <div id="${this.treeId}" class="folder-tree"></div>
                     </div>
-                    <div class="modal-footer">
+                    <div class="form-actions">
                         <button class="modal-btn modal-btn-default" data-action="cancel">取消</button>
                         <button class="modal-btn modal-btn-primary" data-action="confirm">确定</button>
                     </div>

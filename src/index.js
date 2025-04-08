@@ -12,6 +12,8 @@ const session = require('express-session');
 const FileStore = require('session-file-store')(session);
 const { SchedulerService } = require('./services/scheduler');
 const { logTaskEvent } = require('./utils/logUtils');
+const { StrmService } = require('./services/strm');
+const { EmbyService } = require('./services/emby');
 
 const app = express();
 app.use(express.json());
@@ -89,13 +91,45 @@ AppDataSource.initialize().then(async () => {
     const accountRepo = AppDataSource.getRepository(Account);
     const taskRepo = AppDataSource.getRepository(Task);
     const taskService = new TaskService(taskRepo, accountRepo);
+
+    // 初始化消息发送器
+    taskService.onTaskComplete(async (taskCompleteEventDto) => {
+        logTaskEvent(`================触发事件================`);
+        try {
+            const task = taskCompleteEventDto.task
+            const taskName = task.shareFolderName?(task.resourceName + '/' + task.shareFolderName): task.resourceName || '未知'
+            // 执行重命名操作
+            await taskService.autoRename(taskCompleteEventDto.cloud189, taskCompleteEventDto.task);
+            const strmService = new StrmService()
+            if (ConfigService.getConfigValue('strm.enable')) {
+                // 处理fileList 将task的名称替换为task的shareFolderName
+                let fileList = taskCompleteEventDto.fileList;
+                fileList.forEach(file => {
+                    file.name = taskName + '/' + file.name;
+                });
+                await strmService.generate(fileList, taskCompleteEventDto.overwriteStrm);
+            }
+            if (ConfigService.getConfigValue('emby.enable')) {
+                // 通知Emby
+                const embyService = new EmbyService()                
+                const embyId = await embyService.notify(task.embyId, task.resourceName)
+                if (!task.embyId && embyId) {
+                    await taskRepo.update(task.id, { embyId });
+                }
+            }
+        } catch (error) {
+            logTaskEvent(`任务完成后处理失败: ${error.message}`);
+        }
+        logTaskEvent(`================事件处理完成================`);
+    });
+
     const messageUtil = new MessageUtil();
     // 初始化缓存管理器
     const folderCache = new CacheManager(parseInt(600));
-    
     // 初始化任务定时器
     await SchedulerService.initTaskJobs(taskRepo, taskService);
     
+
     // 账号相关API
     app.get('/api/accounts', async (req, res) => {
         const accounts = await accountRepo.find();
@@ -129,6 +163,16 @@ AppDataSource.initialize().then(async () => {
             res.json({ success: false, error: error.message });
         }
     });
+
+     // 清空回收站
+     app.delete('/api/accounts/recycle', async (req, res) => {
+        try {
+            taskService.clearRecycleBin(true, true);
+            res.json({ success: true, data: "ok" });
+        }catch (error) {
+            res.json({ success: false, error: error.message });
+        }
+    })
 
     app.delete('/api/accounts/:id', async (req, res) => {
         try {
@@ -188,7 +232,8 @@ AppDataSource.initialize().then(async () => {
     app.delete('/api/tasks/batch', async (req, res) => {
         try {
             const taskIds = req.body.taskIds;
-            await taskService.deleteTasks(taskIds);
+            const deleteCloud = req.body.deleteCloud;
+            await taskService.deleteTasks(taskIds, deleteCloud);
             res.json({ success: true });
         } catch (error) {
             res.json({ success: false, error: error.message });
@@ -197,7 +242,8 @@ AppDataSource.initialize().then(async () => {
 
     app.delete('/api/tasks/:id', async (req, res) => {
         try {
-            await taskService.deleteTask(parseInt(req.params.id));
+            const deleteCloud = req.body.deleteCloud;
+            await taskService.deleteTask(parseInt(req.params.id), deleteCloud);
             res.json({ success: true });
         } catch (error) {
             res.json({ success: false, error: error.message });
@@ -233,7 +279,20 @@ AppDataSource.initialize().then(async () => {
             res.json({ success: false, error: error.message });
         }
     });
-
+    // 根据任务生成STRM文件
+    app.post('/api/tasks/strm', async (req, res) => {
+        try {
+            const taskIds = req.body.taskIds;
+            if (!taskIds || taskIds.length == 0) {
+                throw new Error('任务ID不能为空');
+            }
+            const overwrite = req.body.overwrite || false;
+            taskService.createStrmFileByTask(taskIds, overwrite);
+            return res.json({ success: true, data: 'ok' });
+        }catch (error) {
+            res.json({ success: false, error: error.message });
+        }
+    })
      // 获取目录树
      app.get('/api/folders/:accountId', async (req, res) => {
         try {
@@ -367,10 +426,17 @@ AppDataSource.initialize().then(async () => {
         res.json({success: true, data: null})
     })
 
+    // 保存媒体配置
+    app.post('/api/settings/media', async (req, res) => {
+        const settings = req.body;
+        ConfigService.setConfig(settings)
+        res.json({success: true, data: null})
+    })
+
     app.get('/api/version', (req, res) => {
         res.json({ version: packageJson.version });
     });
-    
+
     // 启动服务器
     const port = 3000;
     app.listen(port, () => {

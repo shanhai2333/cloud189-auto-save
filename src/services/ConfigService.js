@@ -45,6 +45,15 @@ class ConfigService {
       system: {
         username: 'admin',
         password: 'admin'
+      },
+      strm: {
+        enable: false,
+        prefix: ''
+      },
+      emby: {
+        enable: false,
+        serverUrl: '',
+        apiKey: ''
       }
     };
     this._init();
