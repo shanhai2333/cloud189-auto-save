@@ -46,7 +46,6 @@ async function loadSettings() {
             
             // 媒体信息设置
             document.getElementById('enableStrm').checked = settings.strm?.enable || false;
-            document.getElementById('strmPrefix').value = settings.strm?.prefix || '';
             document.getElementById('enableEmby').checked = settings.emby?.enable || '';
             document.getElementById('embyServer').value = settings.emby?.serverUrl || '';
             document.getElementById('embyApiKey').value = settings.emby?.apiKey || '';

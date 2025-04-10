@@ -151,6 +151,8 @@ function openCreateTaskModal() {
 }
 
 function closeCreateTaskModal() {
+    document.querySelector('.share-folders-group').style.display = 'none';
+    document.getElementById('shareFoldersList').innerHTML = '';;
     document.getElementById('createTaskModal').style.display = 'none';
     document.getElementById('taskForm').reset();
 }
@@ -165,6 +167,15 @@ function initTaskForm() {
         document.getElementById('targetFolder').value = lastTargetFolderName; 
     }
      
+
+    // 监听shareLink和accessCode的失焦事件 兼容pc和移动端
+    document.getElementById('shareLink').addEventListener('blur', async () => {
+        await parseShareLink()
+    })
+    document.getElementById('accessCode').addEventListener('blur', async () => {
+        await parseShareLink()
+    })
+    
     // 修改原有的表单提交处理
     document.getElementById('taskForm').addEventListener('submit', async (e) => {
         e.preventDefault();
@@ -172,6 +183,7 @@ function initTaskForm() {
         const shareLink = document.getElementById('shareLink').value;
         const totalEpisodes = document.getElementById('totalEpisodes').value;
         const targetFolderId = document.getElementById('targetFolderId').value;
+        const targetFolder = document.getElementById('targetFolder').value
         const accessCode = document.getElementById('accessCode').value;
         const matchPattern = document.getElementById('matchPattern').value;
         const matchOperator = document.getElementById('matchOperator').value;
@@ -179,7 +191,6 @@ function initTaskForm() {
         const remark = document.getElementById('remark').value;
         const enableCron = document.getElementById('enableCron').checked;
         const cronExpression = document.getElementById('cronExpression').value;
-    
         // 如果填了matchPattern那matchValue就必须填
         if (matchPattern && !matchValue) {
             alert('填了匹配模式, 那么匹配值就必须填');
@@ -189,7 +200,14 @@ function initTaskForm() {
             alert('开启了自定义定时任务, 那么定时表达式就必须填');
             return;
         }
-        const body = { accountId, shareLink, totalEpisodes, targetFolderId, accessCode, matchPattern, matchOperator, matchValue, overwriteFolder: 0, remark, enableCron, cronExpression };
+        // 获取选中的分享目录
+        const selectedFolders = Array.from(document.querySelectorAll('input[name="chooseShareFolder"]:checked'))
+        .map(cb => cb.value);
+        if (selectedFolders.length == 0) {
+            alert('至少选择一个分享目录');
+            return;
+        }
+        const body = { accountId, shareLink, totalEpisodes, targetFolderId, accessCode, matchPattern, matchOperator, matchValue, overwriteFolder: 0, remark, enableCron, cronExpression, targetFolder, selectedFolders };
         await createTask(e,body)
             
     });
@@ -322,7 +340,7 @@ function showBatchRenameOptions() {
                     </label>
                 </div>
                 <div id="renameDescription" class="rename-description">
-                    正则表达式文件重命名。在第一行输入源文件名正则表达式，并在第二行输入新文件名正则表达式。
+                    正则表达式文件重命名。在第一行输入源文件名正则表达式，并在第二行输入新文件名正则表达式。<span class="help-icon" data-tooltip="常用正则表达式示例">?</span>
                 </div>
                 <div id="regexInputs" class="rename-inputs">
                     <div class="form-group">
@@ -541,18 +559,14 @@ function closeRenamePreviewModal() {
 
 // 处理反斜杠
 function escapeRegExp(regexStr) {
-    return regexStr?regexStr.replace(/\\\\/g, '\\'):'';
+    // 不再处理
+    return regexStr;
 }
 
 // 转义HTML属性中的特殊字符
 function escapeHtmlAttr(str) {
-    if (!str) return '';
-    return str
-        .replace(/\\/g, '\\\\')
-        .replace(/'/g, "\\'")
-        .replace(/"/g, '\\"')
-        .replace(/\n/g, '\\n')
-        .replace(/\r/g, '\\r');
+    // 不再处理
+    return str;
 }
 
 // 初始化表单展开/隐藏功能
@@ -717,3 +731,44 @@ async function generateStrm() {
         alert('操作失败: ' + error.message);
     }
 }
+
+// 解析分享链接获取分享目录组合
+async function parseShareLink() {
+    const shareLink = document.getElementById('shareLink').value;
+    const accessCode = document.getElementById('accessCode').value;
+    const accountId = document.getElementById('accountId').value;
+    try {
+        const response = await fetch('/api/share/parse', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ shareLink, accessCode, accountId })
+        });
+        const data = await response.json();
+        const shareFoldersGroup = document.querySelector('.share-folders-group');
+        const shareFoldersList = document.getElementById('shareFoldersList');
+        if (data.success) {
+            console.log(data.data)
+            shareFoldersGroup.style.display = 'block';
+            shareFoldersList.innerHTML = data.data.map(folder => `
+                <div class="folder-item">
+                    <label>
+                        <input type="checkbox" name="chooseShareFolder" value="${folder}" checked>
+                        ${folder}
+                    </label>
+                </div>
+            `).join('');
+        } else {
+            shareFoldersGroup.style.display = 'none';
+            shareFoldersList.innerHTML = '';
+            alert('解析失败:'+ data.error);
+        }
+    } catch (error) {
+        alert('操作失败:'+ error.message);
+    }
+}
+
+// 全选/取消全选处理
+document.getElementById('selectAllFolders').addEventListener('change', function(e) {
+    const checkboxes = document.querySelectorAll('input[name="chooseShareFolder"]');
+    checkboxes.forEach(cb => cb.checked = e.target.checked);
+});

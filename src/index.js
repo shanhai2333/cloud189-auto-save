@@ -11,7 +11,7 @@ const packageJson = require('../package.json');
 const session = require('express-session');
 const FileStore = require('session-file-store')(session);
 const { SchedulerService } = require('./services/scheduler');
-const { logTaskEvent } = require('./utils/logUtils');
+const { logTaskEvent, initSSE } = require('./utils/logUtils');
 const { StrmService } = require('./services/strm');
 const { EmbyService } = require('./services/emby');
 
@@ -91,23 +91,21 @@ AppDataSource.initialize().then(async () => {
     const accountRepo = AppDataSource.getRepository(Account);
     const taskRepo = AppDataSource.getRepository(Task);
     const taskService = new TaskService(taskRepo, accountRepo);
+    const messageUtil = new MessageUtil();
 
     // 初始化消息发送器
     taskService.onTaskComplete(async (taskCompleteEventDto) => {
         logTaskEvent(`================触发事件================`);
         try {
             const task = taskCompleteEventDto.task
-            const taskName = task.shareFolderName?(task.resourceName + '/' + task.shareFolderName): task.resourceName || '未知'
             // 执行重命名操作
             await taskService.autoRename(taskCompleteEventDto.cloud189, taskCompleteEventDto.task);
             const strmService = new StrmService()
             if (ConfigService.getConfigValue('strm.enable')) {
                 // 处理fileList 将task的名称替换为task的shareFolderName
                 let fileList = taskCompleteEventDto.fileList;
-                fileList.forEach(file => {
-                    file.name = taskName + '/' + file.name;
-                });
-                await strmService.generate(fileList, taskCompleteEventDto.overwriteStrm);
+                const message = await strmService.generate(task, fileList, taskCompleteEventDto.overwriteStrm);
+                messageUtil.sendMessage(message);
             }
             if (ConfigService.getConfigValue('emby.enable')) {
                 // 通知Emby
@@ -116,6 +114,7 @@ AppDataSource.initialize().then(async () => {
                 if (!task.embyId && embyId) {
                     await taskRepo.update(task.id, { embyId });
                 }
+                messageUtil.sendMessage('🎉通知Emby入库成功, 资源名:' + task.resourceName);
             }
         } catch (error) {
             logTaskEvent(`任务完成后处理失败: ${error.message}`);
@@ -123,7 +122,6 @@ AppDataSource.initialize().then(async () => {
         logTaskEvent(`================事件处理完成================`);
     });
 
-    const messageUtil = new MessageUtil();
     // 初始化缓存管理器
     const folderCache = new CacheManager(parseInt(600));
     // 初始化任务定时器
@@ -148,7 +146,7 @@ AppDataSource.initialize().then(async () => {
             // username脱敏
             account.username = account.username.replace(/(.{3}).*(.{4})/, '$1****$2');
             // 去掉cookies和密码
-            account.cookies = '';
+            account.cookies = 'true';
             account.password = '';
         }
         res.json({ success: true, data: accounts });
@@ -199,6 +197,27 @@ AppDataSource.initialize().then(async () => {
             res.json({ success: false, error: error.message });
         }
     })
+    app.put('/api/accounts/:id/strm-prefix', async (req, res) => {
+        try {
+            const accountId = parseInt(req.params.id);
+            const { strmPrefix, type } = req.body;
+            const account = await accountRepo.findOneBy({ id: accountId });
+            if (!account) throw new Error('账号不存在');
+            if (type == 'local') {
+                account.localStrmPrefix = strmPrefix;
+            }
+            if (type == 'cloud') {
+                account.cloudStrmPrefix = strmPrefix;
+            }
+            await accountRepo.save(account);
+            res.json({ success: true });
+        } catch (error) {
+            res.json({ success: false, error: error.message });
+        }
+    })
+    
+
+
 
     // 任务相关API
     app.get('/api/tasks', async (req, res) => {
@@ -263,7 +282,18 @@ AppDataSource.initialize().then(async () => {
 
     app.post('/api/tasks/:id/execute', async (req, res) => {
         try {
-            const task = await taskRepo.findOneBy({ id: parseInt(req.params.id) });
+            const task = await taskRepo.findOne({
+                where: { id: parseInt(req.params.id) },
+                relations: {
+                    account: true
+                },
+                select: {
+                    account: {
+                        localStrmPrefix: true,
+                        cloudStrmPrefix: true
+                    }
+                }
+            });
             if (!task) throw new Error('任务不存在');
             logTaskEvent(`================================`);
             const taskName = task.shareFolderName?(task.resourceName + '/' + task.shareFolderName): task.resourceName || '未知'
@@ -437,6 +467,25 @@ AppDataSource.initialize().then(async () => {
         res.json({ version: packageJson.version });
     });
 
+    // 解析分享链接
+    app.post('/api/share/parse', async (req, res) => {
+        try{
+            const shareLink = req.body.shareLink;
+            const accountId = req.body.accountId;
+            const accessCode = req.body.accessCode;
+            const shareFolders = await taskService.parseShareFolderByShareLink(shareLink, accountId, accessCode);
+            res.json({success: true, data: shareFolders})
+        }catch (error) {
+            res.status(500).json({ success: false, error: error.message });
+        }
+        
+    })
+    // 全局错误处理中间件
+    app.use((err, req, res, next) => {
+        console.error('捕获到全局异常:', err.message);
+        res.status(500).json({ success: false, error: error.message });
+    });
+    initSSE(app)
     // 启动服务器
     const port = 3000;
     app.listen(port, () => {

@@ -13,6 +13,7 @@
     <link rel="stylesheet" href="/css/table.css">
     <link rel="stylesheet" href="/css/tabs.css">
     <link rel="stylesheet" href="/css/theme.css">
+    <link rel="stylesheet" href="/css/logs.css">
 
 </head>
 <body>
@@ -143,6 +144,19 @@
                                     <input type="text" id="accessCode" placeholder="访问码（可选）" style="flex: 1;">
                                 </div>
                             </div>
+                            <div class="form-group share-folders-group" style="display: none;">
+                                <label>分享目录</label>
+                                <div class="share-folders-list" style="max-height: 200px; overflow-y: auto; border: 1px solid var(--border-color); padding: 0; border-radius: 4px;">
+                                    <div class="folder-select-header">
+                                        <label>
+                                            <input type="checkbox" id="selectAllFolders" checked>
+                                            全选
+                                            <small>如果不勾选根目录, 则只会保存子目录</small>
+                                        </label>
+                                    </div>
+                                    <div id="shareFoldersList"></div>
+                                </div>
+                            </div>
                             <div class="form-group">
                                 <label for="targetFolder">保存目录</label>
                                 <div class="tree-select" style="display: flex; gap: 10px;">
@@ -162,7 +176,11 @@
                                 <input type="number" id="totalEpisodes" min="0">
                             </div>
                             <div class="form-group">
-                                <label>文件名正则匹配（可选）</label>
+                                <label for="remark">备注</label>
+                                <input type="text" id="remark" >
+                            </div>
+                            <div class="form-group">
+                                <label>文件名正则匹配（可选）<span class="help-icon" data-tooltip="常用正则表达式示例">?</span></label>
                                 <div class="match-rule" style="display: flex; flex-wrap: wrap; gap: 10px;">
                                     <input type="text" id="matchPattern" placeholder="正则表达式 例如: (?<=E)\d+" style="flex: 2 1 200px;">
                                     <select id="matchOperator" style="flex: 1 1 100px;">
@@ -173,10 +191,6 @@
                                     <input id="matchValue" placeholder="值" min="0" style="flex: 1 1 100px;">
                                 </div>
                                 <small class="form-text">例如：沙尘暴 - S01E06 - 第6集.mkv 想要转存大于8集的剧集, 正则就填写 (?<=E)\d+ 值填写8, 逻辑是用正则匹配出S01E06中的06与值8进行比较</small>
-                            </div>
-                            <div class="form-group">
-                                <label for="remark">备注</label>
-                                <input type="text" id="remark" >
                             </div>
                             <div class="form-group">
                                 <div class="push-item">
@@ -330,9 +344,8 @@
                                 <input type="checkbox" id="enableStrm">
                                 启用 STRM 生成
                             </label>
-                            <label for="strmPrefix">STRM 前缀</label>
-                            <input type="text" id="strmPrefix" placeholder="域名前缀或者路径前缀">
-                            <small class="form-text">例如: 如果播放地址是<span style="background-color: #f0f0f0;">http://127.0.0.1:5244/天翼云盘/剧集/北上(2025)/Season 01/S01E01.mkv</span> 那么你的前缀就应该写 <span style="background-color: #f0f0f0;">http://127.0.0.1:5244/天翼云盘/剧集</span></small>
+                            <small class="form-text">例如: 如果播放地址是<span style="background-color: #f0f0f0;">http://127.0.0.1:5244/天翼云盘/剧集/北上(2025)/Season 01/S01E01.mkv</span> 那么你的前缀就应该写 <span style="background-color: #f0f0f0;">http://127.0.0.1:5244/天翼云盘</span>
+                            完整逻辑为 账号媒体目录 + 资源保存目录(排除根目录) + 资源文件目录名 + 文件名, 生成strm路径为: 账号本地目录 + 资源保存目录(排除根目录) + 资源文件目录名 + 文件名.strm</small>
                         </div>
                     </div>
                 </div>
@@ -370,6 +383,7 @@
 <script src="/js/main.js"></script>
 <script src="/js/settings.js"></script>
 <script src="/js/media.js"></script>
+<script src="/js/logs.js"></script>
 
 </body>
 </html>
@@ -412,18 +426,6 @@
                     <input type="number" id="editTotalEpisodes" min="0">
                 </div>
                 <div class="form-group">
-                    <label>文件名匹配规则（可选）</label>
-                    <div class="match-rule" style="display: flex; flex-wrap: wrap; gap: 10px;">
-                        <input type="text" id="editMatchPattern" placeholder="正则表达式 例如: 第(\d+)集" style="flex: 2 1 200px;">
-                        <select id="editMatchOperator" style="flex: 1 1 100px;">
-                            <option value="lt">小于</option>
-                            <option value="eq">等于</option>
-                            <option value="gt">大于</option>
-                        </select>
-                        <input id="editMatchValue" placeholder="值" min="0" style="flex: 1 1 100px;">
-                    </div>
-                </div>
-                <div class="form-group">
                     <label for="editStatus">状态</label>
                     <select id="editStatus" required>
                         <option value="pending">待处理</option>
@@ -435,6 +437,18 @@
                 <div class="form-group">
                     <label for="editRemark">备注</label>
                     <input type="text" id="editRemark">
+                </div>
+                <div class="form-group">
+                    <label>文件名匹配规则（可选）<span class="help-icon" data-tooltip="常用正则表达式示例">?</span></label>
+                    <div class="match-rule" style="display: flex; flex-wrap: wrap; gap: 10px;">
+                        <input type="text" id="editMatchPattern" placeholder="正则表达式 例如: 第(\d+)集" style="flex: 2 1 200px;">
+                        <select id="editMatchOperator" style="flex: 1 1 100px;">
+                            <option value="lt">小于</option>
+                            <option value="eq">等于</option>
+                            <option value="gt">大于</option>
+                        </select>
+                        <input id="editMatchValue" placeholder="值" min="0" style="flex: 1 1 100px;">
+                    </div>
                 </div>
                 <div class="form-group">
                     <div class="push-item">
@@ -452,5 +466,62 @@
                 <button type="button" onclick="closeEditTaskModal()">取消</button>
             </div>
         </form>
+    </div>
+</div>
+
+<div class="regex-tooltip" id="regexTooltip">
+    <span style="font-size: 12px;">注意: 使用捕获组的正则仅对重命名功能有效, 文件匹配请使用零宽断言;
+         <br/>示例中前2项对重命名有效, 后3项对文件名匹配功能有效
+         <br/>示例仅供参考, 请根据实际情况自行修改
+        </span>
+    <table>
+        <thead>
+            <tr>
+                <th>示例文件名</th>
+                <th>正则表达式</th>
+                <th>匹配结果</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>北上 - S01E01 - 第一集.mkv</td>
+                <td>.*(S\d{2}E\d{2}).*</td>
+                <td>S01E01</td>
+            </tr>
+            <tr>
+                <td>北上 - S01E01 - 第一集.mkv</td>
+                <td>.*(S\d{2}E\d{2}).*?(\.\w+)$</td>
+                <td>S01E01和.mkv</td>
+            </tr>
+            <tr>
+                <td>北上 - S01E01 - 第一集.mkv</td>
+                <td>(?<=E)\d+</td>
+                <td>01</td>
+            </tr>
+            <tr>
+                <td>第06集.mp4</td>
+                <td>(?<=第)\d+(?=集)</td>
+                <td>06</td>
+            </tr>
+            <tr>
+                <td>EP08.mkv</td>
+                <td>(?<=EP)\d+</td>
+                <td>08</td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+<div id="showLogsBtn" class="floating-logs-btn">
+    <img src="/icons/logs.svg" alt="查看日志" title="查看日志">
+</div>
+
+<div id="logsModal" class="modal">
+    <div class="modal-content logs-modal">
+        <div class="modal-header">
+            <h3>系统日志</h3>
+            <button class="close-btn">&times;</button>
+        </div>
+        <div id="logsContainer"></div>
     </div>
 </div>

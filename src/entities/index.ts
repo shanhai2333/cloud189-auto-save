@@ -35,6 +35,11 @@ export class Account {
 
     @Column('boolean', { nullable: true, default: false })
     clearRecycle!: boolean;
+
+    @Column('text', { nullable: true })
+    localStrmPrefix!: string;
+    @Column('text', { nullable: true })
+    cloudStrmPrefix!: string;
 }
 
 @Entity()

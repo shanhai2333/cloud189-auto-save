@@ -11,7 +11,6 @@ async function saveMediaSettings() {
     const settings = {
         strm: {
             enable: document.getElementById('enableStrm').checked,
-            prefix: document.getElementById('strmPrefix').value,
         },
         emby: {
             enable: document.getElementById('enableEmby').checked,

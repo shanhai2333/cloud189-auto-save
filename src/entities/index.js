@@ -56,6 +56,14 @@ __decorate([
     (0, typeorm_1.Column)('boolean', { nullable: true, default: false }),
     __metadata("design:type", Boolean)
 ], Account.prototype, "clearRecycle", void 0);
+__decorate([
+    (0, typeorm_1.Column)('text', { nullable: true }),
+    __metadata("design:type", String)
+], Account.prototype, "localStrmPrefix", void 0);
+__decorate([
+    (0, typeorm_1.Column)('text', { nullable: true }),
+    __metadata("design:type", String)
+], Account.prototype, "cloudStrmPrefix", void 0);
 exports.Account = Account = __decorate([
     (0, typeorm_1.Entity)()
 ], Account);

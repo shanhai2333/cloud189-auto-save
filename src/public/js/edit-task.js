@@ -1,8 +1,8 @@
 // 修改任务相关功能
 let shareFolderSelector = new FolderSelector({
     apiUrl: "/api/share/folders",
-    onSelect: ({ id, name }) => {
-        document.getElementById('shareFolder').value = name;
+    onSelect: ({ id, name, path }) => {
+        document.getElementById('shareFolder').value = path;
         document.getElementById('shareFolderId').value = id;
     },
     buildParams: (accountId, folderId) => {
@@ -12,8 +12,8 @@ let shareFolderSelector = new FolderSelector({
 });
 
 let editFolderSelector = new FolderSelector({
-    onSelect: ({ id, name }) => {
-        document.getElementById('editRealFolder').value = name;
+    onSelect: ({ id, name, path }) => {
+        document.getElementById('editRealFolder').value = path;
         document.getElementById('editRealFolderId').value = id;
     }
 });

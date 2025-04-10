@@ -18,6 +18,8 @@ async function fetchAccounts(updateSelect = false) {
                     <td data-label='账户名'>${account.username}</td>
                     <td data-label='个人容量'>${formatBytes(account.capacity.cloudCapacityInfo.usedSize) + '/' + formatBytes(account.capacity.cloudCapacityInfo.totalSize)}</td>
                     <td data-label='家庭容量'>${formatBytes(account.capacity.familyCapacityInfo.usedSize) + '/' + formatBytes(account.capacity.familyCapacityInfo.totalSize)}</td>
+                    <td data-label='媒体目录' style="cursor: pointer;" onclick="updateCloudStrmPrefix(${account.id}, '${account.cloudStrmPrefix || ''}')">${account.cloudStrmPrefix || ''}</td>
+                    <td data-label='本地目录' style="cursor: pointer;" onclick="updateLocalStrmPrefix(${account.id}, '${account.localStrmPrefix || ''}')">${account.localStrmPrefix || ''}</td>
                 </tr>
             `;
             if (updateSelect) {
@@ -119,6 +121,51 @@ async function clearRecycleBin() {
             alert('后台任务执行中, 请稍后查看结果');
         } else {
             alert('清空回收站失败: ' + data.error);
+        }
+    } catch (error) {
+        alert('操作失败: ' + error.message);
+    }
+}
+
+// 添加更新 STRM 前缀的函数
+async function updateCloudStrmPrefix(id, currentPrefix) {
+    const newPrefix = prompt('请输入新的媒体目录前缀', currentPrefix);
+    if (newPrefix === null) return; // 用户点击取消
+    try {
+        const response = await fetch(`/api/accounts/${id}/strm-prefix`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ strmPrefix: newPrefix, type: 'cloud'  })
+        });
+
+        const data = await response.json();
+        if (data.success) {
+            alert('更新成功');
+            fetchAccounts(true);
+        } else {
+            alert('更新失败: ' + data.error);
+        }
+    } catch (error) {
+        alert('操作失败: ' + error.message);
+    }
+}
+async function updateLocalStrmPrefix(id, currentPrefix) {
+    const newPrefix = prompt('请输入新的本地目录前缀', currentPrefix);
+    if (newPrefix === null) return; // 用户点击取消
+
+    try {
+        const response = await fetch(`/api/accounts/${id}/strm-prefix`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ strmPrefix: newPrefix, type: 'local' })
+        });
+
+        const data = await response.json();
+        if (data.success) {
+            alert('更新成功');
+            fetchAccounts(true);
+        } else {
+            alert('更新失败: ' + data.error);
         }
     } catch (error) {
         alert('操作失败: ' + error.message);

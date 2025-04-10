@@ -48,7 +48,6 @@ class ConfigService {
       },
       strm: {
         enable: false,
-        prefix: ''
       },
       emby: {
         enable: false,

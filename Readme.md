@@ -26,9 +26,11 @@ docker run -d \
   -p 3000:3000 \
   --restart unless-stopped \
   --name cloud189 \
+  -e PUID=0 \
+  -e PGID=0 \
   xia1307/cloud189-auto-save
   ```
-注意: `yourpath`请替换为你宿主机的目录; 如果不需要strm功能, 可以不挂载strm目录
+注意: `yourpath`请替换为你宿主机的目录; 如果不需要strm功能, 可以不挂载strm目录, 允许配置PUID和PGID, 默认0
 
 ### 访问系统
 
@@ -45,6 +47,7 @@ docker run -d \
   4. 在请求中找到 loginSubmit.do, 点击打开详情
   5. 获取 set-cookie 中的 SSON 值（只需要 SSON=xxxxx 中的 xxxxx 部分）
   6. 填入账号创建中的 cookie 中即可
+  7. 可点击媒体目录和本地目录设置STRM的访问前缀
 
 ### 2. 任务管理
 - 创建任务需填写：

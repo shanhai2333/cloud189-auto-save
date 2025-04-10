@@ -19,14 +19,17 @@ document.addEventListener('DOMContentLoaded', () => {
     initEditTaskForm();
     // 初始化主题
     initTheme();
+    // 初始化日志
+    initLogs()
 
     // 初始化目录选择器
     const folderSelector = new FolderSelector({
         enableFavorites: true,
         favoritesKey: 'createTaskFavorites',
-        onSelect: ({ id, name }) => {
-            document.getElementById('targetFolder').value = name;
+        onSelect: ({ id, name, path }) => {
+            document.getElementById('targetFolder').value = path;
             document.getElementById('targetFolderId').value = id;
+
         }
     });
 
@@ -72,3 +75,61 @@ function getFromCache(key) {
 function saveToCache(key, value) {
     localStorage.setItem(key, value);
 }
+
+document.addEventListener('DOMContentLoaded', function() {
+    const tooltip = document.getElementById('regexTooltip');
+
+    // 使用事件委托，监听整个文档的点击事件
+    document.addEventListener('click', function(e) {
+        // 检查点击的是否是帮助图标
+        if (e.target.classList.contains('help-icon')) {
+            e.stopPropagation();
+            const helpIcon = e.target;
+            const rect = helpIcon.getBoundingClientRect();
+            const isVisible = tooltip.style.display === 'block';
+            
+            // 关闭弹窗
+            if (isVisible && tooltip._currentIcon === helpIcon) {
+                tooltip.style.display = 'none';
+                return;
+            }
+
+            // 显示弹窗
+            tooltip.style.display = 'block';
+            tooltip._currentIcon = helpIcon;
+            tooltip.style.zIndex = 9999;
+            
+            // 计算位置
+            const viewportWidth = window.innerWidth;
+            const tooltipWidth = tooltip.offsetWidth;
+            
+            // 移动端适配
+            if (viewportWidth <= 768) {
+                tooltip.style.left = '50%';
+                tooltip.style.top = '50%';
+                tooltip.style.transform = 'translate(-50%, -50%)';
+                tooltip.style.maxWidth = '90vw';
+                tooltip.style.maxHeight = '80vh';
+                tooltip.style.overflow = 'auto';
+            } else {
+                let left = rect.left;
+                if (left + tooltipWidth > viewportWidth) {
+                    left = viewportWidth - tooltipWidth - 10;
+                }
+                tooltip.style.top = `${rect.bottom + 5}px`;
+                tooltip.style.left = `${left}px`;
+                tooltip.style.transform = 'none';
+            }
+        } else if (!tooltip.contains(e.target)) {
+            // 点击其他地方关闭弹窗
+            tooltip.style.display = 'none';
+        }
+    });
+
+    // 添加 ESC 键关闭
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            tooltip.style.display = 'none';
+        }
+    });
+});

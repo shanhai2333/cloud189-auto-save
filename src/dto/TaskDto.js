@@ -13,6 +13,8 @@ class CreateTaskDto {
         this.enableCron = data.enableCron;
         this.cronExpression = data.cronExpression;
         this.realRootFolderId = data.realRootFolderId;
+        this.targetFolder = data.targetFolder;
+        this.selectedFolders = data.selectedFolders; // 选中的分享目录
     }
 
     validate() {
@@ -23,6 +25,7 @@ class CreateTaskDto {
         if (this.matchOperator && !['lt', 'eq', 'gt'].includes(this.matchOperator)) {
             throw new Error('无效的匹配操作符');
         }
+        if (!this.selectedFolders || this.selectedFolders.length === 0) throw new Error('分享目录最少选择一个');
     }
 }
 
