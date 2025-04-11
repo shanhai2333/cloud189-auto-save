@@ -86,23 +86,10 @@ class TaskService {
      // 验证并创建目标目录
      async _validateAndCreateTargetFolder(cloud189, taskDto, shareInfo) {
         if (!this.checkFolderInList(taskDto.selectedFolders, shareInfo.fileName)) {
-            return {id: taskDto.targetFolderId, name: ''}
-        }
-        const folderInfo = await cloud189.listFiles(taskDto.targetFolderId);
-        if (!folderInfo) {
-            throw new Error('获取文件列表失败');
+            return {id: taskDto.targetFolderId, name: '', oldFolder: true}
         }
         // 检查目标文件夹是否存在
-        const { folderList = [] } = folderInfo.fileListAO;
-        const existFolder = folderList.find(folder => folder.name === shareInfo.fileName);
-        if (existFolder) {
-            if (!taskDto.overwriteFolder) {
-                throw new Error('folder already exists');
-            }
-            // 如果用户需要覆盖, 则删除目标目录
-            await this.deleteCloudFile(cloud189, existFolder, 1)
-        }
-        
+        await this.checkFolderExists(cloud189, taskDto.targetFolderId, shareInfo.fileName, taskDto.overwriteFolder);
         const targetFolder = await cloud189.createFolder(shareInfo.fileName, taskDto.targetFolderId);
         if (!targetFolder || !targetFolder.id) throw new Error('创建目录失败');
         return targetFolder;
@@ -114,10 +101,8 @@ class TaskService {
         if (!result?.fileListAO) return;
 
         const { fileList: rootFiles = [], folderList: subFolders = [] } = result.fileListAO;
-        // 没有生成根目录
-        const noGenerateRootFolder = rootFolder.name == taskDto.targetFolder
         // 处理根目录文件 如果用户选择了根目录, 则生成根目录任务
-        if (rootFiles.length > 0 && noGenerateRootFolder) {
+        if (rootFiles.length > 0 && !rootFolder?.oldFolder) {
             const enableOnlySaveMedia = ConfigService.getConfigValue('task.enableOnlySaveMedia');
             // mediaSuffixs转为小写
             const mediaSuffixs = ConfigService.getConfigValue('task.mediaSuffix').split(';').map(suffix => suffix.toLowerCase())
@@ -127,6 +112,7 @@ class TaskService {
                 shouldContinue = true
             }
             if (!shouldContinue) {
+                taskDto.realRootFolderId = rootFolder.id;
                 const rootTask = this.taskRepo.create(
                     this._createTaskConfig(
                         taskDto,
@@ -145,9 +131,11 @@ class TaskService {
                 if (!this.checkFolderInList(taskDto.selectedFolders, resourceFolderName)) {
                     continue;
                 }
+                // 检查目标文件夹是否存在
+                await this.checkFolderExists(cloud189, rootFolder.id, folder.fileName, taskDto.overwriteFolder);
                 const realFolder = await cloud189.createFolder(folder.name, rootFolder.id);
                 if (!realFolder?.id) throw new Error('创建目录失败');
-                noGenerateRootFolder && (taskDto.realRootFolderId = realFolder.id);
+                rootFolder?.oldFolder && (taskDto.realRootFolderId = realFolder.id);
                 realFolder.name = path.join(rootFolder.name, realFolder.name)
                 const subTask = this.taskRepo.create(
                     this._createTaskConfig(
@@ -211,7 +199,7 @@ class TaskService {
             await this._handleFolderShare(cloud189, shareInfo, taskDto, rootFolder, tasks);
         }
 
-         // 处理单文件或空文件夹情况
+         // 处理单文件
          if (!shareInfo.isFolder) {
             await this._handleSingleShare(cloud189, shareInfo, taskDto, rootFolder, tasks);
         }
@@ -392,8 +380,10 @@ class TaskService {
             },
             select: {
                 account: {
+                    username: true,
                     localStrmPrefix: true,
-                    cloudStrmPrefix: true
+                    cloudStrmPrefix: true,
+                    embyPathReplace: true
                 }
             },
             where: [
@@ -419,8 +409,10 @@ class TaskService {
             },
             select: {
                 account: {
+                    username: true,
                     localStrmPrefix: true,
-                    cloudStrmPrefix: true
+                    cloudStrmPrefix: true,
+                    embyPathReplace: true
                 }
             }
         });
@@ -638,8 +630,10 @@ class TaskService {
             },
             select: {
                 account: {
+                    username: true,
                     localStrmPrefix: true,
-                    cloudStrmPrefix: true
+                    cloudStrmPrefix: true,
+                    embyPathReplace: true
                 }
             },
             where: {
@@ -791,8 +785,10 @@ class TaskService {
             },
             select: {
                 account: {
+                    username: true,
                     localStrmPrefix: true,
-                    cloudStrmPrefix: true
+                    cloudStrmPrefix: true,
+                    embyPathReplace: true
                 }
             },
         })
@@ -869,6 +865,24 @@ class TaskService {
     // 校验目录是否在目录列表中
     checkFolderInList(folderList, folderName) {
         return folderList.includes(folderName)
+    }
+
+    // 校验云盘中是否存在同名目录
+    async checkFolderExists(cloud189, targetFolderId, folderName, overwriteFolder = false) {
+        const folderInfo = await cloud189.listFiles(targetFolderId);
+        if (!folderInfo) {
+            throw new Error('获取文件列表失败');
+        }
+        // 检查目标文件夹是否存在
+        const { folderList = [] } = folderInfo.fileListAO;
+        const existFolder = folderList.find(folder => folder.name === folderName);
+        if (existFolder) {
+            if (overwriteFolder) {
+                throw new Error('folder already exists');
+            }
+            // 如果用户需要覆盖, 则删除目标目录
+            await this.deleteCloudFile(cloud189, existFolder, 1)
+        }
     }
 
 }

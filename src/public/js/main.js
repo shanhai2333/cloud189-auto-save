@@ -8,6 +8,14 @@ async function loadVersion() {
     }
 }
 
+function debounce(func, wait) {
+    let timeout;
+    return function (...args) {
+        clearTimeout(timeout);
+        timeout = setTimeout(() => func.apply(this, args), wait);
+    };
+}
+
 // 主入口文件
 document.addEventListener('DOMContentLoaded', () => {
     // 加载版本号

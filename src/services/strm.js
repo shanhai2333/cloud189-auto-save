@@ -127,6 +127,14 @@ class StrmService {
     async deleteDir(dirPath) {
         try {
             const targetDir = path.join(this.baseDir, dirPath);
+             // 检查目录是否存在
+             try {
+                await fs.access(targetDir);
+            } catch (err) {
+                // 目录不存在，直接返回
+                logTaskEvent(`STRM目录不存在，跳过删除: ${targetDir}`);
+                return;
+            }
             await fs.rm(targetDir, { recursive: true });
             logTaskEvent(`删除STRM目录成功: ${targetDir}`);
 

@@ -18,8 +18,9 @@ async function fetchAccounts(updateSelect = false) {
                     <td data-label='账户名'>${account.username}</td>
                     <td data-label='个人容量'>${formatBytes(account.capacity.cloudCapacityInfo.usedSize) + '/' + formatBytes(account.capacity.cloudCapacityInfo.totalSize)}</td>
                     <td data-label='家庭容量'>${formatBytes(account.capacity.familyCapacityInfo.usedSize) + '/' + formatBytes(account.capacity.familyCapacityInfo.totalSize)}</td>
-                    <td data-label='媒体目录' style="cursor: pointer;" onclick="updateCloudStrmPrefix(${account.id}, '${account.cloudStrmPrefix || ''}')">${account.cloudStrmPrefix || ''}</td>
-                    <td data-label='本地目录' style="cursor: pointer;" onclick="updateLocalStrmPrefix(${account.id}, '${account.localStrmPrefix || ''}')">${account.localStrmPrefix || ''}</td>
+                    <td class='strm-prefix' data-label='媒体目录' style="cursor: pointer;" onclick="updateCloudStrmPrefix(${account.id}, '${account.cloudStrmPrefix || ''}')">${account.cloudStrmPrefix || ''}</td>
+                    <td class='strm-prefix' data-label='本地目录' style="cursor: pointer;" onclick="updateLocalStrmPrefix(${account.id}, '${account.localStrmPrefix || ''}')">${account.localStrmPrefix || ''}</td>
+                    <td class='emby-path-replace' data-label='Emby路径替换' style="cursor: pointer;" onclick="updateEmbyPathReplace(${account.id}, '${account.embyPathReplace || ''}')">${account.embyPathReplace || ''}</td>
                 </tr>
             `;
             if (updateSelect) {
@@ -158,6 +159,29 @@ async function updateLocalStrmPrefix(id, currentPrefix) {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ strmPrefix: newPrefix, type: 'local' })
+        });
+
+        const data = await response.json();
+        if (data.success) {
+            alert('更新成功');
+            fetchAccounts(true);
+        } else {
+            alert('更新失败: ' + data.error);
+        }
+    } catch (error) {
+        alert('操作失败: ' + error.message);
+    }
+}
+
+async function updateEmbyPathReplace(id, embyPathReplace) {
+    const newEmbyPathReplace = prompt('请输入新的Emby替换路径', embyPathReplace);
+    if (newEmbyPathReplace === null) return; // 用户点击取消
+
+    try {
+        const response = await fetch(`/api/accounts/${id}/strm-prefix`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ strmPrefix: newEmbyPathReplace, type: 'emby' })
         });
 
         const data = await response.json();

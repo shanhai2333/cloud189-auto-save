@@ -209,3 +209,11 @@ button {
 .cronExpression-box{
     display: none;
 }
+
+.strm-prefix {
+    display: none;
+}
+
+.emby-path-replace {
+    display: none;
+}

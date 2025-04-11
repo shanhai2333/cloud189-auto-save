@@ -123,7 +123,7 @@
                     <div class="delete-cloud-option">
                         <label>
                             <input type="checkbox" id="deleteCloudOption">
-                            同步删除网盘文件
+                            同步删除网盘
                         </label>
                     </div>
                 </div>
@@ -139,10 +139,11 @@
                             </div>
                             <div class="form-group">
                                 <label for="shareLink">分享链接</label>
-                                <div style="display: flex; gap: 10px;">
-                                    <input type="text" id="shareLink" required style="flex: 2;">
-                                    <input type="text" id="accessCode" placeholder="访问码（可选）" style="flex: 1;">
+                                <div class="share-input-group" style="display: flex; gap: 10px;">
+                                    <input type="text" id="shareLink" required style="flex: 2;" data-share-input placeholder="可自动解析带访问码的链接">
+                                    <input type="text" id="accessCode" placeholder="访问码（可选）" style="flex: 1;" data-share-input>
                                 </div>
+                                <div id="shareParseError" style="color: #ff4d4f; font-size: 10px; margin-top: 2px; min-height: 12px;"></div>
                             </div>
                             <div class="form-group share-folders-group" style="display: none;">
                                 <label>分享目录</label>
@@ -158,7 +159,7 @@
                                 </div>
                             </div>
                             <div class="form-group">
-                                <label for="targetFolder">保存目录</label>
+                                <label for="targetFolderId">保存目录</label>
                                 <div class="tree-select" style="display: flex; gap: 10px;">
                                     <div style="flex: 1; position: relative;">
                                         <input type="text" id="targetFolder" readonly required>
@@ -344,7 +345,7 @@
                                 <input type="checkbox" id="enableStrm">
                                 启用 STRM 生成
                             </label>
-                            <small class="form-text">例如: 如果播放地址是<span style="background-color: #f0f0f0;">http://127.0.0.1:5244/天翼云盘/剧集/北上(2025)/Season 01/S01E01.mkv</span> 那么你的前缀就应该写 <span style="background-color: #f0f0f0;">http://127.0.0.1:5244/天翼云盘</span>
+                            <small class="form-text">例如: 如果播放地址是<span style="background-color: #f0f0f0;">http://127.0.0.1:5244/d/天翼云盘/剧集/北上(2025)/Season 01/S01E01.mkv</span> 那么你的前缀就应该写 <span style="background-color: #f0f0f0;">http://127.0.0.1:5244/d/天翼云盘</span>
                             完整逻辑为 账号媒体目录 + 资源保存目录(排除根目录) + 资源文件目录名 + 文件名, 生成strm路径为: 账号本地目录 + 资源保存目录(排除根目录) + 资源文件目录名 + 文件名.strm</small>
                         </div>
                     </div>

@@ -41,7 +41,7 @@ function getTaskById(id) {
 }
 async function fetchTasks() {
     taskList = []
-    const response = await fetch('/api/tasks');
+    const response = await fetch(`/api/tasks`);
     const data = await response.json();
     if (data.success) {
         const tbody = document.querySelector('#taskTable tbody');
@@ -69,6 +69,7 @@ async function fetchTasks() {
                 </tr>
             `;
         });
+        filterTasks()
     }
 }
 
@@ -146,6 +147,12 @@ async function executeAllTask() {
 }
 
 function openCreateTaskModal() {
+    const lastTargetFolder = getFromCache('lastTargetFolder')
+    if (lastTargetFolder) {
+        const { lastTargetFolderId, lastTargetFolderName } = JSON.parse(lastTargetFolder);
+        document.getElementById('targetFolderId').value = lastTargetFolderId;
+        document.getElementById('targetFolder').value = lastTargetFolderName; 
+    }
     document.getElementsByClassName('cronExpression-box')[0].style.display = 'none';
     document.getElementById('createTaskModal').style.display = 'block';
 }
@@ -159,23 +166,14 @@ function closeCreateTaskModal() {
 
 // 初始化任务表单
 function initTaskForm() {
-    const lastTargetFolder = getFromCache('lastTargetFolder')
-    if (lastTargetFolder) {
-        console.log('lastTargetFolder', lastTargetFolder)
-        const { lastTargetFolderId, lastTargetFolderName } = JSON.parse(lastTargetFolder);
-        document.getElementById('targetFolderId').value = lastTargetFolderId;
-        document.getElementById('targetFolder').value = lastTargetFolderName; 
-    }
      
+    // 使用防抖包装处理函数
+    const debouncedHandleShare = debounce(parseShareLink, 500);
+    const shareInputs = document.querySelectorAll('[data-share-input]');
+    shareInputs.forEach(input => {
+        input.addEventListener('blur', debouncedHandleShare);
+    });
 
-    // 监听shareLink和accessCode的失焦事件 兼容pc和移动端
-    document.getElementById('shareLink').addEventListener('blur', async () => {
-        await parseShareLink()
-    })
-    document.getElementById('accessCode').addEventListener('blur', async () => {
-        await parseShareLink()
-    })
-    
     // 修改原有的表单提交处理
     document.getElementById('taskForm').addEventListener('submit', async (e) => {
         e.preventDefault();
@@ -230,7 +228,6 @@ function initTaskForm() {
                 saveToCache('lastTargetFolder', JSON.stringify({ lastTargetFolderId: body.targetFolderId, lastTargetFolderName:  targetFolderName}));
                 document.getElementById('taskForm').reset();
                 document.getElementById('targetFolderId').value = body.targetFolderId;
-                document.getElementById('targetFolder').value = targetFolderName;
                 const ids = data.data.map(item => item.id);
                 await Promise.all(ids.map(id => executeTask(id, false)));
                 alert('任务执行完成');
@@ -585,6 +582,22 @@ function initFormToggle() {
 }
 
 
+function filterTasks() {
+    const taskFilter = document.getElementById('taskFilter');
+    const taskSearch = document.getElementById('taskSearch');
+    const status = taskFilter.value;
+    const searchText = taskSearch.value.toLowerCase();
+    const tasks = document.querySelectorAll('#taskTable tbody tr');
+    
+    tasks.forEach(task => {
+        const taskStatus = task.getAttribute('data-status');
+        const taskName = task.getAttribute('data-name').toLowerCase();
+        const statusMatch = status === 'all' || status === taskStatus;
+        const searchMatch = !searchText || taskName.includes(searchText);
+        task.style.display = statusMatch && searchMatch ? '' : 'none';
+    });
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     const dropdownToggle = document.querySelector('.dropdown-toggle');
     const dropdownGroup = document.querySelector('.dropdown-button-group');
@@ -601,13 +614,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    function debounce(func, wait) {
-        let timeout;
-        return function (...args) {
-            clearTimeout(timeout);
-            timeout = setTimeout(() => func.apply(this, args), wait);
-        };
-    }
     const debouncedFilterTasks = debounce(filterTasks, 300);
     // 任务筛选功能
     const taskFilter = document.getElementById('taskFilter');
@@ -619,21 +625,6 @@ document.addEventListener('DOMContentLoaded', function() {
     taskSearch.addEventListener('input', function() {
         debouncedFilterTasks();
     });
-
-    function filterTasks() {
-        const status = taskFilter.value;
-        const searchText = taskSearch.value.toLowerCase();
-        const tasks = document.querySelectorAll('#taskTable tbody tr');
-        
-        tasks.forEach(task => {
-            const taskStatus = task.getAttribute('data-status');
-            const taskName = task.getAttribute('data-name').toLowerCase();
-            const statusMatch = status === 'all' || status === taskStatus;
-            const searchMatch = !searchText || taskName.includes(searchText);
-            task.style.display = statusMatch && searchMatch ? '' : 'none';
-        });
-    }
-
     // 批量选择功能
     const taskTable = document.getElementById('taskTable');
     const batchDeleteBtn = document.getElementById('batchDeleteBtn');
@@ -643,8 +634,10 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!row) return;
         
         row.classList.toggle('selected');
-        const selectedTasks = document.querySelectorAll('#taskTable tbody tr.selected');
-        batchDeleteBtn.style.display = selectedTasks.length > 0 ? '' : 'none';
+        if (batchDeleteBtn) {
+            const selectedTasks = document.querySelectorAll('#taskTable tbody tr.selected');
+            batchDeleteBtn.style.display = selectedTasks.length > 0 ? '' : 'none';
+        }
     });
 });
 
@@ -734,9 +727,24 @@ async function generateStrm() {
 
 // 解析分享链接获取分享目录组合
 async function parseShareLink() {
-    const shareLink = document.getElementById('shareLink').value;
-    const accessCode = document.getElementById('accessCode').value;
-    const accountId = document.getElementById('accountId').value;
+    const shareParseError = document.getElementById('shareParseError');
+    shareParseError.textContent = ''; // 清除之前的错误信息
+    let shareLink = document.getElementById('shareLink')?.value?.trim();
+    let accessCode = document.getElementById('accessCode')?.value?.trim();
+    const accountId = document.getElementById('accountId')?.value;
+    if (!shareLink || !accountId) {
+        return;
+    }
+    // 如果shareLink是https://cloud.189.cn/t/xxxx（访问码：xxx） 需要匹配出url和访问码
+    const regex = /^(https:\/\/cloud\.189\.cn\/t\/[a-zA-Z0-9]+)(?:\s*（访问码：([a-zA-Z0-9]+)）)?$/;
+    const match = regex.exec(shareLink);
+    if (match && match.length >= 2 && match[2]) {
+        shareLink = match[1];
+        accessCode = match[2];
+        document.getElementById('accessCode').value = accessCode;
+    }
+    const shareFoldersGroup = document.querySelector('.share-folders-group');
+    const shareFoldersList = document.getElementById('shareFoldersList');
     try {
         const response = await fetch('/api/share/parse', {
             method: 'POST',
@@ -744,10 +752,7 @@ async function parseShareLink() {
             body: JSON.stringify({ shareLink, accessCode, accountId })
         });
         const data = await response.json();
-        const shareFoldersGroup = document.querySelector('.share-folders-group');
-        const shareFoldersList = document.getElementById('shareFoldersList');
         if (data.success) {
-            console.log(data.data)
             shareFoldersGroup.style.display = 'block';
             shareFoldersList.innerHTML = data.data.map(folder => `
                 <div class="folder-item">
@@ -760,10 +765,14 @@ async function parseShareLink() {
         } else {
             shareFoldersGroup.style.display = 'none';
             shareFoldersList.innerHTML = '';
-            alert('解析失败:'+ data.error);
+            if (data.error) {
+                shareParseError.textContent = `解析失败: ${data.error}`;
+            }
         }
     } catch (error) {
-        alert('操作失败:'+ error.message);
+        shareFoldersGroup.style.display = 'none';
+        shareFoldersList.innerHTML = '';
+        shareParseError.textContent = `操作失败: ${error.message}`;
     }
 }
 

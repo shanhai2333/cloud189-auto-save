@@ -44,9 +44,11 @@ async function loadSettings() {
             document.getElementById('systemUserName').value = settings.system?.username || '';
             document.getElementById('systemPassword').value = settings.system?.password || '';
             
+            const enableStrm = settings.strm?.enable || false
+            const enableEmby = settings.emby?.enable || false
             // 媒体信息设置
-            document.getElementById('enableStrm').checked = settings.strm?.enable || false;
-            document.getElementById('enableEmby').checked = settings.emby?.enable || '';
+            document.getElementById('enableStrm').checked = enableStrm;
+            document.getElementById('enableEmby').checked = enableEmby;
             document.getElementById('embyServer').value = settings.emby?.serverUrl || '';
             document.getElementById('embyApiKey').value = settings.emby?.apiKey || '';
         }

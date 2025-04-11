@@ -110,13 +110,11 @@ AppDataSource.initialize().then(async () => {
             if (ConfigService.getConfigValue('emby.enable')) {
                 // 通知Emby
                 const embyService = new EmbyService()                
-                const embyId = await embyService.notify(task.embyId, task.resourceName)
-                if (!task.embyId && embyId) {
-                    await taskRepo.update(task.id, { embyId });
-                }
+                await embyService.notify(task)
                 messageUtil.sendMessage('🎉通知Emby入库成功, 资源名:' + task.resourceName);
             }
         } catch (error) {
+            console.log(error)
             logTaskEvent(`任务完成后处理失败: ${error.message}`);
         }
         logTaskEvent(`================事件处理完成================`);
@@ -146,7 +144,9 @@ AppDataSource.initialize().then(async () => {
             // username脱敏
             account.username = account.username.replace(/(.{3}).*(.{4})/, '$1****$2');
             // 去掉cookies和密码
-            account.cookies = 'true';
+            if (account.cookies && !account.password) {
+                account.cookies = 'true';
+            }
             account.password = '';
         }
         res.json({ success: true, data: accounts });
@@ -209,6 +209,9 @@ AppDataSource.initialize().then(async () => {
             if (type == 'cloud') {
                 account.cloudStrmPrefix = strmPrefix;
             }
+            if (type == 'emby') {
+                account.embyPathReplace = strmPrefix;
+            }
             await accountRepo.save(account);
             res.json({ success: true });
         } catch (error) {
@@ -216,9 +219,6 @@ AppDataSource.initialize().then(async () => {
         }
     })
     
-
-
-
     // 任务相关API
     app.get('/api/tasks', async (req, res) => {
         const tasks = await taskRepo.find({
@@ -289,8 +289,10 @@ AppDataSource.initialize().then(async () => {
                 },
                 select: {
                     account: {
+                        username: true,
                         localStrmPrefix: true,
-                        cloudStrmPrefix: true
+                        cloudStrmPrefix: true,
+                        embyPathReplace: true
                     }
                 }
             });

@@ -36,10 +36,12 @@ export class Account {
     @Column('boolean', { nullable: true, default: false })
     clearRecycle!: boolean;
 
-    @Column('text', { nullable: true })
+    @Column('text', { nullable: true, default: ''  })
     localStrmPrefix!: string;
-    @Column('text', { nullable: true })
+    @Column('text', { nullable: true, default: '' })
     cloudStrmPrefix!: string;
+    @Column('text', { nullable: true, default: '' })
+    embyPathReplace!:string;
 }
 
 @Entity()

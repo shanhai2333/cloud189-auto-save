@@ -57,13 +57,17 @@ __decorate([
     __metadata("design:type", Boolean)
 ], Account.prototype, "clearRecycle", void 0);
 __decorate([
-    (0, typeorm_1.Column)('text', { nullable: true }),
+    (0, typeorm_1.Column)('text', { nullable: true, default: '' }),
     __metadata("design:type", String)
 ], Account.prototype, "localStrmPrefix", void 0);
 __decorate([
-    (0, typeorm_1.Column)('text', { nullable: true }),
+    (0, typeorm_1.Column)('text', { nullable: true, default: '' }),
     __metadata("design:type", String)
 ], Account.prototype, "cloudStrmPrefix", void 0);
+__decorate([
+    (0, typeorm_1.Column)('text', { nullable: true, default: '' }),
+    __metadata("design:type", String)
+], Account.prototype, "embyPathReplace", void 0);
 exports.Account = Account = __decorate([
     (0, typeorm_1.Entity)()
 ], Account);

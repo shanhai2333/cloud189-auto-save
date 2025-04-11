@@ -146,7 +146,6 @@
 }
 
 .form-header {
-    margin-bottom: 1rem;
     display: flex; 
     align-items: center; /* 添加这行确保所有元素垂直居中 */
 }
@@ -172,16 +171,10 @@
     cursor: pointer;
 }
 
-.search-bar {
-    margin-top: 10px;
-}
-
 .search-input {
     display: flex;
     gap: 10px;
-    padding: 8px;
     background: var(--input-bg);
-    border: 1px solid var(--border-color);
     border-radius: 4px;
 }
 
@@ -253,10 +246,6 @@
     }
 }
 
-.delete-cloud-option {
-    margin-top: 10px;
-    padding: 5px 0;
-}
 
 .delete-cloud-option label {
     display: flex;

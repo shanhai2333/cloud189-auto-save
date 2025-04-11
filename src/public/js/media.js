@@ -8,14 +8,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
 async function saveMediaSettings() {
+    const enableStrm = document.getElementById('enableStrm').checked
+    const enableEmby = document.getElementById('enableEmby').checked
     const settings = {
         strm: {
-            enable: document.getElementById('enableStrm').checked,
+            enable: enableStrm,
         },
         emby: {
-            enable: document.getElementById('enableEmby').checked,
+            enable: enableEmby,
             serverUrl: document.getElementById('embyServer').value,
-            apiKey: document.getElementById('embyApiKey').value
+            apiKey: document.getElementById('embyApiKey').value,
         }
     };
 
