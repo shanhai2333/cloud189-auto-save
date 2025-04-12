@@ -1,15 +1,22 @@
 const got = require('got');
 const { logTaskEvent } = require('../utils/logUtils');
 const ConfigService = require('./ConfigService');
+const { MessageUtil } = require('./message');
 // emby接口
 class EmbyService {
     constructor() {
+        this.enable = ConfigService.getConfigValue('emby');
         this.embyUrl = ConfigService.getConfigValue('emby.serverUrl');
         this.embyApiKey = ConfigService.getConfigValue('emby.apiKey');
         this.embyPathReplace = ''
+        this.messageUtil = new MessageUtil();
     }
 
     async notify(task) {
+        if (!this.enable){
+            logTaskEvent(`Emby通知未启用, 请启用后执行`);
+            return;
+        }
         const taskName = task.resourceName
         logTaskEvent(`执行Emby通知: ${taskName}`);
         // 处理路径
@@ -19,10 +26,12 @@ class EmbyService {
         logTaskEvent(`Emby搜索结果: ${ JSON.stringify(item)}`);
         if (item) {
             await this.refreshItemById(item.Id);
+            this.messageUtil.sendMessage('🎉通知Emby入库成功, 资源名:' + task.resourceName);
             return item.Id
         }else{
             logTaskEvent(`Emby未搜索到电影/剧集: ${taskName}, 执行全库扫描`);
             await this.refreshAllLibraries();
+            this.messageUtil.sendMessage('🎉通知Emby入库成功, 资源名:' + task.resourceName);
             return null;
         }
     }

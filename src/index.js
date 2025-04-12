@@ -1,7 +1,7 @@
 require('dotenv').config();
 const express = require('express');
 const { AppDataSource } = require('./database');
-const { Account, Task } = require('./entities');
+const { Account, Task, CommonFolder } = require('./entities');
 const { TaskService } = require('./services/task');
 const { Cloud189Service } = require('./services/cloud189');
 const { MessageUtil } = require('./services/message');
@@ -14,6 +14,7 @@ const { SchedulerService } = require('./services/scheduler');
 const { logTaskEvent, initSSE } = require('./utils/logUtils');
 const { StrmService } = require('./services/strm');
 const { EmbyService } = require('./services/emby');
+const { TelegramBotService } = require('./services/telegramBot');
 
 const app = express();
 app.use(express.json());
@@ -90,8 +91,15 @@ AppDataSource.initialize().then(async () => {
     console.log('数据库连接成功');
     const accountRepo = AppDataSource.getRepository(Account);
     const taskRepo = AppDataSource.getRepository(Task);
+    const commonFolderRepo = AppDataSource.getRepository(CommonFolder);
     const taskService = new TaskService(taskRepo, accountRepo);
     const messageUtil = new MessageUtil();
+    let tgbot = null;
+    // 初始化机器人
+    if (ConfigService.getConfigValue('telegram.enable') && ConfigService.getConfigValue('telegram.botToken')) {
+        tgbot = new TelegramBotService(ConfigService.getConfigValue('telegram.botToken'));
+        logTaskEvent(`Telegram机器人已启用`);
+    }
 
     // 初始化消息发送器
     taskService.onTaskComplete(async (taskCompleteEventDto) => {
@@ -111,7 +119,6 @@ AppDataSource.initialize().then(async () => {
                 // 通知Emby
                 const embyService = new EmbyService()                
                 await embyService.notify(task)
-                messageUtil.sendMessage('🎉通知Emby入库成功, 资源名:' + task.resourceName);
             }
         } catch (error) {
             console.log(error)
@@ -436,6 +443,9 @@ AppDataSource.initialize().then(async () => {
             task.targetRegex = targetRegex
             taskRepo.save(task)
         }
+        if (result.length > 0) {
+            logTaskEvent(result.join('\n'));
+        }
         res.json({ success: true, data: result });
     });
 
@@ -453,6 +463,11 @@ AppDataSource.initialize().then(async () => {
         const settings = req.body;
         SchedulerService.handleScheduleTasks(settings,taskService);
         ConfigService.setConfig(settings)
+        // 如果启用了tg推送, 则初始化tg推送
+        if (settings.telegram?.enable && settings.telegram?.botToken && !tgbot) {
+            tgbot = new TelegramBot(settings.telegram.botToken);
+            logTaskEvent(`Telegram机器人已启用`);
+        }
         // 修改配置, 重新实例化消息推送
         messageUtil.updateConfig()
         res.json({success: true, data: null})
@@ -480,7 +495,34 @@ AppDataSource.initialize().then(async () => {
         }catch (error) {
             res.status(500).json({ success: false, error: error.message });
         }
-        
+    })
+    // 保存常用目录
+    app.post('/api/saveFavorites', async (req, res) => {
+        try{
+            const favorites = req.body.favorites;
+            const accountId = req.body.accountId;
+            if (!accountId) {
+                throw new Error('账号ID不能为空');
+            }
+            // 先删除该账号下的所有常用目录
+            await commonFolderRepo.delete({ accountId: accountId });
+            // 构建新的常用目录数据
+            const commonFolders = favorites.map(favorite => ({
+                accountId: accountId,
+                name: favorite.name,
+                path: favorite.path,
+                id: favorite.id
+            }));
+            if (commonFolders.length == 0) {
+                res.json({ success: true, data: [] });
+                return;
+            }
+            // 批量保存新的常用目录
+            const result = await commonFolderRepo.save(commonFolders);
+            res.json({ success: true, data: result });
+        }catch (error) {
+            res.status(500).json({ success: false, error: error.message });
+        }
     })
     // 全局错误处理中间件
     app.use((err, req, res, next) => {

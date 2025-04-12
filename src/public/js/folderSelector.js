@@ -29,6 +29,14 @@ class FolderSelector {
     // 保存常用目录
     saveFavorites(favorites) {
         localStorage.setItem(this.favoritesKey, JSON.stringify(favorites));
+        // 调用接口存储常用目录
+        fetch('/api/saveFavorites', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({favorites, accountId:this.accountId}),
+        })
     }
     // 添加到常用目录
     addToFavorites(id, name) {

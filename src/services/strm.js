@@ -5,6 +5,7 @@ const { logTaskEvent } = require('../utils/logUtils');
 
 class StrmService {
     constructor() {
+        this.enable = ConfigService.getConfigValue('strm.enable');
         this.baseDir = path.join(__dirname + '../../../strm');
         // 从环境变量获取 PUID 和 PGID，默认值设为 0
         this.puid = process.env.PUID || 0;
@@ -18,6 +19,10 @@ class StrmService {
      * @returns {Promise<Array>} - 返回生成的文件列表
      */
     async generate(task, files, overwrite = false) {
+        if (!this.enable){
+            logTaskEvent(`STRM生成未启用, 请启用后执行`);
+            return;
+        }
         logTaskEvent(`开始生成STRM文件, 总文件数: ${files.length}`);
         const results = [];
         let success = 0;
@@ -68,7 +73,7 @@ class StrmService {
                     }
 
                     // 生成STRM文件内容
-                    const content = path.join(task.account.cloudStrmPrefix,taskName,fileName);
+                    const content = this._joinUrl(this._joinUrl(task.account.cloudStrmPrefix,taskName),fileName)
                     await fs.writeFile(strmPath, content, 'utf8');
                     // 设置文件权限
                     await fs.chown(strmPath, parseInt(this.puid), parseInt(this.pgid));
@@ -158,6 +163,14 @@ class StrmService {
          // 获取文件后缀
          const fileExt = '.' + file.name.split('.').pop().toLowerCase();
          return mediaSuffixs.includes(fileExt)
+    }
+
+    _joinUrl(base, path) {
+        // 移除 base 末尾的斜杠（如果有）
+        base = base.replace(/\/$/, '');
+        // 移除 path 开头的斜杠（如果有）
+        path = path.replace(/^\//, '');
+        return `${base}/${path}`;
     }
 }
 

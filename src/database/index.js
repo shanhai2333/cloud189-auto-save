@@ -1,5 +1,5 @@
 const { DataSource } = require('typeorm');
-const { Account, Task } = require('../entities');
+const { Account, Task, CommonFolder } = require('../entities');
 const path = require('path');
 const dotenv = require('dotenv');
 
@@ -13,7 +13,7 @@ const AppDataSource = new DataSource({
     maxQueryExecutionTime: 1000, // 查询超时设置
     enableWAL: true,   // 启用 WAL 模式提升性能
     busyTimeout: 3000, // 设置超时时间
-    entities: [Account, Task],
+    entities: [Account, Task, CommonFolder],
     subscribers: [],
     migrations: [],
     timezone: '+08:00',  // 添加时区设置
@@ -42,10 +42,12 @@ const initDatabase = async () => {
 
 const getAccountRepository = () => AppDataSource.getRepository(Account);
 const getTaskRepository = () => AppDataSource.getRepository(Task);
+const getCommonFolderRepository = () => AppDataSource.getRepository(CommonFolder);
 
 module.exports = {
     AppDataSource,
     initDatabase,
     getAccountRepository,
-    getTaskRepository
+    getTaskRepository,
+    getCommonFolderRepository
 };

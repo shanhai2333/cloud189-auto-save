@@ -9,7 +9,7 @@ var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.Task = exports.Account = void 0;
+exports.CommonFolder = exports.Task = exports.Account = void 0;
 const typeorm_1 = require("typeorm");
 let Account = class Account {
 };
@@ -238,4 +238,27 @@ __decorate([
 exports.Task = Task = __decorate([
     (0, typeorm_1.Entity)()
 ], Task);
-exports.default = { Account, Task };
+// 常用目录表
+let CommonFolder = class CommonFolder {
+};
+exports.CommonFolder = CommonFolder;
+__decorate([
+    (0, typeorm_1.Column)('text', { primary: true }),
+    __metadata("design:type", String)
+], CommonFolder.prototype, "id", void 0);
+__decorate([
+    (0, typeorm_1.Column)('integer'),
+    __metadata("design:type", Number)
+], CommonFolder.prototype, "accountId", void 0);
+__decorate([
+    (0, typeorm_1.Column)('text'),
+    __metadata("design:type", String)
+], CommonFolder.prototype, "path", void 0);
+__decorate([
+    (0, typeorm_1.Column)('text'),
+    __metadata("design:type", String)
+], CommonFolder.prototype, "name", void 0);
+exports.CommonFolder = CommonFolder = __decorate([
+    (0, typeorm_1.Entity)()
+], CommonFolder);
+exports.default = { Account, Task, CommonFolder };

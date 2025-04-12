@@ -169,4 +169,17 @@ export class Task {
     embyId!: string;
 }
 
-export default { Account, Task };
+// 常用目录表
+@Entity()
+export class CommonFolder {
+    @Column('text', { primary: true })
+    id!: string;
+    @Column('integer')
+    accountId!: number;
+    @Column('text')
+    path!: string;
+    @Column('text')
+    name!: string;
+}
+
+export default { Account, Task, CommonFolder };

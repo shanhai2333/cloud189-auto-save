@@ -511,6 +511,7 @@ async function submitRename(autoUpdate) {
             chooseTask.targetRegex = targetRegex;
             // 刷新文件列表
             showFileListModal(taskId);
+            fetchTasks()
         } else {
             alert('重命名失败: ' + data.error);
         }
@@ -680,6 +681,7 @@ function formatDateTime(dateStr) {
 }
 
 const statusOptions = {
+    pending: '等待中',
     processing: '追剧中',
     completed: '已完结',
     failed: '失败'

@@ -85,7 +85,7 @@ class TaskService {
 
      // 验证并创建目标目录
      async _validateAndCreateTargetFolder(cloud189, taskDto, shareInfo) {
-        if (!this.checkFolderInList(taskDto.selectedFolders, shareInfo.fileName)) {
+        if (!this.checkFolderInList(taskDto, shareInfo.fileName)) {
             return {id: taskDto.targetFolderId, name: '', oldFolder: true}
         }
         // 检查目标文件夹是否存在
@@ -128,7 +128,7 @@ class TaskService {
             for (const folder of subFolders) {
                 // 检查用户是否选择了该文件夹
                 const resourceFolderName = path.join(shareInfo.fileName, folder.name);
-                if (!this.checkFolderInList(taskDto.selectedFolders, resourceFolderName)) {
+                if (!this.checkFolderInList(taskDto, resourceFolderName)) {
                     continue;
                 }
                 // 检查目标文件夹是否存在
@@ -373,7 +373,18 @@ class TaskService {
     }
 
     // 获取待处理任务
-    async getPendingTasks(ignore = false) {
+    async getPendingTasks(ignore = false, taskIds = []) {
+        const conditions = [
+            {
+                status: 'pending',
+                nextRetryTime: null,
+                ...(ignore ? {} : { enableCron: false })
+            },
+            {
+                status: 'processing',
+                ...(ignore ? {} : { enableCron: false })
+            }
+        ];
         return await this.taskRepo.find({
             relations: {
                 account: true
@@ -387,15 +398,9 @@ class TaskService {
                 }
             },
             where: [
-                {
-                    status: 'pending',
-                    nextRetryTime: null,
-                    ...(ignore ? {} : { enableCron: false })
-                },
-                {
-                    status: 'processing',
-                    ...(ignore ? {} : { enableCron: false })
-                }
+                ...(taskIds.length > 0 
+                    ? [{ id: In(taskIds) }] 
+                    : conditions)
             ]
         });
     }
@@ -476,19 +481,16 @@ class TaskService {
             const destFileName = file.name.replace(new RegExp(task.sourceRegex), task.targetRegex);
             if (destFileName === file.name) continue;
             const renameResult = await cloud189.renameFile(file.id, destFileName);
-            if (!renameResult) {
-                throw new Error('重命名失败');
-            }
-            if (renameResult.res_code != 0) {
-                logTaskEvent(`${file.name}重命名为${destFileName}失败, 原因:${destFileName}${renameResult.res_msg}`)
-                message.push(` > <font color="comment">${file.name} → ${destFileName}失败, 原因:${destFileName}${renameResult.res_msg}</font>`)
+            if (!renameResult || renameResult.res_code != 0) {
+                logTaskEvent(`${file.name}重命名为${destFileName}失败, 原因:${destFileName}${renameResult?.res_msg}`)
+                message.push(` > <font color="comment">${file.name} → ${destFileName}失败, 原因:${destFileName}${renameResult?.res_msg}</font>`)
             }else{
                 logTaskEvent(`${file.name}重命名为${destFileName}成功`)
                 message.push(` > <font color="info">${file.name} → ${destFileName}成功</font>`)
             }
             await new Promise(resolve => setTimeout(resolve, 50));
         }
-        this.messageUtil.sendMessage(`${task.resourceName}自动重命名: \n ${message.join('\n')}`)
+        message.length > 0 && this.messageUtil.sendMessage(`${task.resourceName}自动重命名: \n ${message.join('\n')}`)
     }
 
     // 检查任务状态
@@ -529,8 +531,8 @@ class TaskService {
     }
 
     // 执行所有任务
-    async processAllTasks(ignore = false) {
-        const tasks = await this.getPendingTasks(ignore);
+    async processAllTasks(ignore = false, taskIds = []) {
+        const tasks = await this.getPendingTasks(ignore, taskIds);
         if (tasks.length === 0) {
             logTaskEvent('没有待处理的任务');
             return;
@@ -796,24 +798,29 @@ class TaskService {
             throw new Error('任务不存在')
         }
         for (const task of tasks) {
-            let account = await this._getAccountById(task.accountId)
-            if (!account) {
-                logTaskEvent(`任务[${task.resourceName}]账号不存在, 跳过`)
-                continue
-            }
-            const cloud189 = Cloud189Service.getInstance(account);
-            // 获取文件列表
-            const fileList = await this.getAllFolderFiles(cloud189, task.realFolderId)
-            this.eventEmitter.emit('taskComplete', new TaskCompleteEventDto({
-                task,
-                cloud189,
-                fileList,
-                overwriteStrm: overwrite
-            }));
+            await this._createStrmFileByTask(task, overwrite)
         }
-        
     }
-
+    // 根据任务执行生成strm
+    async _createStrmFileByTask(task, overwrite) {
+        if (!task) {
+            throw new Error('任务不存在')
+        }
+        let account = await this._getAccountById(task.accountId)
+        if (!account) {
+            logTaskEvent(`任务[${task.resourceName}]账号不存在, 跳过`)
+            return
+        }
+        const cloud189 = Cloud189Service.getInstance(account);
+        // 获取文件列表
+        const fileList = await this.getAllFolderFiles(cloud189, task.realFolderId)
+        if (fileList.length == 0) {
+            throw new Error('文件列表为空')
+        }
+        const strmService = new StrmService()
+        const message = await strmService.generate(task, fileList, overwrite);
+        this.messageUtil.sendMessage(message);
+    }
     // 根据accountId获取账号
     async _getAccountById(accountId) {
         return await this.accountRepo.findOne({
@@ -863,8 +870,8 @@ class TaskService {
     }
 
     // 校验目录是否在目录列表中
-    checkFolderInList(folderList, folderName) {
-        return folderList.includes(folderName)
+    checkFolderInList(taskDto, folderName) {
+        return taskDto.tgbot || (taskDto.selectedFolders?.includes(folderName) || false);
     }
 
     // 校验云盘中是否存在同名目录
@@ -877,7 +884,7 @@ class TaskService {
         const { folderList = [] } = folderInfo.fileListAO;
         const existFolder = folderList.find(folder => folder.name === folderName);
         if (existFolder) {
-            if (overwriteFolder) {
+            if (!overwriteFolder) {
                 throw new Error('folder already exists');
             }
             // 如果用户需要覆盖, 则删除目标目录
@@ -885,6 +892,23 @@ class TaskService {
         }
     }
 
+    // 根据id获取任务
+    async getTaskById(id) {
+        return await this.taskRepo.findOne({
+            where: { id: parseInt(id) },
+            relations: {
+                account: true
+            },
+            select: {
+                account: {
+                    username: true,
+                    localStrmPrefix: true,
+                    cloudStrmPrefix: true,
+                    embyPathReplace: true
+                }
+            }
+        });
+    }
 }
 
 module.exports = { TaskService };
