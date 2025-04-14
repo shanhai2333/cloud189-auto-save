@@ -100,6 +100,36 @@ docker run -d \
   - Bark
   - WxPusher
 
+### 5. Telegram 机器人使用
+- 配置说明：
+  1. 在 [@BotFather](https://t.me/BotFather) 创建机器人并获取 Token
+  2. 在系统设置中填入 Bot Token 并启用 Telegram 通知
+  3. 与机器人开始对话即可使用
+
+- 可用命令：
+  - `/help` - 显示帮助信息
+  - `/accounts` - 显示账号列表
+  - `/tasks` - 显示任务列表
+  - `/execute_all` - 执行所有任务
+  - `/folders` - 显示常用目录列表
+  - `/folder_add` - 添加常用目录
+  - `/cancel` - 取消当前操作
+
+- 任务操作命令：
+  - `/execute_[ID]` - 执行指定任务
+  - `/strm_[ID]` - 生成STRM文件
+  - `/emby_[ID]` - 通知Emby刷新
+  - `/task_delete_[ID]` - 删除指定任务
+
+- 目录操作命令：
+  - `/folder_delete_[ID]` - 删除指定常用目录
+
+- 使用流程：
+  1. 选择账号：使用 `/accounts` 命令查看并选择要使用的账号(仅需选择一次, 如果系统重启则需重新选择)
+  2. 创建任务：直接发送分享链接(支持带访问码的链接)，选择保存目录即可
+  3. 管理任务：使用 `/tasks` 命令查看任务列表，可进行删除、STRM生成、Emby通知等操作
+  4. 任务更新：系统会自动检查更新，如有更新会通过机器人推送通知
+   
 ## 注意事项
 - 更新目录可以任意移动但不能被删除, 否则任务无法执行
 - 数据库文件会持久化保存在宿主机的 data 目录
@@ -108,6 +138,7 @@ docker run -d \
 - 媒体文件后缀配置会影响文件计数和过滤
 - STRM 文件生成需要配置正确的访问前缀
 - Emby 通知需要配置正确的服务器地址和 API Key
+- 如需使用TG机器人创建任务, 如果是老版本系统, 请取消常用目录所有后重新添加
 
 ## 截图
 <img width="1505" alt="image" src="https://github.com/user-attachments/assets/359fb6e2-0d38-4a4c-a398-1b820ce47c8c" />

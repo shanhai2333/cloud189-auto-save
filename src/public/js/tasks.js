@@ -189,6 +189,8 @@ function initTaskForm() {
         const remark = document.getElementById('remark').value;
         const enableCron = document.getElementById('enableCron').checked;
         const cronExpression = document.getElementById('cronExpression').value;
+        const sourceRegex = document.getElementById('ctSourceRegex').value;
+        const targetRegex = document.getElementById('ctTargetRegex').value;
         // 如果填了matchPattern那matchValue就必须填
         if (matchPattern && !matchValue) {
             alert('填了匹配模式, 那么匹配值就必须填');
@@ -198,6 +200,11 @@ function initTaskForm() {
             alert('开启了自定义定时任务, 那么定时表达式就必须填');
             return;
         }
+        // 如果填了targetRegex 那么sourceRegex也必须填
+        if (targetRegex &&!sourceRegex) {
+            alert('填了目标正则, 那么源正则就必须填');
+            return;
+        }
         // 获取选中的分享目录
         const selectedFolders = Array.from(document.querySelectorAll('input[name="chooseShareFolder"]:checked'))
         .map(cb => cb.value);
@@ -205,7 +212,7 @@ function initTaskForm() {
             alert('至少选择一个分享目录');
             return;
         }
-        const body = { accountId, shareLink, totalEpisodes, targetFolderId, accessCode, matchPattern, matchOperator, matchValue, overwriteFolder: 0, remark, enableCron, cronExpression, targetFolder, selectedFolders };
+        const body = { accountId, shareLink, totalEpisodes, targetFolderId, accessCode, matchPattern, matchOperator, matchValue, overwriteFolder: 0, remark, enableCron, cronExpression, targetFolder, selectedFolders, sourceRegex, targetRegex };
         await createTask(e,body)
             
     });
@@ -229,8 +236,8 @@ function initTaskForm() {
                 document.getElementById('taskForm').reset();
                 document.getElementById('targetFolderId').value = body.targetFolderId;
                 const ids = data.data.map(item => item.id);
-                await Promise.all(ids.map(id => executeTask(id, false)));
-                alert('任务执行完成');
+                Promise.all(ids.map(id => executeTask(id, false)));
+                alert('任务创建完成, 正在执行中, 请稍后查看结果');
                 fetchTasks();
                 closeCreateTaskModal();
             } else {

@@ -12,9 +12,9 @@ const session = require('express-session');
 const FileStore = require('session-file-store')(session);
 const { SchedulerService } = require('./services/scheduler');
 const { logTaskEvent, initSSE } = require('./utils/logUtils');
-const { StrmService } = require('./services/strm');
-const { EmbyService } = require('./services/emby');
 const { TelegramBotService } = require('./services/telegramBot');
+const fs = require('fs').promises;
+const path = require('path');
 
 const app = express();
 app.use(express.json());
@@ -89,6 +89,20 @@ app.use((req, res, next) => {
 // 初始化数据库连接
 AppDataSource.initialize().then(async () => {
     console.log('数据库连接成功');
+
+    // 初始化 STRM 目录权限
+    const strmBaseDir = path.join(__dirname, '../strm');
+    try {
+        await fs.mkdir(strmBaseDir, { recursive: true });
+        if (process.getuid && process.getuid() === 0) {
+            await fs.chown(strmBaseDir, parseInt(process.env.PUID || 0), parseInt(process.env.PGID || 0));
+        }
+        await fs.chmod(strmBaseDir, 0o755);
+        console.log('STRM目录权限初始化完成');
+    } catch (error) {
+        console.error('STRM目录权限初始化失败:', error);
+    }
+
     const accountRepo = AppDataSource.getRepository(Account);
     const taskRepo = AppDataSource.getRepository(Task);
     const commonFolderRepo = AppDataSource.getRepository(CommonFolder);
@@ -100,33 +114,6 @@ AppDataSource.initialize().then(async () => {
         tgbot = new TelegramBotService(ConfigService.getConfigValue('telegram.botToken'));
         logTaskEvent(`Telegram机器人已启用`);
     }
-
-    // 初始化消息发送器
-    taskService.onTaskComplete(async (taskCompleteEventDto) => {
-        logTaskEvent(`================触发事件================`);
-        try {
-            const task = taskCompleteEventDto.task
-            // 执行重命名操作
-            await taskService.autoRename(taskCompleteEventDto.cloud189, taskCompleteEventDto.task);
-            const strmService = new StrmService()
-            if (ConfigService.getConfigValue('strm.enable')) {
-                // 处理fileList 将task的名称替换为task的shareFolderName
-                let fileList = taskCompleteEventDto.fileList;
-                const message = await strmService.generate(task, fileList, taskCompleteEventDto.overwriteStrm);
-                messageUtil.sendMessage(message);
-            }
-            if (ConfigService.getConfigValue('emby.enable')) {
-                // 通知Emby
-                const embyService = new EmbyService()                
-                await embyService.notify(task)
-            }
-        } catch (error) {
-            console.log(error)
-            logTaskEvent(`任务完成后处理失败: ${error.message}`);
-        }
-        logTaskEvent(`================事件处理完成================`);
-    });
-
     // 初始化缓存管理器
     const folderCache = new CacheManager(parseInt(600));
     // 初始化任务定时器

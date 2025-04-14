@@ -247,17 +247,20 @@
 }
 
 
-.delete-cloud-option label {
-    display: flex;
+.delete-cloud-option {
+    display: inline-flex !important;
     align-items: center;
     gap: 5px;
-    color: var(--text-color-secondary);
-    font-size: 14px;
+    margin-left: 10px;
 }
 
 .delete-cloud-option input[type="checkbox"] {
-    flex:0;
     margin: 0;
+    width: unset;
+}
+
+.delete-cloud-option span {
+    line-height: normal;
 }
 
 @media (max-width: 768px) {

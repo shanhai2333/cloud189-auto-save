@@ -39,11 +39,11 @@ class FolderSelector {
         })
     }
     // 添加到常用目录
-    addToFavorites(id, name) {
+    addToFavorites(id, name, element) {
         const favorites = this.getFavorites();
         if (!favorites.find(f => f.id === id)) {
             // 获取当前选中节点的完整路径
-            const path = this.currentPath.join('/')
+            const path = this.getNodePath(element);
             favorites.push({ id, name, path });
             this.saveFavorites(favorites);
         }
@@ -57,6 +57,26 @@ class FolderSelector {
             favorites.splice(index, 1);
             this.saveFavorites(favorites);
         }
+    }
+
+    getNodePath(element) {
+        const path = [];
+        let current = element;
+        
+        while (current && !current.classList.contains('folder-tree')) {
+            if (current.classList.contains('folder-tree-item')) {
+                const nameElement = current.querySelector('.folder-name');
+                if (nameElement) {
+                    // 如果是在常用目录视图中，需要处理完整路径显示
+                    const displayName = nameElement.textContent;
+                    if (!this.isShowingFavorites) {
+                        path.unshift(displayName);
+                    }
+                }
+            }
+            current = current.parentElement;
+        }
+        return path.join('/');
     }
 
     initModal() {
@@ -193,7 +213,7 @@ class FolderSelector {
 
             // 如果是常用目录视图，显示完整路径
             const displayName = this.isShowingFavorites && node.path ? 
-                `${node.path}/${node.name}` : 
+                `${node.path}` : 
                 node.name;
 
             item.innerHTML = `
@@ -216,7 +236,8 @@ class FolderSelector {
                     const { id, name } = e.currentTarget.dataset;
                     const isFavorite = this.getFavorites().some(f => f.id === id);
                     if (!isFavorite) {
-                        this.addToFavorites(id, name);
+                        // 传入当前项的DOM元素
+                        this.addToFavorites(id, name, item);
                         e.currentTarget.classList.add('active');
                     } else {
                         this.removeFromFavorites(id);

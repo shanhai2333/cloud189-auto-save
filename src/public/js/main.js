@@ -69,7 +69,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 定时刷新数据
     setInterval(() => {
-        fetchAccounts();
         fetchTasks();
     }, 30000);
 });
