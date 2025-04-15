@@ -27,8 +27,6 @@ RUN yarn install
 # 创建数据目录
 RUN mkdir -p /home/data
 
-RUN mv .env.example .env
-
 # 暴露端口
 EXPOSE 3000
 

@@ -21,9 +21,19 @@ class FolderSelector {
     }
 
     // 获取常用目录
-    getFavorites() {
-        const favorites = localStorage.getItem(this.favoritesKey);
-        return favorites ? JSON.parse(favorites) : [];
+    async getFavorites() {
+        try {
+            const response = await fetch(`/api/favorites/${this.accountId}`);
+            const data = await response.json();
+            if (!data.success) {
+                throw new Error(data.error || '获取常用目录失败');
+            }
+            return data.data || [];
+        } catch (error) {
+            console.error('获取常用目录失败:', error);
+            message.error('获取常用目录失败');
+            return [];
+        }
     }
 
     // 保存常用目录
@@ -39,8 +49,8 @@ class FolderSelector {
         })
     }
     // 添加到常用目录
-    addToFavorites(id, name, element) {
-        const favorites = this.getFavorites();
+    async addToFavorites(id, name, element) {
+        const favorites = await this.getFavorites();
         if (!favorites.find(f => f.id === id)) {
             // 获取当前选中节点的完整路径
             const path = this.getNodePath(element);
@@ -50,8 +60,8 @@ class FolderSelector {
     }
 
     // 从常用目录移除
-    removeFromFavorites(id) {
-        const favorites = this.getFavorites();
+    async removeFromFavorites(id) {
+        const favorites = await this.getFavorites();
         const index = favorites.findIndex(f => f.id === id);
         if (index !== -1) {
             favorites.splice(index, 1);
@@ -143,7 +153,7 @@ class FolderSelector {
         }
 
         if (!this.accountId) {
-            alert('请先选择账号');
+            message.warning('请先选择账号');
             return;
         }
 
@@ -171,7 +181,7 @@ class FolderSelector {
             });
             this.close();
         } else {
-            alert('请选择一个目录');
+            message.warning('请选择一个目录');
         }
     }
 
@@ -180,7 +190,7 @@ class FolderSelector {
             let nodes;
             if (this.isShowingFavorites) {
                 // 从缓存加载常用目录数据
-                nodes = this.getFavorites();
+                nodes = await this.getFavorites();
             }else{
                 const params = this.apiConfig.buildParams(this.accountId, folderId);
                 const response = await fetch(`${this.apiConfig.url}/${params}${refresh ? '&refresh=true' : ''}`);
@@ -193,18 +203,19 @@ class FolderSelector {
             this.renderFolderNodes(nodes, parentElement);
         } catch (error) {
             console.error('加载目录失败:', error);
-            alert('加载目录失败');
+            message.warning('加载目录失败');
         }
     }
 
-    renderFolderNodes(nodes, parentElement = this.folderTree) {
+    async renderFolderNodes(nodes, parentElement = this.folderTree) {
         parentElement.innerHTML = '';
+        const favorites =  await this.getFavorites()
         nodes.forEach(node => {
             const item = document.createElement('div');
             item.className = 'folder-tree-item';
             // 常用目录视图不显示展开图标和复选框
             const expandIcon = this.isShowingFavorites ? '' : '<span class="expand-icon">▶</span>';
-            const isFavorite = this.getFavorites().some(f => f.id === node.id);
+            const isFavorite = favorites.some(f => f.id === node.id);
             const favoriteIcon = this.enableFavorites ? `
                 <span class="favorite-icon ${isFavorite ? 'active' : ''}" data-id="${node.id}" data-name="${node.name}">
                     <img src="/icons/star.svg" alt="star" width="16" height="16">
@@ -234,7 +245,7 @@ class FolderSelector {
                 favoriteBtn.addEventListener('click', (e) => {
                     e.stopPropagation();
                     const { id, name } = e.currentTarget.dataset;
-                    const isFavorite = this.getFavorites().some(f => f.id === id);
+                    const isFavorite = favorites.some(f => f.id === id);
                     if (!isFavorite) {
                         // 传入当前项的DOM元素
                         this.addToFavorites(id, name, item);
@@ -295,7 +306,7 @@ class FolderSelector {
             this.accountId = accountId;
         }
         if (!this.accountId) {
-            alert('请先选择账号');
+            message.warning('请先选择账号');
             return;
         }
         this.modal.style.display = 'block';

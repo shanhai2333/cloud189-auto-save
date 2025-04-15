@@ -56,7 +56,7 @@ function initEditTaskForm() {
         e.preventDefault();
         const accountId = document.getElementById('accountId').value;
         if (!accountId) {
-            alert('请先选择账号');
+            message.warning('请先选择账号');
             return;
         }
         shareFolderSelector.show(accountId);
@@ -67,7 +67,7 @@ function initEditTaskForm() {
         e.preventDefault();
         const accountId = document.getElementById('accountId').value;
         if (!accountId) {
-            alert('请先选择账号');
+            message.warning('请先选择账号');
             return;
         }
         editFolderSelector.show(accountId);
@@ -94,6 +94,7 @@ function initEditTaskForm() {
         const cronExpression = document.getElementById('editCronExpression').value;
 
         try {
+            loading.show()
             const response = await fetch(`/api/tasks/${id}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
@@ -114,16 +115,16 @@ function initEditTaskForm() {
                     cronExpression
                 })
             });
-
+            loading.hide()
             if (response.ok) {
                 closeEditTaskModal();
                 await fetchTasks();
             } else {
                 const error = await response.json();
-                alert(error.message || '修改任务失败');
+                message.warning(error.message || '修改任务失败');
             }
         } catch (error) {
-            alert('修改任务失败：' + error.message);
+            message.warning('修改任务失败：' + error.message);
         }
     });
 }

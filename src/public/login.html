@@ -96,10 +96,10 @@
                 if (data.success) {
                     window.location.href = '/';
                 } else {
-                    alert(data.error || '登录失败');
+                    message.error(data.error || '登录失败');
                 }
             } catch (error) {
-                alert('登录失败');
+                message.error('登录失败');
             }
         });
     </script>

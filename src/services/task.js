@@ -203,6 +203,10 @@ class TaskService {
         if (!shareInfo.shareId) {
             throw new Error('获取分享信息失败');
         }
+        // 如果任务名称存在 且和shareInfo的name不一致
+        if (taskDto.taskName && taskDto.taskName != shareInfo.fileName) {
+            shareInfo.fileName = taskDto.taskName;
+        }
         // 检查并创建目标目录
         const rootFolder = await this._validateAndCreateTargetFolder(cloud189, taskDto, shareInfo);
         const tasks = [];
@@ -278,6 +282,7 @@ class TaskService {
                 logTaskEvent(`账号不存在，accountId: ${task.accountId}`);
                 throw new Error('账号不存在');
             }
+            task.account = account;
             const cloud189 = Cloud189Service.getInstance(account);
              // 获取分享文件列表并进行增量转存
              const shareDir = await cloud189.listShareDir(task.shareId, task.shareFolderId, task.shareMode,task.accessCode);

@@ -77,6 +77,7 @@ async function fetchTasks() {
  async function deleteTask(id) {
     const deleteCloud = document.getElementById('deleteCloudOption').checked;
     if (!confirm(deleteCloud?'确定要删除这个任务并且从网盘中也删除吗？':'确定要删除这个任务吗？')) return;
+    loading.show()
     const response = await fetch(`/api/tasks/${id}`, {
         method: 'DELETE',
         headers: {
@@ -84,13 +85,13 @@ async function fetchTasks() {
         },
         body: JSON.stringify({ deleteCloud })
     });
-
+    loading.hide()
     const data = await response.json();
     if (data.success) {
-        alert('任务删除成功');
+        message.success('任务删除成功');
         fetchTasks();
     } else {
-        alert('任务删除失败: ' + data.error);
+        message.warning('任务删除失败: ' + data.error);
     }
 }
 
@@ -106,13 +107,13 @@ async function executeTask(id, refresh = true) {
             method: 'POST'
         });
         if (response.ok) {
-            refresh && alert('任务执行完成');
+            refresh && message.success('任务执行完成');
             refresh && fetchTasks();
         } else {
-            alert('任务执行失败');
+            message.warning('任务执行失败');
         }
     } catch (error) {
-        alert('任务执行失败: ' + error.message);
+        message.warning('任务执行失败: ' + error.message);
     } finally {
         if (executeBtn) {
             executeBtn.classList.remove('loading');
@@ -134,12 +135,12 @@ async function executeAllTask() {
             method: 'POST'
         });
         if (response.ok) {
-            alert('任务已在后台执行, 请稍后查看结果');
+            message.success('任务已在后台执行, 请稍后查看结果');
         } else {
-            alert('任务执行失败');
+            message.warning('任务执行失败');
         }
     } catch (error) {
-        alert('任务执行失败:'+ error.message);
+        message.warning('任务执行失败:'+ error.message);
     } finally {
         executeAllBtn.classList.remove('loading');
         executeAllBtn.disabled = false;
@@ -161,6 +162,7 @@ function closeCreateTaskModal() {
     document.querySelector('.share-folders-group').style.display = 'none';
     document.getElementById('shareFoldersList').innerHTML = '';;
     document.getElementById('createTaskModal').style.display = 'none';
+    document.getElementById('taskName').readOnly = true
     document.getElementById('taskForm').reset();
 }
 
@@ -191,28 +193,44 @@ function initTaskForm() {
         const cronExpression = document.getElementById('cronExpression').value;
         const sourceRegex = document.getElementById('ctSourceRegex').value;
         const targetRegex = document.getElementById('ctTargetRegex').value;
+        const taskName = document.getElementById('taskName').value.trim();
+        if (!taskName) {
+            message.warning('任务名称不能为空');
+            return;
+        }
         // 如果填了matchPattern那matchValue就必须填
         if (matchPattern && !matchValue) {
-            alert('填了匹配模式, 那么匹配值就必须填');
+            message.warning('填了匹配模式, 那么匹配值就必须填');
             return;
         }
         if (enableCron && !cronExpression) {
-            alert('开启了自定义定时任务, 那么定时表达式就必须填');
+            message.warning('开启了自定义定时任务, 那么定时表达式就必须填');
             return;
         }
         // 如果填了targetRegex 那么sourceRegex也必须填
         if (targetRegex &&!sourceRegex) {
-            alert('填了目标正则, 那么源正则就必须填');
+            message.warning('填了目标正则, 那么源正则就必须填');
             return;
         }
         // 获取选中的分享目录
         const selectedFolders = Array.from(document.querySelectorAll('input[name="chooseShareFolder"]:checked'))
         .map(cb => cb.value);
         if (selectedFolders.length == 0) {
-            alert('至少选择一个分享目录');
+            message.warning('至少选择一个分享目录');
             return;
         }
-        const body = { accountId, shareLink, totalEpisodes, targetFolderId, accessCode, matchPattern, matchOperator, matchValue, overwriteFolder: 0, remark, enableCron, cronExpression, targetFolder, selectedFolders, sourceRegex, targetRegex };
+         // 将选中的目录中的根目录名称替换为任务名称
+         const rootFolder = selectedFolders[0].split('/')[0];
+         const processedFolders = selectedFolders.map(folder => {
+             if (folder === rootFolder) {
+                 return taskName;
+             }
+             if (folder.startsWith(rootFolder + '/')) {
+                 return taskName + folder.substring(rootFolder.length);
+             }
+             return folder;
+         });
+        const body = { accountId, shareLink, totalEpisodes, targetFolderId, accessCode, matchPattern, matchOperator, matchValue, overwriteFolder: 0, remark, enableCron, cronExpression, targetFolder, selectedFolders:processedFolders, sourceRegex, targetRegex, taskName  };
         await createTask(e,body)
             
     });
@@ -222,6 +240,7 @@ function initTaskForm() {
         submitBtn.classList.add('loading');
         submitBtn.disabled = true;
         try {
+            loading.show()
             const response = await fetch('/api/tasks', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -237,7 +256,7 @@ function initTaskForm() {
                 document.getElementById('targetFolderId').value = body.targetFolderId;
                 const ids = data.data.map(item => item.id);
                 Promise.all(ids.map(id => executeTask(id, false)));
-                alert('任务创建完成, 正在执行中, 请稍后查看结果');
+                message.success('任务创建完成, 正在执行中, 请稍后查看结果');
                 fetchTasks();
                 closeCreateTaskModal();
             } else {
@@ -248,13 +267,14 @@ function initTaskForm() {
                     }
                     return
                 }
-                alert('任务创建失败: ' + data.error);
+                message.warning('任务创建失败: ' + data.error);
             }
         } catch (error) {
-            alert('任务创建失败: ' + error.message);
+            message.warning('任务创建失败: ' + error.message);
         } finally {
             submitBtn.classList.remove('loading');
             submitBtn.disabled = false;
+            loading.hide();
         }
     }
 }
@@ -298,8 +318,10 @@ async function showFileListModal(taskId) {
     modal.style.display = 'flex';
     // 获取文件列表
     try {
+        loading.show()
         const response = await fetch(`/api/folder/files?accountId=${accountId}&folderId=${folderId}`);
         const data = await response.json();
+        loading.hide()
         if (data.success) {
             const tbody = document.getElementById('fileListBody');
             data.data.forEach(file => {
@@ -314,7 +336,7 @@ async function showFileListModal(taskId) {
             });
         }
     } catch (error) {
-        alert('获取文件列表失败：' + error.message);
+        message.warning('获取文件列表失败：' + error.message);
     }
 }
 // 显示批量重命名选项
@@ -323,7 +345,7 @@ function showBatchRenameOptions() {
     const targetRegex = escapeHtmlAttr(chooseTask.targetRegex)?? ''
     const selectedFiles = Array.from(document.querySelectorAll('.file-checkbox:checked')).map(cb => cb.dataset.filename);
     if (selectedFiles.length === 0) {
-        alert('请选择要重命名的文件');
+        message.warning('请选择要重命名的文件');
         return;
     }
 
@@ -486,7 +508,7 @@ async function submitRename(autoUpdate) {
         destFileName: row.querySelector('td:last-child').textContent
     }));
     if (files.length == 0) {
-        alert('没有需要重命名的文件');
+        message.warning('没有需要重命名的文件');
         return
     }
     if (autoUpdate) {
@@ -499,17 +521,19 @@ async function submitRename(autoUpdate) {
     const sourceRegex = autoUpdate ? escapeRegExp(document.getElementById('sourceRegex').value): null;
     const targetRegex = autoUpdate ? escapeRegExp(document.getElementById('targetRegex').value): null;
     try {
+        loading.show()
         const response = await fetch('/api/files/rename', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ taskId, accountId, files, sourceRegex, targetRegex })
         });
+        loading.hide()
         const data = await response.json();
         if (data.success) {
             if (data.data && data.data.length > 0) {
-                alert('部分文件重命名失败:'+ data.data.join(', '));
+                message.info('部分文件重命名失败:'+ data.data.join(', '));
             }else{
-                alert('重命名成功');
+                message.warning('重命名成功');
             }
             closeRenamePreviewModal();
             closeRenameOptionsModal();
@@ -520,10 +544,10 @@ async function submitRename(autoUpdate) {
             showFileListModal(taskId);
             fetchTasks()
         } else {
-            alert('重命名失败: ' + data.error);
+            message.warning('重命名失败: ' + data.error);
         }
     } catch (error) {
-        alert('重命名失败: ' + error.message);
+        message.warning('重命名失败: ' + error.message);
     }
 }
 // 辅助函数
@@ -656,28 +680,29 @@ async function deleteSelectedTasks() {
     const selectedTasks = document.querySelectorAll('#taskTable tbody tr.selected');
     const taskIds = Array.from(selectedTasks).map(row => row.getAttribute('data-task-id'));
     if (taskIds.length === 0) {
-        alert('请选择要删除的任务');
+        message.warning('请选择要删除的任务');
         return;
     }
     const deleteCloud = document.getElementById('deleteCloudOption').checked;
     if (!confirm(deleteCloud?'确定要删除选中任务并且从网盘中也删除吗？':'确定要删除选中的任务吗？')) return;
     
     try {
+        loading.show()
         const response = await fetch('/api/tasks/batch', {
             method: 'DELETE',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ taskIds, deleteCloud })
         });
-
+        loading.hide()
         const data = await response.json();
         if (data.success) {
-            alert('批量删除成功');
+            message.success('批量删除成功');
             fetchTasks();
         } else {
-            alert('批量删除失败: ' + data.error);
+            message.warning('批量删除失败: ' + data.error);
         }
     } catch (error) {
-        alert('操作失败: ' + error.message);
+        message.warning('操作失败: ' + error.message);
     }
 }
 // 添加时间格式化函数
@@ -710,7 +735,7 @@ async function generateStrm() {
     const selectedTasks = document.querySelectorAll('#taskTable tbody tr.selected');
     const taskIds = Array.from(selectedTasks).map(row => row.getAttribute('data-task-id'));
     if (taskIds.length === 0) {
-        alert('请选择要生成STRM的任务');
+        message.warning('请选择要生成STRM的任务');
         return;
     }
     let overwrite = false;
@@ -718,19 +743,21 @@ async function generateStrm() {
         overwrite = true;
     }
     try {
+        loading.show()
         const response = await fetch('/api/tasks/strm', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ taskIds, overwrite })
         });
+        loading.hide()
         const data = await response.json();
         if (data.success) {
-            alert('任务后台执行中, 请稍后查看结果');
+            message.success('任务后台执行中, 请稍后查看结果');
         } else {
-            alert('生成STRM失败: ' + data.error);
+            message.warning('生成STRM失败: ' + data.error);
         }
     } catch (error) {
-        alert('操作失败: ' + error.message);
+        message.warning('操作失败: ' + error.message);
     }
 }
 
@@ -755,11 +782,13 @@ async function parseShareLink() {
     const shareFoldersGroup = document.querySelector('.share-folders-group');
     const shareFoldersList = document.getElementById('shareFoldersList');
     try {
+        loading.show()
         const response = await fetch('/api/share/parse', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ shareLink, accessCode, accountId })
         });
+        loading.hide()
         const data = await response.json();
         if (data.success) {
             shareFoldersGroup.style.display = 'block';
@@ -771,6 +800,13 @@ async function parseShareLink() {
                     </label>
                 </div>
             `).join('');
+             // 如果有分享目录数据，使用第一个目录名称作为任务名称
+            if (data.data && data.data.length > 0) {
+                const taskName = document.getElementById('taskName')
+                taskName.value = data.data[0];
+                // 移除taskName的只读
+                taskName.readOnly = false;
+            }
         } else {
             shareFoldersGroup.style.display = 'none';
             shareFoldersList.innerHTML = '';

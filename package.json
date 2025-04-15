@@ -1,12 +1,12 @@
 {
   "name": "cloud189-auto-save",
-  "version": "2.2.11",
+  "version": "2.2.12",
   "description": "天翼云盘自动转存系统",
   "main": "src/index.js",
   "scripts": {
-    "start": "CLOUD189_VERBOSE=0 node src/index.js",
+    "start": "tsc && CLOUD189_VERBOSE=0 node src/index.js",
     "build": "tsc",
-    "dev": "nodemon --exec ts-node src/index.js"
+    "dev": "CLOUD189_VERBOSE=0 ts-node src/index.js"
   },
   "dependencies": {
     "cloud189-sdk": "^1.0.6-alpha.6",

@@ -34,17 +34,17 @@ async function fetchAccounts(updateSelect = false) {
 
 async function deleteAccount(id) {
     if (!confirm('确定要删除这个账号吗？')) return;
-
+    loading.show()
     const response = await fetch(`/api/accounts/${id}`, {
         method: 'DELETE'
     });
-
+    loading.hide()
     const data = await response.json();
     if (data.success) {
-        alert('账号删除成功');
+        message.success('账号删除成功');
         fetchAccounts();
     } else {
-        alert('账号删除失败: ' + data.error);
+        message.warning('账号删除失败: ' + data.error);
     }
 }
 
@@ -52,19 +52,19 @@ async function deleteAccount(id) {
 async function updateCookie(id) {
     const newCookie = prompt('请输入新的Cookie');
     if (!newCookie) return;
-
+    loading.show()
     const response = await fetch(`/api/accounts/${id}/cookie`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ cookie: newCookie })
     });
-
+    loading.hide()
     const data = await response.json();
     if (data.success) {
-        alert('Cookie更新成功');
+        message.success('Cookie更新成功');
         fetchAccounts();
     } else {
-        alert('Cookie更新失败: ' + data.error);
+        message.warning('Cookie更新失败: ' + data.error);
     }
 }
 // 添加账号表单处理
@@ -75,11 +75,11 @@ function initAccountForm() {
         const password = document.getElementById('password').value;
         const cookies  = document.getElementById('cookie').value;
         if (!username ) {
-            alert('用户名不能为空');
+            message.warning('用户名不能为空');
             return;
         }
         if (!password && !cookies) {
-            alert('密码和Cookie不能同时为空');
+            message.warning('密码和Cookie不能同时为空');
             return;
         }
         const response = await fetch('/api/accounts', {
@@ -87,14 +87,13 @@ function initAccountForm() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ username, password, cookies })
         });
-
         const data = await response.json();
         if (data.success) {
-            alert('账号添加成功');
+            message.success('账号添加成功');
             document.getElementById('accountForm').reset();
             fetchAccounts();
         } else {
-            alert('账号添加失败: ' + data.error);
+            message.warning('账号添加失败: ' + data.error);
         }
     });
 }
@@ -119,12 +118,12 @@ async function clearRecycleBin() {
         });
         const data = await response.json();
         if (data.success) {
-            alert('后台任务执行中, 请稍后查看结果');
+            message.success('后台任务执行中, 请稍后查看结果');
         } else {
-            alert('清空回收站失败: ' + data.error);
+            message.warning('清空回收站失败: ' + data.error);
         }
     } catch (error) {
-        alert('操作失败: ' + error.message);
+        message.warning('操作失败: ' + error.message);
     }
 }
 
@@ -141,13 +140,13 @@ async function updateCloudStrmPrefix(id, currentPrefix) {
 
         const data = await response.json();
         if (data.success) {
-            alert('更新成功');
+            message.success('更新成功');
             fetchAccounts(true);
         } else {
-            alert('更新失败: ' + data.error);
+            message.warning('更新失败: ' + data.error);
         }
     } catch (error) {
-        alert('操作失败: ' + error.message);
+        message.warning('操作失败: ' + error.message);
     }
 }
 async function updateLocalStrmPrefix(id, currentPrefix) {
@@ -163,13 +162,13 @@ async function updateLocalStrmPrefix(id, currentPrefix) {
 
         const data = await response.json();
         if (data.success) {
-            alert('更新成功');
+            message.success('更新成功');
             fetchAccounts(true);
         } else {
-            alert('更新失败: ' + data.error);
+            message.warning('更新失败: ' + data.error);
         }
     } catch (error) {
-        alert('操作失败: ' + error.message);
+        message.warning('操作失败: ' + error.message);
     }
 }
 
@@ -186,12 +185,12 @@ async function updateEmbyPathReplace(id, embyPathReplace) {
 
         const data = await response.json();
         if (data.success) {
-            alert('更新成功');
+            message.success('更新成功');
             fetchAccounts(true);
         } else {
-            alert('更新失败: ' + data.error);
+            message.warning('更新失败: ' + data.error);
         }
     } catch (error) {
-        alert('操作失败: ' + error.message);
+        message.warning('操作失败: ' + error.message);
     }
 }

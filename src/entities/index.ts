@@ -42,6 +42,9 @@ export class Account {
     cloudStrmPrefix!: string;
     @Column('text', { nullable: true, default: '' })
     embyPathReplace!:string;
+
+    @Column('boolean', { nullable: true, default: false })
+    tgBotActive!: boolean;
 }
 
 @Entity()

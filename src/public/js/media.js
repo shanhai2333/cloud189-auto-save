@@ -18,6 +18,11 @@ async function saveMediaSettings() {
             enable: enableEmby,
             serverUrl: document.getElementById('embyServer').value,
             apiKey: document.getElementById('embyApiKey').value,
+        },
+        cloudSaver: {
+            baseUrl: document.getElementById('cloudSaverUrl').value,
+            username: document.getElementById('cloudSaverUsername').value,
+            password: document.getElementById('cloudSaverPassword').value,
         }
     };
 
@@ -27,14 +32,13 @@ async function saveMediaSettings() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(settings)
         });
-
         const result = await response.json();
         if (result.success) {
-            alert('保存成功');
+            message.success('保存成功');
         } else {
-            alert('保存失败: ' + result.error);
+            message.warning('保存失败: ' + result.error);
         }
     } catch (error) {
-        alert('保存失败: ' + error.message);
+        message.warning('保存失败: ' + error.message);
     }
 }

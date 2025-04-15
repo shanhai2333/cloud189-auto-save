@@ -39,10 +39,11 @@ class StrmService {
 
             // mediaSuffixs转为小写
             const mediaSuffixs = ConfigService.getConfigValue('task.mediaSuffix').split(';').map(suffix => suffix.toLowerCase())
-            const taskName = task.realFolderName.substring(task.realFolderName.indexOf('/') + 1)
+            let taskName = task.realFolderName.substring(task.realFolderName.indexOf('/') + 1)
+            // 去掉头尾/
+            taskName = taskName.replace(/^\/|\/$/g, '');
             // 构建完整的目标目录路径
             const targetDir = path.join(this.baseDir,task.account.localStrmPrefix, taskName);
-            console.log(targetDir)
             overwrite && await this._deleteDirAllStrm(targetDir)
             for (const file of files) {
                 // 检查文件是否是媒体文件

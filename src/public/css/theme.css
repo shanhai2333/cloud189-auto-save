@@ -38,6 +38,7 @@
 }
 /* 暗黑模式变量 */
 :root {
+    --primary-rgb: 64, 158, 255;  /* #409eff 的 RGB 值 */
     --bg-color: #ffffff;
     --text-color: rgba(0, 0, 0, 0.85);
     --border-color: #e0e0e0;
@@ -52,9 +53,12 @@
     --shadow-color: rgba(0, 0, 0, 0.1);
     --link-color: #409eff;
     --thead-bg: transparent;
+    --theme-color: #409eff;
+    --selected-bg: rgba(var(--primary-rgb), 0.2);
 }
 
 [data-theme="dark"] {
+    --primary-rgb: 64, 158, 255;  /* #409eff 的 RGB 值 */
     --bg-color: #141414;
     --text-color: rgba(255, 255, 255, 0.85);
     --border-color: #303030;
@@ -69,6 +73,8 @@
     --shadow-color: #ffffff;  /* 修改阴影颜色 */
     --link-color: #409eff;
     --thead-bg: #1d1d1d;
+    --theme-color: #409eff;
+    --selected-bg: rgba(var(--primary-rgb), 0.3);
 }
 
 /* 应用变量到全局样式 */

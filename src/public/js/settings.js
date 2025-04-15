@@ -51,6 +51,15 @@ async function loadSettings() {
             document.getElementById('enableEmby').checked = enableEmby;
             document.getElementById('embyServer').value = settings.emby?.serverUrl || '';
             document.getElementById('embyApiKey').value = settings.emby?.apiKey || '';
+
+            // tg机器人设置
+            document.getElementById('enableTgBot').checked = settings.telegram?.bot?.enable || false;
+            document.getElementById('tgBotToken').value = settings.telegram?.bot?.botToken || '';
+
+            // cloudSaver设置
+            document.getElementById('cloudSaverUrl').value = settings.cloudSaver?.baseUrl || '';
+            document.getElementById('cloudSaverUsername').value = settings.cloudSaver?.username || '';
+            document.getElementById('cloudSaverPassword').value = settings.cloudSaver?.password || '';
         }
     } catch (error) {
         console.error('加载设置失败:', error);
@@ -79,7 +88,11 @@ document.getElementById('settingsForm').addEventListener('submit', async (e) => 
             enable: document.getElementById('enableTelegram').checked,
             proxyDomain: document.getElementById('proxyDomain').value,
             botToken: document.getElementById('telegramBotToken').value,
-            chatId: document.getElementById('telegramChatId').value
+            chatId: document.getElementById('telegramChatId').value,
+            bot: {
+                enable: document.getElementById('enableTgBot').checked,
+                botToken: document.getElementById('tgBotToken').value
+            }
         },
         wxpusher: {
             enable: document.getElementById('enableWXPusher').checked,
@@ -103,7 +116,7 @@ document.getElementById('settingsForm').addEventListener('submit', async (e) => 
     };
     // taskRetryInterval不能少于60秒
     if (settings.task.taskRetryInterval < 60) {
-        alert("任务重试间隔不能小于60秒")
+        message.warning("任务重试间隔不能小于60秒")
         return 
     }
 
@@ -115,12 +128,12 @@ document.getElementById('settingsForm').addEventListener('submit', async (e) => 
         });
         const data = await response.json();
         if (data.success) {
-            alert('设置保存成功');
+            message.success('设置保存成功');
         } else {
-            alert('设置保存失败: ' + data.error);
+            message.warning('设置保存失败: ' + data.error);
         }
     } catch (error) {
-        alert('设置保存失败: ' + error.message);
+        message.warning('设置保存失败: ' + error.message);
     }
 });
 

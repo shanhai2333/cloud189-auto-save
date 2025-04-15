@@ -12,9 +12,10 @@ const session = require('express-session');
 const FileStore = require('session-file-store')(session);
 const { SchedulerService } = require('./services/scheduler');
 const { logTaskEvent, initSSE } = require('./utils/logUtils');
-const { TelegramBotService } = require('./services/telegramBot');
+const TelegramBotManager = require('./utils/TelegramBotManager');
 const fs = require('fs').promises;
 const path = require('path');
+const { setupCloudSaverRoutes } = require('./sdk/cloudsaver');
 
 const app = express();
 app.use(express.json());
@@ -97,7 +98,7 @@ AppDataSource.initialize().then(async () => {
         if (process.getuid && process.getuid() === 0) {
             await fs.chown(strmBaseDir, parseInt(process.env.PUID || 0), parseInt(process.env.PGID || 0));
         }
-        await fs.chmod(strmBaseDir, 0o755);
+        await fs.chmod(strmBaseDir, 0o775);
         console.log('STRM目录权限初始化完成');
     } catch (error) {
         console.error('STRM目录权限初始化失败:', error);
@@ -108,12 +109,13 @@ AppDataSource.initialize().then(async () => {
     const commonFolderRepo = AppDataSource.getRepository(CommonFolder);
     const taskService = new TaskService(taskRepo, accountRepo);
     const messageUtil = new MessageUtil();
-    let tgbot = null;
+    // 机器人管理
+    const botManager = TelegramBotManager.getInstance();
     // 初始化机器人
-    if (ConfigService.getConfigValue('telegram.enable') && ConfigService.getConfigValue('telegram.botToken')) {
-        tgbot = new TelegramBotService(ConfigService.getConfigValue('telegram.botToken'));
-        logTaskEvent(`Telegram机器人已启用`);
-    }
+    await botManager.handleBotStatus(
+        ConfigService.getConfigValue('telegram.bot.botToken'),
+        ConfigService.getConfigValue('telegram.bot.enable')
+    );
     // 初始化缓存管理器
     const folderCache = new CacheManager(parseInt(600));
     // 初始化任务定时器
@@ -450,11 +452,10 @@ AppDataSource.initialize().then(async () => {
         const settings = req.body;
         SchedulerService.handleScheduleTasks(settings,taskService);
         ConfigService.setConfig(settings)
-        // 如果启用了tg推送, 则初始化tg推送
-        if (settings.telegram?.enable && settings.telegram?.botToken && !tgbot) {
-            tgbot = new TelegramBot(settings.telegram.botToken);
-            logTaskEvent(`Telegram机器人已启用`);
-        }
+        await botManager.handleBotStatus(
+            settings.telegram?.bot?.botToken,
+            settings.telegram?.bot?.enable
+        );
         // 修改配置, 重新实例化消息推送
         messageUtil.updateConfig()
         res.json({success: true, data: null})
@@ -511,12 +512,31 @@ AppDataSource.initialize().then(async () => {
             res.status(500).json({ success: false, error: error.message });
         }
     })
+    // 获取常用目录
+    app.get('/api/favorites/:accountId', async (req, res) => {
+        try{
+            const accountId = req.params.accountId;
+            if (!accountId) {
+                throw new Error('账号ID不能为空');
+            }
+            const favorites = await commonFolderRepo.find({
+                where: { accountId: accountId },
+                order: { id: 'ASC' }
+            });
+            res.json({ success: true, data: favorites });
+        }catch (error) {
+            res.status(500).json({ success: false, error: error.message });
+        }
+    })
     // 全局错误处理中间件
     app.use((err, req, res, next) => {
         console.error('捕获到全局异常:', err.message);
         res.status(500).json({ success: false, error: error.message });
     });
     initSSE(app)
+
+    // 初始化cloudsaver
+    setupCloudSaverRoutes(app);
     // 启动服务器
     const port = 3000;
     app.listen(port, () => {
