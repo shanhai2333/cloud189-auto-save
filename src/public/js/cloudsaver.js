@@ -29,17 +29,15 @@ async function searchResources() {
         message.warning('请输入搜索关键字');
         return;
     }
-
     try {
         loading.show();
         const response = await fetch(`/api/cloudsaver/search?keyword=${keyword}`);
-
         const data = await response.json();
         if (data.success) {
             searchResults = data.data;
             renderResults();
         } else {
-            message.info('未找到相关资源');
+            message.error(data.error); 
         }
     } catch (error) {
         console.error('搜索失败:', error);
@@ -78,9 +76,9 @@ function handleSelectedResource(action) {
 
     const resource = searchResults[selectedIndex];
     if (action === 'open') {
-        window.open(resource.cloudLinks, '_blank');
+        window.open(resource.cloudLinks[0].link, '_blank');
     } else if (action === 'create') {
-        document.getElementById('shareLink').value = resource.cloudLinks;
+        document.getElementById('shareLink').value = resource.cloudLinks[0].link;
         // 触发 blur 事件
         document.getElementById('shareLink').dispatchEvent(new Event('blur'));
         closeCloudsaver();

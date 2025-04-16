@@ -35,7 +35,7 @@ class StrmService {
             if (process.getuid && process.getuid() === 0) {
                 await fs.chown(this.baseDir, parseInt(this.puid), parseInt(this.pgid));
             }
-            await fs.chmod(this.baseDir, 0o775);
+            await fs.chmod(this.baseDir, 0o777);
 
             // mediaSuffixs转为小写
             const mediaSuffixs = ConfigService.getConfigValue('task.mediaSuffix').split(';').map(suffix => suffix.toLowerCase())
@@ -63,7 +63,7 @@ class StrmService {
                     if (process.getuid && process.getuid() === 0) {
                         await fs.chown(targetDir, parseInt(this.puid), parseInt(this.pgid));
                     }
-                    await fs.chmod(targetDir, 0o775);
+                    await fs.chmod(targetDir, 0o777);
                     const strmPath = path.join(targetDir, `${fileNameWithoutExt}.strm`);
 
                     // 检查文件是否存在
@@ -85,7 +85,7 @@ class StrmService {
                     if (process.getuid && process.getuid() === 0) {
                         await fs.chown(strmPath, parseInt(this.puid), parseInt(this.pgid));
                     }
-                    await fs.chmod(strmPath, 0o664);
+                    await fs.chmod(strmPath, 0o777);
                     results.push({
                         originalFile: fileName,
                         strmFile: `${fileNameWithoutExt}.strm`,

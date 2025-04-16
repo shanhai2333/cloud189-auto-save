@@ -1,9 +1,8 @@
 import { Application } from 'express';
 import CloudSaverSDK from './sdk';
 const { logTaskEvent } = require('../../utils/logUtils');
-
+const sdk = new CloudSaverSDK();
 export function setupCloudSaverRoutes(app: Application) {
-    const sdk = new CloudSaverSDK();
     // 搜索接口
     app.get('/api/cloudsaver/search', async (req, res) => {
         try {
@@ -23,10 +22,14 @@ export function setupCloudSaverRoutes(app: Application) {
             });
         } catch (error) {
             logTaskEvent('CloudSaver 搜索失败:' +  error);
-            res.status(500).json({
+            res.json({
                 success: false,
                 error: '搜索失败:' + error
             });
         }
     });
+}
+
+export function clearCloudSaverToken() {
+    sdk.setToken('');
 }

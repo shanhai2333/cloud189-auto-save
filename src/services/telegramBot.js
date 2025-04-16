@@ -874,7 +874,7 @@ class TelegramBotService {
                 `📝 共找到 ${result.length} 个结果\n\n` +
                 result.map((item, index) => 
                     `🎬 ${item.title}\n` +
-                    `🔗 <code>${item.cloudLinks}</code>\n` +
+                    `🔗 <code>${item.cloudLinks[0].link}</code>\n` +
                     `📥 点击链接即可复制` 
                 ).join('\n\n');
             await this.bot.editMessageText(`搜索结果：\n\n${results}`, {

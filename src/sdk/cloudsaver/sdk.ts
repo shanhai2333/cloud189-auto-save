@@ -12,11 +12,14 @@ interface LoginResponse {
     };
 }
 
+interface CloudLink {
+    cloudType: number;
+    link: string;
+}
 interface CloudResource {
     messageId: string;
-    cloudType: string;
     title: string;
-    cloudLinks: string;
+    cloudLinks: CloudLink[];
 }
 
 interface SearchResponse {
@@ -161,26 +164,48 @@ class CloudSaverSDK {
 
             const data = body as SearchResponse;
             if (data.success && data.code === 0) {
-                const resources =  data.data
+                const resources = data.data
                 .flatMap(item => item.list)
                 .filter(item => 
-                    item.cloudType === 'tianyi' && 
                     item.cloudLinks?.length > 0 && 
-                    item.cloudLinks[0].includes('cloud.189.cn')
-                ).map(item => ({
-                    messageId: item.messageId,
-                    cloudType: item.cloudType,
-                    title: item.title,
-                    cloudLinks: item.cloudLinks[0]
-                }));
-                // 使用 Map 去重，以 cloudLinks 为 key
-                const uniqueMap = new Map<string, CloudResource>();
+                    item.cloudLinks.some(link => 
+                        link.link.includes('cloud.189.cn')
+                    )
+                );
+
+                // 先按资源去重
+                const uniqueResources = new Map<string, CloudResource>();
                 resources.forEach(resource => {
-                    if (!uniqueMap.has(resource.cloudLinks)) {
-                        uniqueMap.set(resource.cloudLinks, resource);
+                    if (!uniqueResources.has(resource.messageId)) {
+                        uniqueResources.set(resource.messageId, resource);
                     }
                 });
-                return Array.from(uniqueMap.values());
+
+                // 将每个资源的多个链接拆分为独立资源
+                const result: CloudResource[] = [];
+                uniqueResources.forEach(resource => {
+                    const cloudLinks = resource.cloudLinks.filter(link => 
+                        link.link.includes('cloud.189.cn')
+                    );
+                    cloudLinks.forEach(cloudLink => {
+                        result.push({
+                            messageId: resource.messageId,
+                            title: resource.title,
+                            cloudLinks: [cloudLink]
+                        });
+                    });
+                });
+
+                // 最后按链接去重
+                const uniqueLinks = new Map<string, CloudResource>();
+                result.forEach(resource => {
+                    const link = resource.cloudLinks[0].link;
+                    if (!uniqueLinks.has(link)) {
+                        uniqueLinks.set(link, resource);
+                    }
+                });
+
+                return Array.from(uniqueLinks.values());
             }
             return [];
         } catch (error) {

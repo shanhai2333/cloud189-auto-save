@@ -15,7 +15,7 @@ const { logTaskEvent, initSSE } = require('./utils/logUtils');
 const TelegramBotManager = require('./utils/TelegramBotManager');
 const fs = require('fs').promises;
 const path = require('path');
-const { setupCloudSaverRoutes } = require('./sdk/cloudsaver');
+const { setupCloudSaverRoutes, clearCloudSaverToken } = require('./sdk/cloudsaver');
 
 const app = express();
 app.use(express.json());
@@ -98,7 +98,7 @@ AppDataSource.initialize().then(async () => {
         if (process.getuid && process.getuid() === 0) {
             await fs.chown(strmBaseDir, parseInt(process.env.PUID || 0), parseInt(process.env.PGID || 0));
         }
-        await fs.chmod(strmBaseDir, 0o775);
+        await fs.chmod(strmBaseDir, 0o777);
         console.log('STRM目录权限初始化完成');
     } catch (error) {
         console.error('STRM目录权限初始化失败:', error);
@@ -464,6 +464,13 @@ AppDataSource.initialize().then(async () => {
     // 保存媒体配置
     app.post('/api/settings/media', async (req, res) => {
         const settings = req.body;
+        // 如果cloudSaver的配置变更 就清空cstoken.json
+        if (settings.cloudSaver?.baseUrl != ConfigService.getConfigValue('cloudSaver.baseUrl')
+        || settings.cloudSaver?.username != ConfigService.getConfigValue('cloudSaver.username')
+        || settings.cloudSaver?.password != ConfigService.getConfigValue('cloudSaver.password')
+    ) {
+            clearCloudSaverToken();
+        }
         ConfigService.setConfig(settings)
         res.json({success: true, data: null})
     })
