@@ -142,18 +142,20 @@ class CloudSaverSDK {
             }
         }
         try {
+            logTaskEvent(`CloudSaverSDK 开始搜索${keyword}`)
             const { body, statusCode } = await got.get(`${this.baseUrl}/api/search`, {
                 searchParams: { keyword },
                 headers: {
                     'Authorization': `Bearer ${this.token}`
                 },
                 responseType: 'json',
-                timeout: 30000 // 30秒超时
+                timeout: 30000, // 30秒超时
+                throwHttpErrors: false // 不自动抛出HTTP错误
             });
 
             // 处理 401 未授权的情况
             if (statusCode === 401) {
-                console.log('token 已过期，尝试自动登录...');
+                logTaskEvent('token 已过期，尝试自动登录...');
                 const loginSuccess = await this.autoLogin();
                 if (!loginSuccess) {
                     throw new Error('token 已过期，自动登录失败');
@@ -204,8 +206,9 @@ class CloudSaverSDK {
                         uniqueLinks.set(link, resource);
                     }
                 });
-
-                return Array.from(uniqueLinks.values());
+                const res = Array.from(uniqueLinks.values())
+                logTaskEvent(`CloudSaverSDK 清洗后的结果${JSON.stringify(res)}`)
+                return res;
             }
             return [];
         } catch (error) {

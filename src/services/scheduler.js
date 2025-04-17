@@ -58,7 +58,14 @@ class SchedulerService {
             const job = cron.schedule(task.cronExpression, async () => {
                 logTaskEvent(`================================`);
                 logTaskEvent(`任务[${taskName}]自定义定时检查...`);
-                const result = await taskService.processTask(task);
+                // 重新获取最新的任务信息
+                const latestTask = await taskService.getTaskById(task.id);
+                if (!latestTask) {
+                    logTaskEvent(`任务[${taskName}]已被删除，跳过执行`);
+                    this.removeTaskJob(task.id);
+                    return;
+                }
+                const result = await taskService.processTask(latestTask);
                 if (result) {
                     this.messageUtil.sendMessage(result)
                 }

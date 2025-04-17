@@ -62,6 +62,9 @@ class ConfigService {
         baseUrl: '',
         username: '',
         password: ''
+      },
+      tmdb: {
+        apiKey: ''
       }
     };
     this._init();

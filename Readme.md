@@ -1,17 +1,71 @@
-# cloud189-auto-save
+<div align="center">
+    <img src="img/cloud189.png" alt="Logo" width="200">
+    <h1>cloud189-auto-save</h1>
+    <p>天翼云盘自动转存系统，支持自动监控更新并转存文件, 支持STRM生成, Emby入库通知, 支持机器人操作。</p>
+    <p align="center">
+        <a href="https://github.com/1307super/cloud189-auto-save/releases/latest">
+            <img src="https://img.shields.io/github/v/release/1307super/cloud189-auto-save?style=flat-square" alt="GitHub release">
+        </a>
+         <a href="https://github.com/1307super/cloud189-auto-save/stargazers">
+            <img src="https://img.shields.io/github/stars/1307super/cloud189-auto-save?style=flat-square" alt="GitHub Stars">
+        </a>
+        <a href="https://github.com/1307super/cloud189-auto-save/wiki">
+            <img src="https://img.shields.io/badge/Wiki-文档-blue?style=flat-square" alt="Wiki">
+        </a>
+        <a href="https://hub.docker.com/r/xia1307/cloud189-auto-save">
+            <img src="https://img.shields.io/docker/pulls/xia1307/cloud189-auto-save?style=flat-square" alt="Docker Pulls">
+        </a>
+    </p>
+</div>
 
-天翼云盘自动转存系统，支持自动监控更新并转存文件, 支持STRM生成, Emby入库通知。
 
-## 功能特点
+## ⚠️ 安全警告
 
-- 支持多账号管理
+本项目涉及天翼云盘账号密码、Cookie 等敏感隐私信息，为了确保您的数据安全：
+
+- 请务必私有化部署，不建议将服务暴露在公网
+- 不要使用他人搭建的本项目实例，即使是收费的也不要使用
+- 所有数据应该掌握在自己手中，不要将账号信息提供给任何第三方
+- 建议使用反向代理并配置 HTTPS 加密访问
+
+您的账号安全比使用便利更重要！
+
+## 💬 社区交流
+
+- [Telegram 群组](https://t.me/cloud189_auto_save) - 加入官方群组获取帮助和分享经验
+- 遇到问题请先查看 [Wiki 文档](https://github.com/1307super/cloud189-auto-save/wiki)
+
+
+## ✨ 功能特点
+
+### 🔄 自动化功能
+- 支持定时自动检查任务更新
+- 支持自定义任务的定时规则
+- 支持自动重试失败任务
+- 支持自动清理天翼云盘回收站
 - 自动监控分享链接更新, 自动重命名
-- 支持企业微信、Telegram, Bark, Wxpusher 消息推送
-- Web 界面管理，响应式布局, 操作便捷
-- Docker 部署，方便维护
+
+### 📂 文件管理
+- 支持指定转存目录
+- 支持保存常用目录
+
+### 🎬 媒体服务
 - 支持 STRM 文件生成
-- 支持 Emby 媒体库自动刷新
-- 支持自动清理回收站
+- 支持 Emby 媒体库更新通知
+- 支持CloudSaver资源搜索
+
+### 🤖 机器人集成
+- 支持 Telegram 机器人操作
+- 支持任务状态推送通知
+- 支持远程添加/删除任务
+
+### 💡 其他特性
+- 支持暗黑模式
+- 支持多用户管理
+- 支持 Docker 一键部署
+- 支持 WebUI 可视化管理
+- 支持资源搜索功能
+- 支持企业微信、Telegram, Bark, Wxpusher 消息推送
 
 ## 快速开始
 
@@ -161,13 +215,27 @@ docker run -d \
      - 搜索结果支持点击复制链接
      - 点击保存命令可直接创建任务
      - 使用 `/cancel` 或 3分钟未操作会自动退出搜索模式
-注意事项：
-- 确保选择了正确的账号再进行操作
-- 常用目录建议选择固定的存储位置
-- 带访问码的链接请严格按照格式发送
-- 任务创建后会自动执行，也可手动触发
-- 搜索模式下仅响应搜索关键字，其他命令请先退出
-   
+     
+
+### 6. CloudSaver 资源搜索
+- 功能说明：
+  - 支持搜索资源并一键创建转存任务
+  - 本项目过滤了非天翼云盘资源并根据分享链接去重
+  - 支持 Telegram 机器人搜索命令
+  
+- 部署步骤：
+  1. 自行部署 [CloudSaver](https://github.com/jiangrui1994/CloudSaver) 服务
+  2. 在系统设置中配置 CloudSaver：
+     - 服务地址：填写部署的 CloudSaver 地址
+     - 账号：CloudSaver 的登录账号
+     - 密码：CloudSaver 的登录密码
+  3. 保存配置后即可使用搜索功能
+
+- 使用方法：
+  1. Web 界面：在任务页面点击搜索按钮
+  2. TG 机器人：使用 `/search_cs` 命令
+  3. 选择合适的资源后可一键创建转存任务
+      
 ## 注意事项
 - 更新目录可以任意移动但不能被删除, 否则任务无法执行
 - 数据库文件会持久化保存在宿主机的 data 目录
@@ -178,13 +246,78 @@ docker run -d \
 - Emby 通知需要配置正确的服务器地址和 API Key
 - 如需使用TG机器人创建任务, 如果是老版本系统, 请取消常用目录所有后重新添加
 
-## 截图
-<img width="1505" alt="image" src="https://github.com/user-attachments/assets/359fb6e2-0d38-4a4c-a398-1b820ce47c8c" />
-<img width="1391" alt="image" src="https://github.com/user-attachments/assets/03826fc6-ac19-442e-a325-ce22250fdb5e" />
-<img width="1327" alt="image" src="https://github.com/user-attachments/assets/8a05ff40-4f70-42a9-9a70-74d9e04f3f64" />
-<img width="1354" alt="image" src="https://github.com/user-attachments/assets/c6ddfede-17b2-43eb-838d-de4b1cf93b04" />
-<img width="1297" alt="image" src="https://github.com/user-attachments/assets/13380003-2295-4dfb-9d6c-d9229399f8b6" />
+## 📸 界面预览
 
+<details>
+<summary>点击展开截图预览</summary>
+
+### Web 界面
+<div style="display: flex; flex-wrap: wrap; gap: 20px; justify-content: flex-start;">
+    <div style="flex: 0 0 calc(50% - 10px);">
+        <h4>任务管理</h4>
+        <img src="img/task-1.png" alt="任务管理" style="max-width: 100%; height: auto;">
+    </div>
+    <div style="flex: 0 0 calc(50% - 10px);">
+        <h4>资源搜索</h4>
+        <img src="img/cloudsaver.png" alt="资源搜索" style="max-width: 100%; height: auto;">
+    </div>
+    <div style="flex: 0 0 calc(50% - 10px);">
+        <h4>媒体库</h4>
+        <img src="img/media.png" alt="媒体库" style="max-width: 100%; height: auto;">
+    </div>
+    <div style="flex: 0 0 calc(50% - 10px);">
+        <h4>系统日志</h4>
+        <img src="img/logs.png" alt="系统日志" style="max-width: 100%; height: auto;">
+    </div>
+</div>
+
+
+### Telegram 机器人界面
+<div style="display: flex; flex-wrap: wrap; gap: 20px; justify-content: flex-start;">
+    <div style="flex: 0 0 calc(50% - 10px);">
+        <h4>帮助信息</h4>
+        <img src="img/bot/1.jpg" alt="帮助命令" style="max-width: 100%; height: auto;">
+        <p>通过 `/help` 命令查看所有可用的命令列表。</p>
+    </div>
+    <div style="flex: 0 0 calc(50% - 10px);">
+        <h4>资源搜索</h4>
+        <img src="img/bot/2.jpg" alt="资源搜索" style="max-width: 100%; height: auto;">
+        <p>使用 `/search_cs` 命令搜索资源。</p>
+    </div>
+    <div style="flex: 0 0 calc(50% - 10px);">
+        <h4>创建任务</h4>
+        <img src="img/bot/3.jpg" alt="创建任务" style="max-width: 100%; height: auto;">
+        <p>直接发送分享链接或者编号即可创建转存任务。</p>
+    </div>
+    <div style="flex: 0 0 calc(50% - 10px);">
+        <h4>任务列表</h4>
+        <img src="img/bot/5.jpg" alt="任务列表" style="max-width: 100%; height: auto;">
+        <p>使用 `/tasks` 命令查看当前任务列表。</p>
+    </div>
+</div>
+
+
+
+
+</details>
+
+## ❤️ 支持项目
+
+如果觉得这个项目对你有帮助，你可以通过以下方式支持我：
+
+1. ⭐ 给项目点个 Star，让更多的人看到
+2. 📢 分享给更多有需要的朋友
+3. ☕ 请作者喝杯冰阔乐，赞赏后请务必联系我哦~
+
+<div align="center">
+<img src="img/wechat.JPG" alt="微信" height="300">
+    <img src="img/ali.png" alt="支付宝" height="300" style="margin-right: 20px">
+</div>
+
+## ⚠️ 特别声明
+
+1. 本项目仅供学习交流使用，请勿用于任何非法用途
+2. 本项目仅提供天翼云盘资源转存功能，所有接口均为天翼云盘官方接口，本项目不对任何资源内容负责
 
 ## License
 

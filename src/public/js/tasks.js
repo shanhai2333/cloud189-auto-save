@@ -1,3 +1,10 @@
+// 添加全局筛选参数
+let taskFilterParams = {
+    status: 'processing',
+    search: ''
+};
+
+
 // 任务相关功能
 function createProgressRing(current, total) {
     if (!total) return '';
@@ -41,8 +48,10 @@ function getTaskById(id) {
 }
 async function fetchTasks() {
     taskList = []
-    const response = await fetch(`/api/tasks`);
+    loading.show()
+    const response = await fetch(`/api/tasks?status=${taskFilterParams.status}&search=${encodeURIComponent(taskFilterParams.search)}`);
     const data = await response.json();
+    loading.hide()
     if (data.success) {
         const tbody = document.querySelector('#taskTable tbody');
         tbody.innerHTML = '';
@@ -69,7 +78,6 @@ async function fetchTasks() {
                 </tr>
             `;
         });
-        filterTasks()
     }
 }
 
@@ -257,8 +265,15 @@ function initTaskForm() {
                 const ids = data.data.map(item => item.id);
                 Promise.all(ids.map(id => executeTask(id, false)));
                 message.success('任务创建完成, 正在执行中, 请稍后查看结果');
-                fetchTasks();
+                setTimeout(() => {
+                    fetchTasks(); 
+                }, 2500);
                 closeCreateTaskModal();
+                // 触发任务页签的切换 .tab且data-tab='tasks'
+                const tasksTab = document.querySelector('.tab[data-tab="tasks"]');
+                if (tasksTab) {
+                    tasksTab.click();
+                }
             } else {
                 if (data.error == 'folder already exists') {
                     if (confirm('该目录已经存在, 确定要覆盖吗?')) {
@@ -617,17 +632,9 @@ function initFormToggle() {
 function filterTasks() {
     const taskFilter = document.getElementById('taskFilter');
     const taskSearch = document.getElementById('taskSearch');
-    const status = taskFilter.value;
-    const searchText = taskSearch.value.toLowerCase();
-    const tasks = document.querySelectorAll('#taskTable tbody tr');
-    
-    tasks.forEach(task => {
-        const taskStatus = task.getAttribute('data-status');
-        const taskName = task.getAttribute('data-name').toLowerCase();
-        const statusMatch = status === 'all' || status === taskStatus;
-        const searchMatch = !searchText || taskName.includes(searchText);
-        task.style.display = statusMatch && searchMatch ? '' : 'none';
-    });
+    taskFilterParams.status = taskFilter.value;
+    taskFilterParams.search = taskSearch.value.trim();
+    fetchTasks();
 }
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -646,7 +653,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    const debouncedFilterTasks = debounce(filterTasks, 300);
+    const debouncedFilterTasks = debounce(filterTasks, 500);
     // 任务筛选功能
     const taskFilter = document.getElementById('taskFilter');
     const taskSearch = document.getElementById('taskSearch');
@@ -657,18 +664,42 @@ document.addEventListener('DOMContentLoaded', function() {
     taskSearch.addEventListener('input', function() {
         debouncedFilterTasks();
     });
-    // 批量选择功能
+    // 添加全选功能
+    const selectAllCheckbox = document.getElementById('selectAllTasks');
+    if (selectAllCheckbox) {
+        selectAllCheckbox.addEventListener('change', function() {
+            const rows = document.querySelectorAll('#taskTable tbody tr');
+            rows.forEach(row => {
+                row.classList.toggle('selected', this.checked);
+            });
+            
+            // 更新批量删除按钮显示状态
+            const batchDeleteBtn = document.getElementById('batchDeleteBtn');
+            if (batchDeleteBtn) {
+                batchDeleteBtn.style.display = this.checked ? '' : 'none';
+            }
+        });
+    }
+
+    // 修改任务行选择逻辑
     const taskTable = document.getElementById('taskTable');
-    const batchDeleteBtn = document.getElementById('batchDeleteBtn');
-    
     taskTable.addEventListener('click', function(e) {
         const row = e.target.closest('tr');
         if (!row) return;
         
         row.classList.toggle('selected');
+        
+        // 更新全选框状态
+        const allRows = document.querySelectorAll('#taskTable tbody tr');
+        const selectedRows = document.querySelectorAll('#taskTable tbody tr.selected');
+        if (selectAllCheckbox) {
+            selectAllCheckbox.checked = allRows.length === selectedRows.length;
+            selectAllCheckbox.indeterminate = selectedRows.length > 0 && selectedRows.length < allRows.length;
+        }
+
+        // 更新批量删除按钮显示状态
         if (batchDeleteBtn) {
-            const selectedTasks = document.querySelectorAll('#taskTable tbody tr.selected');
-            batchDeleteBtn.style.display = selectedTasks.length > 0 ? '' : 'none';
+            batchDeleteBtn.style.display = selectedRows.length > 0 ? '' : 'none';
         }
     });
 });

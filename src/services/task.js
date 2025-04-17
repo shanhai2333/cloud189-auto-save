@@ -237,6 +237,10 @@ class TaskService {
             const cloud189 = Cloud189Service.getInstance(account);
             await this.deleteCloudFile(cloud189,await this.getRootFolder(task), 1);
         }
+        // 删除定时任务
+        if (task.enableCron) {
+            SchedulerService.removeTaskJob(task.id)
+        }
         await this.taskRepo.remove(task);
     }
 
@@ -250,6 +254,12 @@ class TaskService {
                 if (!account) throw new Error('账号不存在');
                 const cloud189 = Cloud189Service.getInstance(account);
                 await this.deleteCloudFile(cloud189,await this.getRootFolder(task), 1);
+            }
+        }
+        // 删除定时任务
+        for (const task of tasks) {
+            if (task.enableCron) {
+                SchedulerService.removeTaskJob(task.id)
             }
         }
         await this.taskRepo.remove(tasks);
@@ -488,26 +498,36 @@ class TaskService {
 
     // 自动重命名
     async autoRename(cloud189, task) {
-        if (!task.sourceRegex || !task.targetRegex) return;
+        if (!task.sourceRegex || !task.targetRegex) return [];
         const folderInfo = await cloud189.listFiles(task.realFolderId);
-        if (!folderInfo ||!folderInfo.fileListAO) return;
+        if (!folderInfo ||!folderInfo.fileListAO) return [];
         const files = folderInfo.fileListAO.fileList;
         const message = []
+        const newFiles = [];
         for (const file of files) {
             if (file.isFolder) continue;
             const destFileName = file.name.replace(new RegExp(task.sourceRegex), task.targetRegex);
-            if (destFileName === file.name) continue;
+            if (destFileName === file.name){
+                newFiles.push(file)
+                continue;
+            }
             const renameResult = await cloud189.renameFile(file.id, destFileName);
             if (!renameResult || renameResult.res_code != 0) {
                 logTaskEvent(`${file.name}重命名为${destFileName}失败, 原因:${destFileName}${renameResult?.res_msg}`)
                 message.push(` > <font color="comment">${file.name} → ${destFileName}失败, 原因:${destFileName}${renameResult?.res_msg}</font>`)
+                newFiles.push(file)
             }else{
                 logTaskEvent(`${file.name}重命名为${destFileName}成功`)
                 message.push(` > <font color="info">${file.name} → ${destFileName}成功</font>`)
+                newFiles.push({
+                    ...file,
+                    name: destFileName
+                })
             }
             await new Promise(resolve => setTimeout(resolve, 50));
         }
         message.length > 0 && this.messageUtil.sendMessage(`${task.resourceName}自动重命名: \n ${message.join('\n')}`)
+        return newFiles;
     }
 
     // 检查任务状态
@@ -810,7 +830,11 @@ class TaskService {
             throw new Error('任务不存在')
         }
         for (const task of tasks) {
-            await this._createStrmFileByTask(task, overwrite)
+            try {
+                await this._createStrmFileByTask(task, overwrite)   
+            }catch (error) {
+                logTaskEvent(`任务[${task.resourceName}]生成strm失败: ${error.message}`)
+            }
         }
     }
     // 根据任务执行生成strm

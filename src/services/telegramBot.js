@@ -4,9 +4,9 @@ const { Task, Account, CommonFolder } = require('../entities');
 const { TaskService } = require('./task');
 const { EmbyService } = require('./emby');
 const { Cloud189Service } = require('./cloud189');
-const CloudSaverSDK = require('../sdk/cloudsaver/sdk').default;
-
+const { TMDBService } = require('./tmdb');
 const path = require('path');
+const ConfigService = require('./ConfigService');
 
 class TelegramBotService {
     constructor(token) {
@@ -31,18 +31,38 @@ class TelegramBotService {
         // 全局常用目录列表消息id
         this.globalCommonFolderListMessageId = null;
 
-        this.cloudSaverSdk = new CloudSaverSDK();
+        this.cloudSaverSdk = null;
         this.isSearchMode = false;
         this.searchModeTimeout = null;  // 搜索模式超时计时器
+
+        this.cloudSaverSearchMap = new Map();
+
+        this.tmdbService = new TMDBService();
     }
 
+    _getProxy() {
+        let proxy = null;
+        const proxyConfig = ConfigService.getConfigValue('proxy');
+        const { type = 'http', host, port, username, password } = proxyConfig;
+        if (host && port) {
+            let proxyUrl = `${type}://${host}:${port}`;
+            if (username && password) {
+                proxyUrl = `${type}://${encodeURIComponent(username)}:${encodeURIComponent(password)}@${host}:${port}`;
+            }
+            proxy = proxyUrl;
+        }
+        return proxy;
+    }
     async start() {
         if (this.bot) {
             return;
         }
+        // 从配置文件获取代理
+        const proxy = this._getProxy();
         this.bot = new TelegramBot(this.token, { 
             polling: true, 
             request: {
+                proxy: proxy,
                 agentOptions: {
                     keepAlive: true,
                     family: 4
@@ -53,12 +73,12 @@ class TelegramBotService {
         // 设置命令菜单
         await this.bot.setMyCommands([
             { command: 'help', description: '帮助信息' },
+            { command: 'search_cs', description: '搜索CloudSaver资源' },
             { command: 'accounts', description: '账号列表' },
             { command: 'tasks', description: '任务列表' },
             { command: 'execute_all', description: '执行所有任务' },
             { command: 'fl', description: '常用目录列表' },
             { command: 'fs', description: '添加常用目录' },
-            { command: 'search_cs', description: '搜索CloudSaver资源' },
             { command: 'cancel', description: '取消当前操作' }
         ]);
         // 从数据库中加载默认的账号
@@ -118,8 +138,8 @@ class TelegramBotService {
                 '/execute_all - 执行所有任务\n' +
                 '/strm_[ID] - 生成STRM文件\n' +
                 '/emby_[ID] - 通知Emby刷新\n' +
-                '/deletetask_[ID] - 删除指定任务\n\n' +
-                '/delfolder_[ID] - 删除指定常用目录\n\n' +
+                '/dt_[ID] - 删除指定任务\n' +
+                '/df_[ID] - 删除指定常用目录\n\n' +
                 '🔍 资源搜索：\n' +
                 '1. 输入 /search_cs 进入搜索模式\n' +
                 '2. 直接输入关键字搜索资源\n' +
@@ -136,12 +156,35 @@ class TelegramBotService {
             if (msg.text?.startsWith('/')) return;
             // 搜索模式下处理消息
             if (this.isSearchMode) {
+                const input = msg.text?.trim();
+                // 判断是否为纯数字
+                if (/^\d+$/.test(input)) {
+                    const index = parseInt(input);
+                    const cacheShareLink = this.cloudSaverSearchMap.get(index);
+                    if (!cacheShareLink) {
+                        this.bot.sendMessage(chatId, '无效的编号');
+                        return;
+                    }
+                    try {
+                        const { shareLink, accessCode } = this._parseShareLink(cacheShareLink);
+                        // 处理分享链接
+                        await this.handleFolderSelection(chatId, shareLink, null, accessCode);
+                        return
+                    }catch(e){
+                        this.bot.sendMessage(chatId, `处理失败: ${error.message}`);
+                        return;
+                    }
+                }
                 this.cloudSaverSearch(chatId, msg)
             }
         });
 
         this.bot.onText(/cloud\.189\.cn/, async (msg) => {
             const chatId = msg.chat.id;
+            // 如果处于搜索模式，则不处理
+            if (this.isSearchMode) {
+                return;
+            }
             try {
                 if (!this._checkUserId(chatId)) return;
                 const { shareLink, accessCode } = this._parseShareLink(msg.text);
@@ -378,6 +421,76 @@ class TelegramBotService {
                 this.bot.sendMessage(chatId, `处理失败: ${error.message}`);
             }
         });
+
+
+
+        // 添加TMDB搜索命令
+        this.bot.onText(/\/tmdb (.+)/, async (msg, match) => {
+            const chatId = msg.chat.id;
+            const input = match[1];
+            let title, year;
+
+            // 解析输入的标题和年份
+            const yearMatch = input.match(/^(.+?)(?:\s+(\d{4}))?$/);
+            if (yearMatch) {
+                title = yearMatch[1].trim();
+                year = yearMatch[2];
+            }
+
+            const message = await this.bot.sendMessage(chatId, '正在搜索...');
+            try {
+                const results = await this.tmdbService.search(title, year);
+                let responseText = '';
+                console.log('搜索结束')
+                // 先发送海报图片
+                const firstPoster = results.movies[0]?.posterPath || results.tvShows[0]?.posterPath;
+
+                if (results.movies.length > 0) {
+                    responseText += '📽 电影：\n\n';
+                    results.movies.forEach(movie => {
+                        const shortOverview = movie.overview ? 
+                            (movie.overview.length > 20 ? movie.overview.substring(0, 20) + '...' : movie.overview) : 
+                            '暂无';
+                        
+                        responseText += `标题：${movie.title}\n` +
+                            `原标题：${movie.originalTitle}\n` +
+                            `上映日期：${movie.releaseDate}\n` +
+                            `评分：${movie.voteAverage}\n` +
+                            `简介：${shortOverview}\n\n`;
+                    });
+                }
+
+                if (results.tvShows.length > 0) {
+                    responseText += '📺 剧集：\n\n';
+                    results.tvShows.forEach(show => {
+                        const shortOverview = show.overview ? 
+                            (show.overview.length > 20 ? show.overview.substring(0, 20) + '...' : show.overview) : 
+                            '暂无';
+
+                        responseText += `标题：${show.title}\n` +
+                            `原标题：${show.originalTitle}\n` +
+                            `首播日期：${show.releaseDate}\n` +
+                            `评分：${show.voteAverage}\n` +
+                            `简介：${shortOverview}\n\n`;
+                    });
+                }
+
+                if (!results.movies.length && !results.tvShows.length) {
+                    responseText = '未找到相关影视信息';
+                }
+                console.log('获取到的海报', firstPoster)
+                this.bot.deleteMessage(chatId, message.message_id);
+                this.bot.sendPhoto(chatId, firstPoster, {
+                    caption: responseText,
+                    parse_mode: 'HTML'
+                });
+            } catch (error) {
+                await this.bot.editMessageText(`搜索失败: ${error.message}`, {
+                    chat_id: chatId,
+                    message_id: message.message_id
+                });
+            }
+        });
     }
 
     async showAccounts(chatId, messageId = null) {
@@ -421,7 +534,7 @@ class TelegramBotService {
             `📁 执行: /execute_${task.id}\n` +
             `📁 STRM：/strm_${task.id}\n` +
             `🎬 Emby：/emby_${task.id}\n` +
-            `❌ 删除: /deletetask_${task.id}`
+            `❌ 删除: /dt_${task.id}`
         ).join('\n\n');
 
         const keyboard = [];
@@ -474,9 +587,9 @@ class TelegramBotService {
 
     formatStatus(status) {
         const statusMap = {
-            'pending': '⏳ 待处理',
-            'processing': '🔄 处理中',
-            'completed': '✅ 已完成',
+            'pending': '⏳ 等待执行',
+            'processing': '🔄 追剧中',
+            'completed': '✅ 已完结',
             'failed': '❌ 失败'
         };
         return statusMap[status] || status;
@@ -532,6 +645,16 @@ class TelegramBotService {
         // 缓存当前分享信息
         this.currentShareLink = shareLink;
         this.currentAccessCode = accessCode;
+        let taskName = ""
+        // 解析链接
+        try{
+            const shareFolders = await this.taskService.parseShareFolderByShareLink(shareLink, this.currentAccountId, accessCode);
+            taskName = shareFolders[0];
+        }catch(e){
+            await this.bot.sendMessage(chatId, `解析分享链接失败: ${e.message}`);
+            return;
+        }
+    
         const keyboard = folders.map(folder => [{
             text: folder.path.length > 30 ? 
                   '.../' + folder.path.split('/').slice(-2).join('/') : 
@@ -542,7 +665,7 @@ class TelegramBotService {
             })
         }]);
 
-        const message = `当前账号: ${this._getDesensitizedUserName()} \n请选择保存目录:`;
+        const message = `当前账号: ${this._getDesensitizedUserName()} \n资源名称: ${taskName}\n请选择保存目录:`;
         if (messageId) {
             await this.bot.editMessageText(message, {
                 chat_id: chatId,
@@ -870,12 +993,14 @@ class TelegramBotService {
                 });
                 return
             }
+            // 保存结果到this.cloudSaverSearchMap
+            result.forEach((item, index) => {
+                this.cloudSaverSearchMap.set(index + 1, item.cloudLinks[0].link);
+            });
             const results = `💡 以下资源来自 CloudSaver\n` +
-                `📝 共找到 ${result.length} 个结果\n\n` +
+                `📝 共找到 ${result.length} 个结果,输入编号可转存\n` +
                 result.map((item, index) => 
-                    `🎬 ${item.title}\n` +
-                    `🔗 <code>${item.cloudLinks[0].link}</code>\n` +
-                    `📥 点击链接即可复制` 
+                    `${index + 1}. 🎬 <a href="${item.cloudLinks[0].link}">${item.title}</a>`
                 ).join('\n\n');
             await this.bot.editMessageText(`搜索结果：\n\n${results}`, {
                 chat_id: chatId,
@@ -922,6 +1047,7 @@ class TelegramBotService {
         this.searchModeTimeout = setTimeout(async () => {
             if (this.isSearchMode) {
                 this.isSearchMode = false;
+                this.cloudSaverSearchMap = new Map();
                 await this.bot.sendMessage(chatId, '长时间未搜索，已自动退出搜索模式');
             }
         }, 3 * 60 * 1000);  // 3分钟

@@ -15,7 +15,8 @@ const { logTaskEvent, initSSE } = require('./utils/logUtils');
 const TelegramBotManager = require('./utils/TelegramBotManager');
 const fs = require('fs').promises;
 const path = require('path');
-const { setupCloudSaverRoutes, clearCloudSaverToken } = require('./sdk/cloudsaver');
+const {default:cloudSaverSdk, setupCloudSaverRoutes, clearCloudSaverToken } = require('./sdk/cloudsaver');
+const { Like } = require('typeorm');
 
 const app = express();
 app.use(express.json());
@@ -116,6 +117,9 @@ AppDataSource.initialize().then(async () => {
         ConfigService.getConfigValue('telegram.bot.botToken'),
         ConfigService.getConfigValue('telegram.bot.enable')
     );
+    // 给机器人注入cloudSaverSdk
+    botManager.getBot().cloudSaverSdk = cloudSaverSdk;
+
     // 初始化缓存管理器
     const folderCache = new CacheManager(parseInt(600));
     // 初始化任务定时器
@@ -217,6 +221,20 @@ AppDataSource.initialize().then(async () => {
     
     // 任务相关API
     app.get('/api/tasks', async (req, res) => {
+        const { status, search } = req.query;
+        let whereClause = {};
+        // 添加状态过滤
+        if (status && status !== 'all') {
+            whereClause.status = status;
+        }
+
+        // 添加搜索过滤
+        if (search) {
+            whereClause = [
+                { realFolderName: Like(`%${search}%`) },
+                { remark: Like(`%${search}%`) }
+            ];
+        }
         const tasks = await taskRepo.find({
             order: { id: 'DESC' },
             relations: {
@@ -226,7 +244,8 @@ AppDataSource.initialize().then(async () => {
                 account: {
                     username: true
                 }
-            }
+            },
+            where: whereClause
         });
         // username脱敏
         tasks.forEach(task => {

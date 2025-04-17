@@ -13,8 +13,10 @@ class TaskEventHandler {
         try {
             const task = taskCompleteEventDto.task;
             // 执行重命名操作
-            await taskCompleteEventDto.taskService.autoRename(taskCompleteEventDto.cloud189, task);
-            
+            const newFiles = await taskCompleteEventDto.taskService.autoRename(taskCompleteEventDto.cloud189, task);
+            if (newFiles.length > 0) {
+                taskCompleteEventDto.fileList = newFiles;
+            }
             if (ConfigService.getConfigValue('strm.enable')) {
                 const strmService = new StrmService();
                 const message = await strmService.generate(task, taskCompleteEventDto.fileList, taskCompleteEventDto.overwriteStrm);

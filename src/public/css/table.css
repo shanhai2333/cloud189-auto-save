@@ -38,3 +38,31 @@ th {
 a:visited {
     color: #1890ff; 
 }
+
+.delete-cloud-options {
+    display: flex;
+    align-items: center;
+    margin-left: 16px;
+    min-width: 200px;
+}
+
+.checkbox-group {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.checkbox-label, .delete-cloud-option {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    min-width: fit-content;
+}
+
+.checkbox-label input[type="checkbox"],
+.delete-cloud-option input[type="checkbox"] {
+    margin: 0;
+}

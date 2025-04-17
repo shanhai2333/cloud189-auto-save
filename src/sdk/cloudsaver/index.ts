@@ -33,3 +33,5 @@ export function setupCloudSaverRoutes(app: Application) {
 export function clearCloudSaverToken() {
     sdk.setToken('');
 }
+// 暴露出sdk
+export default sdk;

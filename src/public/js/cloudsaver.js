@@ -49,14 +49,22 @@ async function searchResources() {
 
 function renderResults() {
     const resultsDiv = document.querySelector('.cloudsaver-results-list');
-    resultsDiv.innerHTML = `
-        <div style="padding: 8px; color: #999; font-size: 12px;">以下资源来自 CloudSaver</div>
-        ${searchResults.map((item, index) => `
-            <div class="cloudsaver-result-item" onclick="selectItem(${index})" data-index="${index}">
-                ${item.title}
-            </div>
-        `).join('')}
-    `;
+    document.querySelector('.cloudsaver-action-buttons').style.display = 'none';
+    if (searchResults.length === 0) {
+        resultsDiv.innerHTML = `
+            <div style="padding: 8px; color: #999; font-size: 12px;">未搜索到任何资源</div>
+        `;
+    } else {
+        document.querySelector('.cloudsaver-action-buttons').style.display = 'flex';
+        resultsDiv.innerHTML = `
+            <div style="padding: 8px; color: #999; font-size: 12px;">以下资源来自 CloudSaver</div>
+            ${searchResults.map((item, index) => `
+                <div class="cloudsaver-result-item" onclick="selectItem(${index})" data-index="${index}">
+                    ${item.title}
+                </div>
+            `).join('')}
+        `;
+    }
     document.getElementById('searchResults').style.display = 'block';
 }
 

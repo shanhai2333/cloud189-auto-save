@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>天翼云盘自动转存系统</title>
+    <link rel="icon" type="image/png" href="/favicon.ico">
     <link rel="stylesheet" href="/css/base.css">
     <link rel="stylesheet" href="/css/folder-tree.css">
     <link rel="stylesheet" href="/css/modal.css">
@@ -115,19 +116,28 @@
                             <div class="search-input">
                                 <select id="taskFilter">
                                     <option value="all">全部任务</option>
-                                    <option value="processing">追剧中</option>
+                                    <option value="processing" selected>追剧中</option>
                                     <option value="completed">已完结</option>
                                     <option value="failed">失败</option>
                                     <option value="pending">等待中</option>
                                 </select>
                                 <input type="text" id="taskSearch" placeholder="搜索资源名称">
+                                <button type="button" onclick="fetchTasks()" class="btn-icon" title="刷新任务列表">
+                                    <img src="/icons/refresh.svg" alt="刷新" class="refresh-icon">
+                                </button>
                             </div>
                         </div>
                     </div>
-                    <label class="delete-cloud-option">
-                        <input type="checkbox" id="deleteCloudOption">
-                        <span>同步删除网盘</span>
-                    </label>
+                    <div class="delete-cloud-options">
+                        <label class="delete-cloud-option">
+                            <input type="checkbox" id="selectAllTasks">
+                            <span>全选</span>
+                        </label>
+                        <label class="delete-cloud-option">
+                            <input type="checkbox" id="deleteCloudOption">
+                            <span>同步删除网盘</span>
+                        </label>
+                    </div>
                 </div>
             </div>
             <div id="createTaskModal" class="modal">
@@ -342,7 +352,7 @@
                 <div class="form-group">
                     <label for="proxySettings">代理设置（仅用于 Telegram）</label>
                     <div class="proxy-settings">
-                        <input type="text" id="proxyHost" placeholder="代理地址">
+                        <input type="text" id="proxyHost" placeholder="代理地址: 127.0.0.1">
                         <input type="number" id="proxyPort" placeholder="代理端口">
                         <input type="text" id="proxyUsername" placeholder="账号 如果有">
                         <input type="text" id="proxyPassword" placeholder="密码 如果有">
@@ -371,8 +381,16 @@
                                 <input type="checkbox" id="enableStrm">
                                 启用 STRM 生成
                             </label>
-                            <small class="form-text">例如: 如果播放地址是<span style="background-color: #f0f0f0;">http://127.0.0.1:5244/d/天翼云盘/剧集/北上(2025)/Season 01/S01E01.mkv</span> 那么你的前缀就应该写 <span style="background-color: #f0f0f0;">http://127.0.0.1:5244/d/天翼云盘</span>
-                            完整逻辑为 账号媒体目录 + 资源保存目录(排除根目录) + 资源文件目录名 + 文件名, 生成strm路径为: 账号本地目录 + 资源保存目录(排除根目录) + 资源文件目录名 + 文件名.strm</small>
+                            <small class="form-text">例如: 
+                                <br/>如果播放地址是<span style="background-color: #f0f0f0;">http://127.0.0.1:5244/d/天翼云盘/剧集/北上(2025)/Season 01/S01E01.mkv</span> 
+                                <br/>那么你的前缀就应该写 <span style="background-color: #f0f0f0;">http://127.0.0.1:5244/d/天翼云盘</span>
+                                <br/>完整逻辑为
+                                <br/>生成strm路径: 
+                                <br/>账号本地目录 + 任务更新目录(排除根目录) + 文件名.strm
+                                <br/>strm内容(即播放地址)
+                                <br/>账号媒体目录 + 任务更新目录(排除根目录) + 文件名
+                            </small>
+                                
                         </div>
                     </div>
                 </div>
@@ -397,7 +415,7 @@
                 <div class="form-group">
                     <label>CloudSaver 设置</label>
                     <div class="proxy-settings" style="border: 1px solid var(--border-color);padding: 12px;">
-                        <input type="text" id="cloudSaverUrl" placeholder="服务地址">
+                        <input type="text" id="cloudSaverUrl" placeholder="服务地址: http://localhost:8008">
                         <input type="text" id="cloudSaverUsername" placeholder="账号">
                         <input type="password" id="cloudSaverPassword" placeholder="密码">
                     </div>

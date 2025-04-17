@@ -173,9 +173,9 @@
 
 .search-input {
     display: flex;
-    gap: 10px;
-    background: var(--input-bg);
+    gap: 8px;
     border-radius: 4px;
+    align-items: center;
 }
 
 .search-input select {
@@ -520,4 +520,29 @@
         padding: 5px;
         word-break: break-word;
     }
+}
+
+.btn-icon {
+    background: none;
+    border: none;
+    padding: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-icon:hover {
+    opacity: 0.8;
+}
+
+.refresh-icon {
+    width: 16px;
+    height: 16px;
+    filter: invert(0.5);
+    transition: transform 0.3s ease;
+}
+
+.btn-icon:hover .refresh-icon {
+    transform: rotate(180deg);
 }
