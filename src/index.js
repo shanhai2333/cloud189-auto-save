@@ -118,8 +118,8 @@ AppDataSource.initialize().then(async () => {
         ConfigService.getConfigValue('telegram.bot.enable')
     );
     // 给机器人注入cloudSaverSdk
-    botManager.getBot().cloudSaverSdk = cloudSaverSdk;
-
+    const tgbot = botManager.getBot();
+if( tgbot){tgbot.cloudSaverSdk = cloudSaverSdk;}
     // 初始化缓存管理器
     const folderCache = new CacheManager(parseInt(600));
     // 初始化任务定时器
