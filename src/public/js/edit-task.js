@@ -44,6 +44,7 @@ function showEditTaskModal(id) {
         const cronInput = document.getElementsByClassName('cronExpression-box')[1];
         cronInput.style.display = this.checked? 'block' : 'none';
     });
+    document.getElementById('editEnableTaskScraper').checked = task?.enableTaskScraper;
     
 }
 
@@ -92,6 +93,7 @@ function initEditTaskForm() {
 
         const enableCron = document.getElementById('editEnableCron').checked;
         const cronExpression = document.getElementById('editCronExpression').value;
+        const enableTaskScraper = document.getElementById('editEnableTaskScraper').checked;
 
         try {
             loading.show()
@@ -112,7 +114,8 @@ function initEditTaskForm() {
                     matchValue,
                     remark,
                     enableCron,
-                    cronExpression
+                    cronExpression,
+                    enableTaskScraper
                 })
             });
             loading.hide()

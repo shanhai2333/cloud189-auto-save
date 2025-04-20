@@ -31,6 +31,32 @@ class WeworkService extends MessageService {
             return false;
         }
     }
+
+    async _sendScrapeMessage(message) {
+        try {
+            const description = message.description 
+                ? `${message.description.split('\n').slice(0, 2).join('\n')}${message.description.split('\n').length > 2 ? '...' : ''}`
+                : '';
+
+            await got.post(this.config.webhook, {
+                json: {
+                    msgtype: 'news',
+                    news: {
+                        articles: [{
+                            title: message.title,
+                            description: `类型：${message.type === 'tv' ? '电视剧' : '电影'} 评分：${message.rating || '暂无'}\n${description}`,
+                            url: message.image || 'https://www.themoviedb.org',
+                            picurl: message.image
+                        }]
+                    }
+                }
+            }).json();
+            return true;
+        } catch (error) {
+            console.error('企业微信图片消息推送异常:', error);
+            return false;
+        }
+    }
 }
 
 module.exports = WeworkService;

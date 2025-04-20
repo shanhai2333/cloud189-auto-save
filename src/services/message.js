@@ -49,6 +49,10 @@ class MessageUtil {
     async sendMessage(message) {
         await messageManager.sendMessage(message);
     }
+    // 发送刮削消息
+    async sendScrapeMessage(message) {
+        await messageManager.sendScrapeMessage(message);
+    }
 }
 
 module.exports = { MessageUtil };

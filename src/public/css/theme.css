@@ -59,18 +59,18 @@
 
 [data-theme="dark"] {
     --primary-rgb: 64, 158, 255;  /* #409eff 的 RGB 值 */
-    --bg-color: #141414;
+    --bg-color: #1a1a1a;
     --text-color: rgba(255, 255, 255, 0.85);
     --border-color: #303030;
     --hover-bg: #1f1f1f;
-    --card-bg: #141414;
+    --card-bg: #1a1a1a;
     --container-bg: #141414;
     --input-bg: #1f1f1f;
     --input-border: #303030;
     --btn-bg: #409eff;
     --btn-text: rgba(255, 255, 255, 0.85);
     --btn-warning-bg: #f56c6c;
-    --shadow-color: #ffffff;  /* 修改阴影颜色 */
+    --shadow-color: rgba(255, 255, 255, 0.05);  /* 修改阴影颜色 */
     --link-color: #409eff;
     --thead-bg: #1d1d1d;
     --theme-color: #409eff;

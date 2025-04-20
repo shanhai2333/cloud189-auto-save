@@ -16,6 +16,8 @@ class ConfigService {
         enableAutoClearFamilyRecycle: false,
         mediaSuffix: '.mkv;.iso;.ts;.mp4;.avi;.rmvb;.wmv;.m2ts;.mpg;.flv;.rm;.mov', // 媒体文件后缀
         enableOnlySaveMedia: false, // 只保存媒体文件
+        // 文件夹不存在时重新创建
+        enableAutoCreateFolder: false,
       },
       wecom: {
         enable: false,
@@ -64,6 +66,7 @@ class ConfigService {
         password: ''
       },
       tmdb: {
+        enableScraper: false,
         apiKey: ''
       }
     };

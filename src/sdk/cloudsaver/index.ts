@@ -1,7 +1,6 @@
 import { Application } from 'express';
-import CloudSaverSDK from './sdk';
+import cloudSaverSDK from './sdk';
 const { logTaskEvent } = require('../../utils/logUtils');
-const sdk = new CloudSaverSDK();
 export function setupCloudSaverRoutes(app: Application) {
     // 搜索接口
     app.get('/api/cloudsaver/search', async (req, res) => {
@@ -15,7 +14,7 @@ export function setupCloudSaverRoutes(app: Application) {
                 });
             }
 
-            const results = await sdk.search(keyword);
+            const results = await cloudSaverSDK.search(keyword);
             res.json({
                 success: true,
                 data: results
@@ -31,7 +30,6 @@ export function setupCloudSaverRoutes(app: Application) {
 }
 
 export function clearCloudSaverToken() {
-    sdk.setToken('');
+    logTaskEvent('CloudSaverSDK 配置已更改, 清除token')
+    cloudSaverSDK.setToken('');
 }
-// 暴露出sdk
-export default sdk;

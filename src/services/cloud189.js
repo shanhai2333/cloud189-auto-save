@@ -45,6 +45,13 @@ class Cloud189Service {
                         res_msg: "文件已存在"
                     }
                 }
+                // 如果是FileNotFound
+                if (responseBody.res_code === "FileNotFound") {
+                    return {
+                        res_code: "FileNotFound",
+                        res_msg: "文件不存在"
+                    }
+                }
                 logTaskEvent('请求天翼云盘接口失败:' + error.response.body);
             }else if (error instanceof got.TimeoutError) {
                 logTaskEvent('请求天翼云盘接口失败: 请求超时, 请检查是否能访问天翼云盘');

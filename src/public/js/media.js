@@ -23,6 +23,10 @@ async function saveMediaSettings() {
             baseUrl: document.getElementById('cloudSaverUrl').value,
             username: document.getElementById('cloudSaverUsername').value,
             password: document.getElementById('cloudSaverPassword').value,
+        },
+        tmdb: {
+            enableScraper: document.getElementById('enableScraper').checked,
+            tmdbApiKey: document.getElementById('tmdbApiKey').value
         }
     };
 

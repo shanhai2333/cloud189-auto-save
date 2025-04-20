@@ -14,6 +14,7 @@ async function loadSettings() {
             document.getElementById('enableAutoClearFamilyRecycle').checked = settings.task?.enableAutoClearFamilyRecycle || false;
             document.getElementById('mediaSuffix').value = settings.task?.mediaSuffix || '.mkv;.iso;.ts;.mp4;.avi;.rmvb;.wmv;.m2ts;.mpg;.flv;.rm;.mov';
             document.getElementById('enableOnlySaveMedia').checked = settings.task?.enableOnlySaveMedia || false;
+            document.getElementById('enableAutoCreateFolder').checked = settings.task?.enableAutoCreateFolder || false;
 
             // 企业微信设置
             document.getElementById('enableWecom').checked = settings.wecom?.enable || false;
@@ -60,6 +61,10 @@ async function loadSettings() {
             document.getElementById('cloudSaverUrl').value = settings.cloudSaver?.baseUrl || '';
             document.getElementById('cloudSaverUsername').value = settings.cloudSaver?.username || '';
             document.getElementById('cloudSaverPassword').value = settings.cloudSaver?.password || '';
+            // 刮削
+            document.getElementById('enableScraper').checked = settings.tmdb?.enableScraper || false;
+            // tmdbkey
+            document.getElementById('tmdbApiKey').value = settings.tmdb?.tmdbApiKey || '';
         }
     } catch (error) {
         console.error('加载设置失败:', error);
@@ -78,7 +83,8 @@ document.getElementById('settingsForm').addEventListener('submit', async (e) => 
             enableAutoClearRecycle: document.getElementById('enableAutoClearRecycle').checked,
             enableAutoClearFamilyRecycle: document.getElementById('enableAutoClearFamilyRecycle').checked,
             mediaSuffix: document.getElementById('mediaSuffix').value,
-            enableOnlySaveMedia: document.getElementById('enableOnlySaveMedia').checked
+            enableOnlySaveMedia: document.getElementById('enableOnlySaveMedia').checked,
+            enableAutoCreateFolder: document.getElementById('enableAutoCreateFolder').checked
         },
         wecom: {
             enable: document.getElementById('enableWecom').checked,

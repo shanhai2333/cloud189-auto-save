@@ -32,18 +32,23 @@ function initTheme() {
 }
 
 function setTheme(theme) {
+    // 更新主题和状态栏颜色的函数
+    const updateThemeAndStatusBar = (isDark) => {
+        const currentTheme = isDark ? 'dark' : 'light';
+        const statusBarColor = isDark ? '#1a1a1a' : '#ffffff';
+        document.documentElement.setAttribute('data-theme', currentTheme);
+        document.querySelector('meta[name="theme-color"]').setAttribute('content', statusBarColor);
+    };
     if (theme === 'auto') {
         // 检查系统主题
-        if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
-            document.documentElement.setAttribute('data-theme', 'dark');
-        } else {
-            document.documentElement.setAttribute('data-theme', 'light');
-        }
+        const darkModeMediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+        updateThemeAndStatusBar(darkModeMediaQuery.matches);
+        
         // 监听系统主题变化
-        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
-            document.documentElement.setAttribute('data-theme', e.matches ? 'dark' : 'light');
+        darkModeMediaQuery.addEventListener('change', e => {
+            updateThemeAndStatusBar(e.matches);
         });
     } else {
-        document.documentElement.setAttribute('data-theme', theme);
+        updateThemeAndStatusBar(theme === 'dark');
     }
 }

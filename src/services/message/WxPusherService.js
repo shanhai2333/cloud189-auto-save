@@ -34,6 +34,30 @@ class WxPusherService extends MessageService {
             return false;
         }
     }
+
+    async _sendScrapeMessage(message) {
+        try {
+            const content = [
+                `<h3>${message.title}</h3>`,
+                `<p>类型：${message.type === 'tv' ? '电视剧' : '电影'} 评分：${message.rating || '暂无'}</p>`,
+                message.description ? `<p>${message.description.split('\n').slice(0, 2).join('<br>')}${message.description.split('\n').length > 2 ? '...' : ''}</p>` : '',
+                message.image ? `<img src="${message.image}" alt="封面">` : ''
+            ].join('');
+
+            await got.post('https://wxpusher.zjiecode.com/api/send/message/simple-push', {
+                json: {
+                    summary: "刮削通知",
+                    content: content,
+                    content_type: 2, // HTML类型
+                    spt: this.config.spt
+                }
+            }).json();
+            return true;
+        } catch (error) {
+            console.error('WxPusher图片消息推送异常:', error);
+            return false;
+        }
+    }
 }
 
 module.exports = WxPusherService;

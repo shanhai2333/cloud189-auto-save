@@ -170,6 +170,12 @@ export class Task {
 
     @Column({ nullable: true })
     embyId!: string;
+
+    @Column({ nullable: true })
+    tmdbId!: string; // tmdbId, 用于匹配tmdb和emby的电影
+    
+    @Column({ nullable: true })
+    enableTaskScraper!: boolean; // 是否启用刮削
 }
 
 // 常用目录表

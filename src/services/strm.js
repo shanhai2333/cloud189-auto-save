@@ -203,6 +203,13 @@ class StrmService {
         path = path.replace(/^\//, '');
         return `${base}/${path}`;
     }
+
+    // 根据文件名获取STRM文件路径
+    getStrmPath(task) {
+        let taskName = task.realFolderName.substring(task.realFolderName.indexOf('/') + 1)
+        const targetDir = path.join(this.baseDir,task.account.localStrmPrefix, taskName);
+        return targetDir;
+    }
 }
 
 module.exports = { StrmService };

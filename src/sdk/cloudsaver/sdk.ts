@@ -31,14 +31,22 @@ interface SearchResponse {
 }
 
 class CloudSaverSDK {
+    private static instance: CloudSaverSDK;
     private tokenPath: string;
     private token: string;
     private maxRetries: number = 3;
     private retryDelay: number = 1000;
 
-    constructor() {
+    private constructor() {
         this.tokenPath = path.join(process.cwd(), 'data', 'cstoken.json');
         this.token = this.loadToken();
+    }
+
+    public static getInstance(): CloudSaverSDK {
+        if (!CloudSaverSDK.instance) {
+            CloudSaverSDK.instance = new CloudSaverSDK();
+        }
+        return CloudSaverSDK.instance;
     }
 
     get enabled(): boolean {
@@ -232,4 +240,4 @@ class CloudSaverSDK {
     }
 }
 
-export default CloudSaverSDK;
+export default CloudSaverSDK.getInstance();

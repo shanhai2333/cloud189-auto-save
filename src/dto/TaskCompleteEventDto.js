@@ -4,6 +4,8 @@ class TaskCompleteEventDto  {
         this.task = data?.task;
         this.fileList = data?.fileList;
         this.overwriteStrm = data?.overwriteStrm;
+        this.taskService = data?.taskService;
+        this.taskRepo = data?.taskRepo;
     }
 }
 

@@ -1,7 +1,6 @@
-const { HttpsProxyAgent } = require('https-proxy-agent');
-const { HttpProxyAgent } = require('http-proxy-agent');
 const got = require('got');
 const MessageService = require('./MessageService');
+const ProxyUtil = require('../../utils/ProxyUtil');
 
 class TelegramService extends MessageService {
     /**
@@ -15,22 +14,7 @@ class TelegramService extends MessageService {
      * 配置代理信息
      */
     _proxy() {
-        let proxy = ''
-         // 处理代理配置
-         if (this.config.proxy) {
-            const { type = 'http', host, port, username, password } = this.config.proxy;
-            if (host && port) {
-                let proxyUrl = `${type}://${host}:${port}`;
-                if (username && password) {
-                    proxyUrl = `${type}://${encodeURIComponent(username)}:${encodeURIComponent(password)}@${host}:${port}`;
-                }
-                proxy = proxyUrl;
-            }
-        }
-        return !proxy?{}:{
-            http: new HttpProxyAgent(proxy),
-            https: new HttpsProxyAgent(proxy)
-        }
+        return ProxyUtil.getProxyAgent()
     }
 
 
@@ -61,6 +45,50 @@ class TelegramService extends MessageService {
             }
 
             await got.post(`${apiUrl}/bot${this.config.botToken}/sendMessage`, requestOptions).json();
+            return true;
+        } catch (error) {
+            console.error('Telegram消息推送异常:', error);
+            return false;
+        }
+    }
+     // 发送刮削结果, {title: mediaDetails.title,image: mediaDetails.backdropPath,description: mediaDetails.overview,rating: mediaDetails.voteAverage}
+     async _sendScrapeMessage(message) {
+        console.log("准备发送刮削结果")
+        try {
+            // 构建消息内容
+            const caption = [
+                `*${message.title}*`,
+                `\n类型：${message.type === 'tv' ? '电视剧' : '电影'} ${message.rating ? `评分：${message.rating}` : ''}`,
+                message.description ? `\n${message.description.split('\n').slice(0, 2).join('\n')}${message.description.split('\n').length > 2 ? '...' : ''}` : '',
+            ].join('');
+
+            const requestOptions = {
+                json: {
+                    chat_id: this.config.chatId,
+                    photo: message.image,
+                    caption: caption,
+                    parse_mode: 'Markdown'
+                },
+                timeout: {
+                    request: 5000
+                },
+                agent: this._proxy()
+            };
+
+            let apiUrl = 'https://api.telegram.org';
+            if (this.config.cfProxyDomain) {
+                requestOptions.proxy = false;
+                apiUrl = this.config.cfProxyDomain;
+            }
+
+            // 如果有图片则发送图片+描述，否则只发送文本
+            if (message.image) {
+                await got.post(`${apiUrl}/bot${this.config.botToken}/sendPhoto`, requestOptions).json();
+            } else {
+                requestOptions.json.text = caption;
+                delete requestOptions.json.photo;
+                await got.post(`${apiUrl}/bot${this.config.botToken}/sendMessage`, requestOptions).json();
+            }
             return true;
         } catch (error) {
             console.error('Telegram消息推送异常:', error);

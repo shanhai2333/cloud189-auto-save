@@ -1,6 +1,6 @@
 // 添加全局筛选参数
 let taskFilterParams = {
-    status: 'processing',
+    status: 'all',
     search: ''
 };
 
@@ -202,6 +202,7 @@ function initTaskForm() {
         const sourceRegex = document.getElementById('ctSourceRegex').value;
         const targetRegex = document.getElementById('ctTargetRegex').value;
         const taskName = document.getElementById('taskName').value.trim();
+        const enableTaskScraper = document.getElementById('enableTaskScraper').checked;
         if (!taskName) {
             message.warning('任务名称不能为空');
             return;
@@ -238,7 +239,7 @@ function initTaskForm() {
              }
              return folder;
          });
-        const body = { accountId, shareLink, totalEpisodes, targetFolderId, accessCode, matchPattern, matchOperator, matchValue, overwriteFolder: 0, remark, enableCron, cronExpression, targetFolder, selectedFolders:processedFolders, sourceRegex, targetRegex, taskName  };
+        const body = { accountId, shareLink, totalEpisodes, targetFolderId, accessCode, matchPattern, matchOperator, matchValue, overwriteFolder: 0, remark, enableCron, cronExpression, targetFolder, selectedFolders:processedFolders, sourceRegex, targetRegex, taskName, enableTaskScraper };
         await createTask(e,body)
             
     });

@@ -15,7 +15,7 @@ const { logTaskEvent, initSSE } = require('./utils/logUtils');
 const TelegramBotManager = require('./utils/TelegramBotManager');
 const fs = require('fs').promises;
 const path = require('path');
-const {default:cloudSaverSdk, setupCloudSaverRoutes, clearCloudSaverToken } = require('./sdk/cloudsaver');
+const { setupCloudSaverRoutes, clearCloudSaverToken } = require('./sdk/cloudsaver');
 const { Like } = require('typeorm');
 
 const app = express();
@@ -117,15 +117,11 @@ AppDataSource.initialize().then(async () => {
         ConfigService.getConfigValue('telegram.bot.botToken'),
         ConfigService.getConfigValue('telegram.bot.enable')
     );
-    // 给机器人注入cloudSaverSdk
-    const tgbot = botManager.getBot();
-if( tgbot){tgbot.cloudSaverSdk = cloudSaverSdk;}
     // 初始化缓存管理器
     const folderCache = new CacheManager(parseInt(600));
     // 初始化任务定时器
     await SchedulerService.initTaskJobs(taskRepo, taskService);
     
-
     // 账号相关API
     app.get('/api/accounts', async (req, res) => {
         const accounts = await accountRepo.find();
@@ -564,7 +560,7 @@ if( tgbot){tgbot.cloudSaverSdk = cloudSaverSdk;}
     // 初始化cloudsaver
     setupCloudSaverRoutes(app);
     // 启动服务器
-    const port = 3000;
+    const port = process.env.PORT || 3000;
     app.listen(port, () => {
         console.log(`服务器运行在 http://localhost:${port}`);
     });

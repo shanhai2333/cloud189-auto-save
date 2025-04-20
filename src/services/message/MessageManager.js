@@ -68,6 +68,18 @@ class MessageManager {
         );
         return results;
     }
+
+    /**
+     * 发送刮削消息到所有已启用的服务
+     * @param {string} message - 要发送的消息内容
+     * @returns {Promise<Array<boolean>>} - 各个服务的发送结果
+     */
+    async sendScrapeMessage(message) {
+        const results = await Promise.all(
+            this.services.map(service => service.sendScrapeMessage(message))
+        );
+        return results;
+    }
 }
 
 module.exports = new MessageManager();

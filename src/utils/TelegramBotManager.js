@@ -17,15 +17,20 @@ class TelegramBotManager {
         const botTokenChanged = TelegramBotManager.bot?.token !== botToken;
 
         if (TelegramBotManager.bot && (!shouldEnableBot || botTokenChanged)) {
-            await TelegramBotManager.bot.stop();
+            TelegramBotManager.bot.stop();
             TelegramBotManager.bot = null;
             logTaskEvent(`Telegram机器人已停用`);
         }
 
         if (shouldEnableBot && (!TelegramBotManager.bot || botTokenChanged)) {
             TelegramBotManager.bot = new TelegramBotService(botToken);
-            await TelegramBotManager.bot.start();
-            logTaskEvent(`Telegram机器人已启用`);
+            TelegramBotManager.bot.start()
+            .then(() => {
+                logTaskEvent(`Telegram机器人已启动`);
+            })
+            .catch(error => {
+                logTaskEvent(`Telegram机器人启动失败: ${error.message}`);
+            });
         }
     }
 

@@ -6,7 +6,8 @@ const { EmbyService } = require('./emby');
 const { Cloud189Service } = require('./cloud189');
 const { TMDBService } = require('./tmdb');
 const path = require('path');
-const ConfigService = require('./ConfigService');
+const { default: cloudSaverSDK } = require('../sdk/cloudsaver/sdk');
+const ProxyUtil = require('../utils/ProxyUtil');
 
 class TelegramBotService {
     constructor(token) {
@@ -31,7 +32,7 @@ class TelegramBotService {
         // 全局常用目录列表消息id
         this.globalCommonFolderListMessageId = null;
 
-        this.cloudSaverSdk = null;
+        this.cloudSaverSdk = cloudSaverSDK;
         this.isSearchMode = false;
         this.searchModeTimeout = null;  // 搜索模式超时计时器
 
@@ -40,36 +41,36 @@ class TelegramBotService {
         this.tmdbService = new TMDBService();
     }
 
-    _getProxy() {
-        let proxy = null;
-        const proxyConfig = ConfigService.getConfigValue('proxy');
-        const { type = 'http', host, port, username, password } = proxyConfig;
-        if (host && port) {
-            let proxyUrl = `${type}://${host}:${port}`;
-            if (username && password) {
-                proxyUrl = `${type}://${encodeURIComponent(username)}:${encodeURIComponent(password)}@${host}:${port}`;
-            }
-            proxy = proxyUrl;
-        }
-        return proxy;
-    }
     async start() {
         if (this.bot) {
             return;
         }
         // 从配置文件获取代理
-        const proxy = this._getProxy();
+        const proxy = ProxyUtil.getProxy();
         this.bot = new TelegramBot(this.token, { 
             polling: true, 
             request: {
                 proxy: proxy,
                 agentOptions: {
                     keepAlive: true,
-                    family: 4
-                }
+                    family: 4,
+                    timeout:  30000 // 10秒超时
+                },
+                timeout: 30000, // 请求超时时间
+                forever: true, // 保持连接
+                retries: 3 // 添加重试次数
             } 
         });
 
+        // 添加错误处理
+        this.bot.on('polling_error', (error) => {
+            console.error('Telegram Bot polling error:', error.message);
+        });
+
+        this.bot.on('error', (error) => {
+            console.error('Telegram Bot error:', error.message);
+        });
+        
         // 设置命令菜单
         await this.bot.setMyCommands([
             { command: 'help', description: '帮助信息' },

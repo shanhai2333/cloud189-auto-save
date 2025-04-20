@@ -25,6 +25,7 @@ class TaskService {
             const taskEventHandler = new TaskEventHandler(this.messageUtil);
             this.eventService.on('taskComplete', async (eventDto) => {
                 eventDto.taskService = this;
+                eventDto.taskRepo = this.taskRepo;
                 await taskEventHandler.handle(eventDto);
             });
         }
@@ -91,7 +92,8 @@ class TaskService {
             enableCron: taskDto.enableCron,
             cronExpression: taskDto.cronExpression,
             sourceRegex: taskDto.sourceRegex,
-            targetRegex: taskDto.targetRegex
+            targetRegex: taskDto.targetRegex,
+            enableTaskScraper: taskDto.enableTaskScraper,
         };
     }
 
@@ -266,8 +268,36 @@ class TaskService {
     }
 
     // 获取文件夹下的所有文件
-    async getAllFolderFiles(cloud189, folderId) {
+    async getAllFolderFiles(cloud189, folderId, task = null) {
         const folderInfo = await cloud189.listFiles(folderId);
+        // todo 如果folderInfo.res_code == FileNotFound 需要重新创建目录
+        if (folderInfo.res_code == "FileNotFound") {
+            logTaskEvent('文件夹不存在!')
+            if (!task) {
+                throw new Error('文件夹不存在!');
+            }
+            logTaskEvent('正在重新创建目录')
+            const enableAutoCreateFolder = ConfigService.getConfigValue('task.enableAutoCreateFolder');
+            if (enableAutoCreateFolder) {
+                 // 如果folderId和realRootFolderId一致，使用targetFolderId
+                 const realRootFolderId = folderId === task.realRootFolderId ? task.targetFolderId : task.realRootFolderId;
+                if (realRootFolderId) {
+                    const realRootFolderInfo = await cloud189.listFiles(realRootFolderId);
+                    if (realRootFolderInfo.res_code == "FileNotFound") {
+                        throw new Error('上级目录不存在,无法自动创建目录');
+                    }
+                }
+                // 创建目录, 名称为shareFolderName
+                const subFolder = await cloud189.createFolder(task.shareFolderName, realRootFolderId);
+                if (!subFolder?.id) throw new Error('创建目录失败');
+                // 修改task.realFolderId为新创建的目录id
+                task.realFolderId = subFolder.id;
+                await this.taskRepo.save(task);
+                logTaskEvent('目录创建成功');
+                // 重新调用getAllFolderFiles
+                return await this.getAllFolderFiles(cloud189, task.realFolderId);
+            }
+        }
         if (!folderInfo || !folderInfo.fileListAO) {
             return [];
         }
@@ -305,7 +335,7 @@ class TaskService {
                 throw new Error('获取文件列表失败');
             }
             let shareFiles = [...shareDir.fileListAO.fileList];            
-            const folderFiles = await this.getAllFolderFiles(cloud189, task.realFolderId);
+            const folderFiles = await this.getAllFolderFiles(cloud189, task.realFolderId, task);
             const enableOnlySaveMedia = ConfigService.getConfigValue('task.enableOnlySaveMedia');
             // mediaSuffixs转为小写
             const mediaSuffixs = ConfigService.getConfigValue('task.mediaSuffix').split(';').map(suffix => suffix.toLowerCase())
@@ -374,6 +404,7 @@ class TaskService {
                 if (daysDiff >= ConfigService.getConfigValue('task.taskExpireDays')) {
                     task.status = 'completed';
                 }
+                task.currentEpisodes = existingMediaCount;
                 logTaskEvent(`${task.resourceName} 没有增量剧集`)
             }
             // 检查是否达到总数
@@ -458,7 +489,7 @@ class TaskService {
             new StrmService().deleteDir(path.join(task.account.localStrmPrefix, folderName))
         }
         // 只允许更新特定字段
-        const allowedFields = ['resourceName', 'realFolderId', 'currentEpisodes', 'totalEpisodes', 'status','realFolderName', 'shareFolderName', 'shareFolderId', 'matchPattern','matchOperator','matchValue','remark', 'enableCron', 'cronExpression'];
+        const allowedFields = ['resourceName', 'realFolderId', 'currentEpisodes', 'totalEpisodes', 'status','realFolderName', 'shareFolderName', 'shareFolderId', 'matchPattern','matchOperator','matchValue','remark', 'enableCron', 'cronExpression', 'enableTaskScraper'];
         for (const field of allowedFields) {
             if (updates[field] !== undefined) {
                 task[field] = updates[field];

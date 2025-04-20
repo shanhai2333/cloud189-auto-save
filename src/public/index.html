@@ -4,7 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>天翼云盘自动转存系统</title>
-    <link rel="icon" type="image/png" href="/favicon.ico">
+    <meta name="theme-color" content="#ffffff">
+    <meta name="color-scheme" content="light dark">
+
+    <link rel="icon" type="image/png" href="/favicon/favicon-96x96.png" sizes="96x96" />
+    <link rel="icon" type="image/svg+xml" href="/favicon/favicon.svg" />
+    <link rel="shortcut icon" href="/favicon/favicon.ico" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/favicon/apple-touch-icon.png" />
+    <meta name="apple-mobile-web-app-title" content="自动转存" />
+    <link rel="manifest" href="/favicon/site.webmanifest" />
+
     <link rel="stylesheet" href="/css/base.css">
     <link rel="stylesheet" href="/css/folder-tree.css">
     <link rel="stylesheet" href="/css/modal.css">
@@ -115,8 +124,8 @@
                         <div class="search-bar">
                             <div class="search-input">
                                 <select id="taskFilter">
-                                    <option value="all">全部任务</option>
-                                    <option value="processing" selected>追剧中</option>
+                                    <option value="all" selected>全部任务</option>
+                                    <option value="processing">追剧中</option>
                                     <option value="completed">已完结</option>
                                     <option value="failed">失败</option>
                                     <option value="pending">等待中</option>
@@ -228,6 +237,11 @@
                                     </div>
                                 </div>
                             </div>
+                            <div class="form-group">
+                                <div class="push-item">
+                                    <label for="enableTaskScraper"><input type="checkbox" id="enableTaskScraper">启用刮削</label>
+                                </div>
+                            </div>
                         </div>
                         <div class="form-actions">
                             <button type="submit">创建</button>
@@ -302,6 +316,13 @@
                                 仅转存指定后缀的媒体文件
                             </label>
                         </div>
+                        <div class="push-item">
+                            <label>
+                                <input type="checkbox" id="enableAutoCreateFolder">
+                                云盘文件夹不存在时自动创建
+                            </label>
+                            <small class="form-text">当天翼云盘中任务更新目录不存在的时候, 自动创建文件夹, 仅会创建最后一级文件夹</small>
+                        </div>
                     </div>
                 </div>
 
@@ -350,7 +371,7 @@
                 </div>
 
                 <div class="form-group">
-                    <label for="proxySettings">代理设置（仅用于 Telegram）</label>
+                    <label for="proxySettings">代理设置（仅用于 Telegram, TMDB</label>
                     <div class="proxy-settings">
                         <input type="text" id="proxyHost" placeholder="代理地址: 127.0.0.1">
                         <input type="number" id="proxyPort" placeholder="代理端口">
@@ -418,6 +439,27 @@
                         <input type="text" id="cloudSaverUrl" placeholder="服务地址: http://localhost:8008">
                         <input type="text" id="cloudSaverUsername" placeholder="账号">
                         <input type="password" id="cloudSaverPassword" placeholder="密码">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>刮削设置 (实验特性)</label>
+                    <div class="push-settings">
+                        <div class="push-item">
+                            <label>
+                                <input type="checkbox" id="enableScraper">
+                                启用刮削
+                            </label>
+                            <input type="text" id="tmdbApiKey" placeholder="TMDB API Key">
+                            <small class="form-text">开启后会自动从TMDB获取影视剧信息。请先在 <a href="https://www.themoviedb.org/settings/api" target="_blank">TMDB</a> 申请 API Key。仅供娱乐使用; <br/>如需使用请按以下格式命名：<br/>
+                                <span style="background-color: #f0f0f0;">剧名(年份)/[Season 01/][剧名.]S01E01.mkv</span><br/>
+                                <span style="background-color: #f0f0f0;">电影名(年份)/电影名.年份.mkv</span><br/>
+                                例如：<span style="background-color: #f0f0f0;">沙海(2018)/Season 01/沙海.S01E01.mkv</span><br/>
+                                <span style="background-color: #f0f0f0;">哪吒之魔童降世(2019)/哪吒之魔童降世.2019.mkv</span><br/>
+                                <span style="color: #666;">注：Season 01目录和文件名中的剧名可省略，但建议保留以便识别</span><br/>
+                                <br/>
+                            </small>
+                        </div>
                     </div>
                 </div>
 
@@ -515,6 +557,11 @@
                             <small class="form-text">每30分钟执行：0 */30 * * * *</small><br/>
                             <small class="form-text">每天凌晨2点执行：0 0 2 * * *</small>
                         </div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <div class="push-item">
+                        <label for="editEnableTaskScraper"><input type="checkbox" id="editEnableTaskScraper">启用刮削</label>
                     </div>
                 </div>
             </div>

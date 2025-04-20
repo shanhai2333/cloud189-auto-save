@@ -35,12 +35,32 @@ class MessageService {
     }
 
     /**
+     * 发送刮削消息
+     * @param {object} message - 要发送的消息内容
+     * @returns {Promise<boolean>} - 发送结果
+     */
+    async sendScrapeMessage(message) {
+        if (!this.enabled) {
+            return false;
+        }
+        return await this._sendScrapeMessage(message);
+    }
+    /**
      * 实际发送消息的方法，需要被子类实现
      * @param {string} message - 要发送的消息内容
      * @returns {Promise<boolean>} - 发送结果
      */
     async _send(message) {
         throw new Error('_send method must be implemented by subclass');
+    }
+
+    /**
+     * 实际发送刮削消息的方法，需要被子类实现
+     * @param {object} message - 要发送的消息内容
+     * @returns {Promise<boolean>} - 发送结果
+     */
+    async _sendScrapeMessage(message) {
+        throw new Error('_sendScrapeMessage method must be implemented by subclass');
     }
 
     /**
