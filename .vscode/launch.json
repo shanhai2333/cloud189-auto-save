@@ -11,12 +11,15 @@
             "skipFiles": [
                 "<node_internals>/**"
             ],
-            "runtimeExecutable": "node",
+            "runtimeArgs": ["-r", "ts-node/register"],
             "program": "${workspaceFolder}/src/index.js",
-            "args": ["--task"],
             "env": {
-                "NODE_ENV": "development"
-            }
+                "NODE_ENV": "development",
+                "TS_NODE_PROJECT": "${workspaceFolder}/tsconfig.json"
+            },
+            "outFiles": [
+                "${workspaceFolder}/dist/**/*.js"
+            ]
         }
     ]
 }

@@ -20,6 +20,7 @@ class CreateTaskDto {
         this.targetRegex = data?.targetRegex; // 目标正则 (自动重命名)
         this.taskName = data?.taskName; // 任务名称
         this.enableTaskScraper = data?.enableTaskScraper; // 启用刮削
+        this.enableSystemProxy = data?.enableSystemProxy; // 启用系统代理
     }
 
     validate() {

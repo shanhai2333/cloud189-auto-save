@@ -45,7 +45,6 @@ class WeworkService extends MessageService {
                         articles: [{
                             title: message.title,
                             description: `类型：${message.type === 'tv' ? '电视剧' : '电影'} 评分：${message.rating || '暂无'}\n${description}`,
-                            url: message.image || 'https://www.themoviedb.org',
                             picurl: message.image
                         }]
                     }

@@ -4,15 +4,22 @@ const { TMDBService } = require('./tmdb');
 const MediaTypeDetector = require('../utils/MediaFileParser');
 const got = require('got');
 const { logTaskEvent } = require('../utils/logUtils');
+const crypto = require('crypto');
+const AIService = require('./ai');
 
 class ScrapeService {
     constructor() {
         this.tmdb = new TMDBService();
+        this.ai = AIService;
         // 是否已刮削
         this.scraped = false;
     }
 
     async scrapeFromDirectory(dirPath, tmdbId = null) {
+        if (this.ai.isEnabled()) {
+            logTaskEvent('使用AI进行刮削');
+            return await this.scrapeWithAI(dirPath, tmdbId);
+        }
         try {
             // 获取当前目录下所有 .strm 文件
             const files = await fs.readdir(dirPath);
@@ -54,7 +61,13 @@ class ScrapeService {
                     this.scraped = true;
                 }
             }
-            return this.scraped?mediaDetails:null;
+            if (!this.scraped) return null;
+            const currentSeason = mediaDetails.seasons?.find(season => season.season_number === parseInt(mediaInfo?.season));
+            const seasonEpisodes = currentSeason?.episode_count || 1;
+            return {
+                ...mediaDetails,
+                seasonEpisodes
+            };
         } catch (error) {
             console.error('目录刮削失败:', error);
         }
@@ -66,7 +79,6 @@ class ScrapeService {
             if (!parsedPath) return;
             const hasExistingData = await this._checkEpisodeExistingData(parsedPath);
             if (hasExistingData) {
-                // logTaskEvent('文件已存在，跳过刮削');
                 return;
             }
             const mediaInfo = await this._parseMediaInfo(parsedPath);
@@ -90,6 +102,95 @@ class ScrapeService {
             return mediaDetails
         } catch (error) {
             logTaskEvent('刮削失败:' + error);
+        }
+    }
+
+    async scrapeWithAI(dirPath, tmdbId = null) {
+        try {
+            // 获取目录下的文件
+            const files = await fs.readdir(dirPath);
+            const fileList = files.filter(file => file.toLowerCase().endsWith('.strm'));
+            if (fileList.length === 0) {
+                logTaskEvent('目录中没有.strm文件');
+                return null;
+            }
+
+            // 构建文件信息
+            const fileInfos = await Promise.all(fileList.map(async file => {
+                const fullPath = path.join(dirPath, file);
+                const md5 = crypto.createHash('md5').update(fullPath).digest('hex');
+                return {
+                    id: md5,
+                    name: file
+                };
+            }));
+
+            // 使用第一个文件路径获取目录信息
+            const firstFile = path.join(dirPath, fileList[0]);
+            const parsedPath = this._parseStrmPath(firstFile);
+
+            // 调用AI分析文件信息
+            const aiResponse = await this.ai.simpleChatCompletion(dirPath, fileInfos);
+            if (!aiResponse.success) {
+                logTaskEvent('AI分析失败: ' + aiResponse.error);
+                return null;
+            }
+
+            const mediaInfo = aiResponse.data;
+            if (!mediaInfo?.name) {
+                logTaskEvent('AI未能识别出有效的媒体信息');
+                return null;
+            }
+
+            // 获取TMDB信息
+            const tmdbDetails = tmdbId 
+                ? (mediaInfo.type === 'tv' 
+                    ? await this.tmdb.getTVDetails(tmdbId)
+                    : await this.tmdb.getMovieDetails(tmdbId))
+                : await this._fetchTMDBInfo({
+                    name: mediaInfo.name,
+                    year: mediaInfo.year,
+                    type: mediaInfo.type,
+                    tmdbId: null
+                }, fileList.length || 1);
+
+            if (!tmdbDetails?.id) {
+                logTaskEvent('未找到对应的TMDB信息');
+                return null;
+            }
+
+            // 根据媒体类型生成对应文件
+            if (mediaInfo.type === 'tv') {
+                await this._generateTVRootFiles(parsedPath, tmdbDetails);
+                // 处理每个剧集
+                for (const episode of mediaInfo.episode) {
+                    const episodeInfo = await this._fetchEpisodeInfo(
+                        tmdbDetails.id,
+                        episode.season,
+                        episode.episode
+                    );
+                    if (episodeInfo) {
+                        const filePath = path.join(dirPath, fileInfos.find(info => info.id === episode.id).name)
+                        await this._generateTVFiles(this._parseStrmPath(filePath), episodeInfo);
+                    }
+                }
+            } else {
+                await this._generateMovieFiles(parsedPath, tmdbDetails);
+            }
+
+            this.scraped = true;
+            
+            // 获取当前季的集数
+            const currentSeason = tmdbDetails.seasons?.find(season => season.season_number === parseInt(mediaInfo.season));
+            const seasonEpisodes = currentSeason?.episode_count || 0;
+            return {
+                ...tmdbDetails,
+                seasonEpisodes
+            };
+
+        } catch (error) {
+            logTaskEvent('AI刮削失败: ' + error.message);
+            return null;
         }
     }
 
@@ -162,7 +263,7 @@ class ScrapeService {
     async _generateMovieFiles(parsedPath, movieInfo) {
         const episodeBase = path.parse(parsedPath.strmFile).name;
         const movieFiles = {
-            nfo: path.join(parsedPath.seasonDir, `${episodeBase}.nfo`),
+            nfo: path.join(parsedPath.showDir, `${episodeBase}.nfo`),
             poster: path.join(parsedPath.showDir, 'poster.jpg'),
             logo: path.join(parsedPath.showDir, 'clearlogo.png')
         };
@@ -191,7 +292,6 @@ class ScrapeService {
         ]);
     }
     async _generateTVFiles(parsedPath, episodeInfo) {
-        
         // 生成剧集文件
         const episodeBase = path.parse(parsedPath.strmFile).name;
         const episodeFiles = {

@@ -27,6 +27,16 @@ async function saveMediaSettings() {
         tmdb: {
             enableScraper: document.getElementById('enableScraper').checked,
             tmdbApiKey: document.getElementById('tmdbApiKey').value
+        },
+        openai: {
+            enable: document.getElementById('enableOpenAI').checked,
+            baseUrl: document.getElementById('openaiBaseUrl').value, //  document.getElementById('openaiBaseUrl').value, // URL_ADDRESS.openai.co
+            apiKey: document.getElementById('openaiApiKey').value,
+            model: document.getElementById('openaiModel').value,
+            rename: {
+                template: document.getElementById('openaiTemplate').value,
+            }
+
         }
     };
 

@@ -176,6 +176,12 @@ export class Task {
     
     @Column({ nullable: true })
     enableTaskScraper!: boolean; // 是否启用刮削
+
+    @Column({ nullable: true })
+    enableSystemProxy!: boolean; // 是否启用系统代理
+    // tmdb内容 json格式
+    @Column('text', { nullable: true })
+    tmdbContent!: string;
 }
 
 // 常用目录表
@@ -191,4 +197,40 @@ export class CommonFolder {
     name!: string;
 }
 
-export default { Account, Task, CommonFolder };
+
+// 系统代理文件表
+@Entity()
+export class ProxyFile {
+    @Column('text', { primary: true })
+    id!: string;  // 文件ID作为主键
+
+    @Column('integer')
+    taskId!: number;
+
+    @ManyToOne(() => Task)
+    @JoinColumn({ name: 'taskId' })
+    task!: Task;
+
+    @Column('text')
+    name!: string;
+
+    @Column('text')
+    md5!: string;
+
+    @Column('bigint')
+    size!: number;
+
+    @CreateDateColumn({
+        transformer: {
+            from: (date: Date) => date && new Date(date.getTime() + (8 * 60 * 60 * 1000)),
+            to: (date: Date) => date
+        }
+    })
+    createdAt!: Date;
+
+    @Column('text', { nullable: true })
+    lastOpTime!: Date;
+
+}
+
+export default { Account, Task, CommonFolder, ProxyFile };

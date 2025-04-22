@@ -10,9 +10,9 @@ class TaskEventHandler {
     }
 
     async handle(taskCompleteEventDto) {
-        logTaskEvent(`================触发事件================`);
+        const task = taskCompleteEventDto.task;
+        logTaskEvent(` ${task.resourceName} 触发事件:`);
         try {
-            const task = taskCompleteEventDto.task;
             // 执行重命名操作
             const newFiles = await taskCompleteEventDto.taskService.autoRename(taskCompleteEventDto.cloud189, task);
             if (newFiles.length > 0) {
@@ -33,14 +33,18 @@ class TaskEventHandler {
                     // 保存到数据库
                     if (task.tmdbId != mediaDetails.tmdbId) {
                         await taskCompleteEventDto.taskRepo.update(task.id, {
-                            tmdbId: mediaDetails.tmdbId
+                            tmdbId: mediaDetails.tmdbId,
+                            tmdbContent: JSON.stringify(mediaDetails)
                         });
                     }
                     //  发送刮削成功的海报(backdropPath)到消息, 简要描述(), 评分(voteAverage)
+                    const shortOverview = mediaDetails.overview ? 
+                            (mediaDetails.overview.length > 20 ? mediaDetails.overview.substring(0, 50) + '...' : mediaDetails.overview) : 
+                            '暂无';
                     const message = {
                         title: `✅ 刮削成功：${mediaDetails.title}`,
                         image: mediaDetails.backdropPath,
-                        description: mediaDetails.overview,
+                        description: shortOverview,
                         rating: mediaDetails.voteAverage,
                         type: mediaDetails.type
                     }

@@ -60,6 +60,7 @@ async function fetchTasks() {
             const progressRing = task.totalEpisodes ? createProgressRing(task.currentEpisodes || 0, task.totalEpisodes) : '';
             const taskName = task.shareFolderName?(task.resourceName + '/' + task.shareFolderName): task.resourceName || '未知'
             const cronIcon = task.enableCron ? '<span class="cron-icon" title="已开启自定义定时任务">⏰</span>' : '';
+            const proxyIcon = task.enableSystemProxy ? '<img src="/icons/cloudflare.svg" class="proxy-icon" title="已开启系统代理" style="width: 32px; height: 32px; vertical-align: middle;">' : '';
             tbody.innerHTML += `
                 <tr data-status='${task.status}' data-task-id='${task.id}' data-name='${taskName}'>
                     <td>
@@ -67,7 +68,7 @@ async function fetchTasks() {
                         <button class="btn-warning" onclick="executeTask(${task.id})">执行</button>
                         <button onclick="showEditTaskModal(${task.id})">修改</button>
                     </td>
-                    <td data-label="资源名称">${cronIcon}<a href="${task.shareLink}" target="_blank" class='ellipsis' title="${taskName}">${taskName}</a></td>
+                    <td data-label="资源名称">${cronIcon}${proxyIcon}<a href="${task.shareLink}" target="_blank" class='ellipsis' title="${taskName}">${taskName}</a></td>
                     <td data-label="账号">${task.account.username}</td>
                     <!--<td data-label="首次保存目录"><a href="https://cloud.189.cn/web/main/file/folder/${task.targetFolderId}" target="_blank">${task.targetFolderId}</a></td>-->
                      <td data-label="更新目录"><a href="javascript:void(0)" onclick="showFileListModal('${task.id}')" class='ellipsis'>${task.realFolderName || task.realFolderId}</a></td>
@@ -203,6 +204,7 @@ function initTaskForm() {
         const targetRegex = document.getElementById('ctTargetRegex').value;
         const taskName = document.getElementById('taskName').value.trim();
         const enableTaskScraper = document.getElementById('enableTaskScraper').checked;
+        const enableSystemProxy = document.getElementById('enableSystemProxy').checked;
         if (!taskName) {
             message.warning('任务名称不能为空');
             return;
@@ -228,18 +230,7 @@ function initTaskForm() {
             message.warning('至少选择一个分享目录');
             return;
         }
-         // 将选中的目录中的根目录名称替换为任务名称
-         const rootFolder = selectedFolders[0].split('/')[0];
-         const processedFolders = selectedFolders.map(folder => {
-             if (folder === rootFolder) {
-                 return taskName;
-             }
-             if (folder.startsWith(rootFolder + '/')) {
-                 return taskName + folder.substring(rootFolder.length);
-             }
-             return folder;
-         });
-        const body = { accountId, shareLink, totalEpisodes, targetFolderId, accessCode, matchPattern, matchOperator, matchValue, overwriteFolder: 0, remark, enableCron, cronExpression, targetFolder, selectedFolders:processedFolders, sourceRegex, targetRegex, taskName, enableTaskScraper };
+        const body = { accountId, shareLink, totalEpisodes, targetFolderId, accessCode, matchPattern, matchOperator, matchValue, overwriteFolder: 0, remark, enableCron, cronExpression, targetFolder, selectedFolders, sourceRegex, targetRegex, taskName, enableTaskScraper, enableSystemProxy };
         await createTask(e,body)
             
     });
@@ -319,6 +310,7 @@ async function showFileListModal(taskId) {
                             <th>文件名</th>
                             <th>大小</th>
                             <th>修改时间</th>
+                            <th>操作</th>
                         </tr>
                     </thead>
                     <tbody id="fileListBody"></tbody>
@@ -335,7 +327,7 @@ async function showFileListModal(taskId) {
     // 获取文件列表
     try {
         loading.show()
-        const response = await fetch(`/api/folder/files?accountId=${accountId}&folderId=${folderId}`);
+        const response = await fetch(`/api/folder/files?accountId=${accountId}&taskId=${chooseTask.id}`);
         const data = await response.json();
         loading.hide()
         if (data.success) {
@@ -346,7 +338,8 @@ async function showFileListModal(taskId) {
                         <td><input type="checkbox" class="file-checkbox" data-filename="${file.name}" data-id="${file.id}"></td>
                         <td>${file.name}</td>
                         <td>${formatFileSize(file.size)}</td>
-                        <td>${file.createDate}</td>
+                        <td>${file.lastOpTime}</td>
+                        <td><a href="javascript:void(0)" onclick="copyDirectLink('${file.id}', ${chooseTask.id})">复制直链</a></td>
                     </tr>
                 `;
             });
@@ -827,15 +820,15 @@ async function parseShareLink() {
             shareFoldersList.innerHTML = data.data.map(folder => `
                 <div class="folder-item">
                     <label>
-                        <input type="checkbox" name="chooseShareFolder" value="${folder}" checked>
-                        ${folder}
+                        <input type="checkbox" name="chooseShareFolder" value="${folder.id}" checked>
+                        ${folder.name}
                     </label>
                 </div>
             `).join('');
              // 如果有分享目录数据，使用第一个目录名称作为任务名称
             if (data.data && data.data.length > 0) {
                 const taskName = document.getElementById('taskName')
-                taskName.value = data.data[0];
+                taskName.value = data.data[0].name;
                 // 移除taskName的只读
                 taskName.readOnly = false;
             }
@@ -858,3 +851,24 @@ document.getElementById('selectAllFolders').addEventListener('change', function(
     const checkboxes = document.querySelectorAll('input[name="chooseShareFolder"]');
     checkboxes.forEach(cb => cb.checked = e.target.checked);
 });
+
+
+// 复制直链到剪贴板
+async function copyDirectLink(fileId, taskId) {
+    try {
+        loading.show();
+        const response = await fetch(`/api/files/direct-link?fileId=${fileId}&taskId=${taskId}`);
+        loading.hide();
+        const data = await response.json();
+        if (data.success) {
+            // 复制到剪贴板
+            await navigator.clipboard.writeText(data.data);
+            message.success('直链已复制到剪贴板');
+        } else {
+            message.warning('获取直链失败: ' + data.error);
+        }
+    } catch (error) {
+        loading.hide();
+        message.warning('操作失败: ' + error.message);
+    }
+}

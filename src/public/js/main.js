@@ -147,3 +147,15 @@ function toggleFloatingBtns() {
     container.classList.toggle('collapsed');
     icon.classList.toggle('expanded');
 }
+
+
+function toggleHelpText(button) {
+    const helpText = button.nextElementSibling;
+    if (helpText.style.display === 'block') {
+        helpText.style.display = 'none';
+        button.textContent = '显示帮助';
+    } else {
+        helpText.style.display = 'block';
+        button.textContent = '隐藏帮助';
+    }
+}

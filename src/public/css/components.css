@@ -539,10 +539,31 @@
 .refresh-icon {
     width: 16px;
     height: 16px;
-    filter: invert(0.5);
     transition: transform 0.3s ease;
 }
 
 .btn-icon:hover .refresh-icon {
     transform: rotate(180deg);
+}
+
+.help-text-container .form-text {
+    display: none;
+}
+.toggle-help-text {
+    background: none;
+    border: none;
+    color: var(--text-color);
+    text-decoration: underline;
+    cursor: pointer;
+    padding: 0;
+    font-size: 12px;
+    margin-bottom: 8px;
+}
+
+.toggle-help-text:hover {
+    color: var(--primary-color);
+}
+
+.help-text-container {
+    margin-top: 8px;
 }

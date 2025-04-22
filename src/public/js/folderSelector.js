@@ -104,8 +104,8 @@ class FolderSelector {
                         <div id="${this.treeId}" class="folder-tree"></div>
                     </div>
                     <div class="form-actions">
-                        <button class="modal-btn modal-btn-default" data-action="cancel">取消</button>
                         <button class="modal-btn modal-btn-primary" data-action="confirm">确定</button>
+                        <button class="modal-btn modal-btn-default" data-action="cancel">取消</button>
                     </div>
                 </div>
             </div>

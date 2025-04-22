@@ -249,6 +249,34 @@ class Cloud189Service {
         }
         return null
     }
+    // 获取网盘直链
+    async getDownloadLink(fileId, shareId = null) {
+        const type = shareId? 4: 2
+        const response = await this.request('/api/portal/getNewVlcVideoPlayUrl.action', {
+            method: 'GET',
+            searchParams: {
+                fileId,
+                shareId,
+                type,
+                dt: 1
+            },
+        })
+        if (!response || response.res_code != 0) {
+            throw new Error(response.res_msg)
+        }
+        const code = response.normal.code
+        if (code != 1) {
+            throw new Error(response.normal.message)
+        }
+        const url = response.normal.url
+        const res = await got(url, {
+            followRedirect: false,
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36 Edg/119.0.0.0'
+            }
+        })
+        return res.headers.location
+    }
 }
 
 module.exports = { Cloud189Service };

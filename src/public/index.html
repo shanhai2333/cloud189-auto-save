@@ -31,7 +31,7 @@
 </head>
 <body>
     <div class="header">
-        <h1>天翼云盘自动转存系统</h1>
+        <h1>天翼自动转存</h1>
         <div class="header-meta">
             <a href="https://github.com/1307super/cloud189-auto-save" target="_blank" title="GitHub">
                 <span class="github-icon"></span>
@@ -159,6 +159,15 @@
                                 <select id="accountId" required></select>
                             </div>
                             <div class="form-group">
+                                <div class="push-item">
+                                    <label>
+                                        <input type="checkbox" id="enableSystemProxy">
+                                        使用系统代理 (不转存到网盘)
+                                    </label>
+                                    <small class="form-text">开启后文件不会转存到网盘，通过系统代理访问分享链接中的文件</small>
+                                </div>
+                            </div>
+                            <div class="form-group">
                                 <label for="shareLink">分享链接</label>
                                 <div class="share-input-group" style="display: flex; gap: 10px;">
                                     <input type="text" id="shareLink" required style="flex: 2;" data-share-input placeholder="可自动解析带访问码的链接">
@@ -222,6 +231,8 @@
                                         <option value="lt">小于</option>
                                         <option value="eq">等于</option>
                                         <option value="gt">大于</option>
+                                        <option value="contains">包含</option>
+                                        <option value="notContains">不包含</option>
                                     </select>
                                     <input id="matchValue" placeholder="值" min="0" style="flex: 1 1 100px;">
                                 </div>
@@ -271,6 +282,20 @@
 
         <div id="settingsTab" class="tab-content">
             <form id="settingsForm">
+                <!--项目域名-->
+                <div class="form-group">
+                    <label for="projectDomain">项目域名(实验特性)</label>
+                    <input type="text" id="projectDomain" placeholder="http://192.168.1.1:3000">
+                    <small class="form-text">用于系统代理模式下生成可访问的分享链接，填写当前浏览器访问地址即可（如：http://192.168.1.1:3000）。开启系统代理的任务必须填写此项，否则无法访问文件。</small>
+                </div>
+                <div class="form-group">
+                    <label for="systemApiKey">系统apiKey</label>
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        <input type="text" id="systemApiKey" placeholder="系统apiKey" style="flex: 1; height: 32px;">
+                        <button type="button" onclick="generateApiKey()" class="btn-default" style="height: 32px;margin-top: unset;">生成Key</button>
+                    </div>
+                    <small class="form-text">系统apiKey, 可用于第三方调用接口使用。生成后请及时保存设置。</small>
+                </div>
                 <div class="form-group">
                     <label>任务设置</label>
                     <div class="push-settings">
@@ -395,6 +420,44 @@
         <div id="mediaTab" class="tab-content">
             <form id="mediaForm">
                 <div class="form-group">
+                    <label>OpenAI 设置</label>
+                    <div class="push-settings">
+                        <div class="push-item">
+                            <label>
+                                <input type="checkbox" id="enableOpenAI">
+                                启用 AI 辅助
+                            </label>
+                            <input type="text" id="openaiBaseUrl" placeholder="API地址,如: https://open.bigmodel.cn/api/paas/v4">
+                            <input type="text" id="openaiApiKey" placeholder="API Key">
+                            <input type="text" id="openaiModel" placeholder="模型名称">
+                            <input type="text" id="openaiTemplate" placeholder="文件名模板">
+                            <div class="help-text-container">
+                                <button type="button" class="toggle-help-text" onclick="toggleHelpText(this)">显示帮助</button>
+                                <small class="form-text">
+                                    支持所有 OpenAI API 格式的接口，例如：<br/>
+                                    • OpenAI API: https://api.openai.com/v1<br/>
+                                    • 智谱AI: https://open.bigmodel.cn/api/paas/v4
+                                    <br/>
+                                    <span style="color:orange">注意: 启用后AI重命名将优先执行（优先于正则重命名），会自动处理任务名称、文件夹名和剧集名称。如果您设置了正则重命名规则，则仅在手动执行时生效。</span><br/>
+                                    文件名模板示例：<br/>
+                                    <span style="background-color: #f0f0f0;">{name} - {se}{ext}</span> → 北上 - S01E01.mkv<br/>
+                                    <span style="background-color: #f0f0f0;">{name}.第{sn}季第{en}集{ext}</span> → 北上.第1季第1集.mkv<br/>
+                                    <span style="background-color: #f0f0f0;">{name}.{year}.S{s}E{e}{ext}</span> → 北上.2024.S01E01.mkv<br/>
+                                    可用占位符：<br/>
+                                    {name} - 剧名<br/>
+                                    {year} - 年份<br/>
+                                    {s} - 季数（补零）<br/>
+                                    {sn} - 季数（不补零）<br/>
+                                    {e} - 集数（补零）<br/>
+                                    {en} - 集数（不补零）<br/>
+                                    {se} - 季集格式（S01E01）<br/>
+                                    {ext} - 扩展名（.mkv）
+                                </small>
+                            </div>  
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group">
                     <label>STRM 设置</label>
                     <div class="push-settings">
                         <div class="push-item">
@@ -402,16 +465,18 @@
                                 <input type="checkbox" id="enableStrm">
                                 启用 STRM 生成
                             </label>
-                            <small class="form-text">例如: 
-                                <br/>如果播放地址是<span style="background-color: #f0f0f0;">http://127.0.0.1:5244/d/天翼云盘/剧集/北上(2025)/Season 01/S01E01.mkv</span> 
-                                <br/>那么你的前缀就应该写 <span style="background-color: #f0f0f0;">http://127.0.0.1:5244/d/天翼云盘</span>
-                                <br/>完整逻辑为
-                                <br/>生成strm路径: 
-                                <br/>账号本地目录 + 任务更新目录(排除根目录) + 文件名.strm
-                                <br/>strm内容(即播放地址)
-                                <br/>账号媒体目录 + 任务更新目录(排除根目录) + 文件名
-                            </small>
-                                
+                            <div class="help-text-container">
+                                <button type="button" class="toggle-help-text" onclick="toggleHelpText(this)">显示帮助</button>
+                                <small class="form-text">例如: 
+                                    <br/>如果播放地址是<span style="background-color: #f0f0f0;">http://127.0.0.1:5244/d/天翼云盘/剧集/北上(2025)/Season 01/S01E01.mkv</span> 
+                                    <br/>那么你的前缀就应该写 <span style="background-color: #f0f0f0;">http://127.0.0.1:5244/d/天翼云盘</span>
+                                    <br/>完整逻辑为
+                                    <br/>生成strm路径: 
+                                    <br/>账号本地目录 + 任务更新目录(排除根目录) + 文件名.strm
+                                    <br/>strm内容(即播放地址)
+                                    <br/>账号媒体目录 + 任务更新目录(排除根目录) + 文件名
+                                </small>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -451,14 +516,17 @@
                                 启用刮削
                             </label>
                             <input type="text" id="tmdbApiKey" placeholder="TMDB API Key">
-                            <small class="form-text">开启后会自动从TMDB获取影视剧信息。请先在 <a href="https://www.themoviedb.org/settings/api" target="_blank">TMDB</a> 申请 API Key。仅供娱乐使用; <br/>如需使用请按以下格式命名：<br/>
-                                <span style="background-color: #f0f0f0;">剧名(年份)/[Season 01/][剧名.]S01E01.mkv</span><br/>
-                                <span style="background-color: #f0f0f0;">电影名(年份)/电影名.年份.mkv</span><br/>
-                                例如：<span style="background-color: #f0f0f0;">沙海(2018)/Season 01/沙海.S01E01.mkv</span><br/>
-                                <span style="background-color: #f0f0f0;">哪吒之魔童降世(2019)/哪吒之魔童降世.2019.mkv</span><br/>
-                                <span style="color: #666;">注：Season 01目录和文件名中的剧名可省略，但建议保留以便识别</span><br/>
-                                <br/>
-                            </small>
+                            <div class="help-text-container">
+                                <button type="button" class="toggle-help-text" onclick="toggleHelpText(this)">显示帮助</button>
+                                <small class="form-text">开启后会自动从TMDB获取影视剧信息。请先在 <a href="https://www.themoviedb.org/settings/api" target="_blank">TMDB</a> 申请 API Key。仅供娱乐使用; <br/>如需使用请按以下格式命名：<br/>
+                                    <span style="background-color: #f0f0f0;">剧名(年份)/[Season 01/][剧名.]S01E01.mkv</span><br/>
+                                    <span style="background-color: #f0f0f0;">电影名(年份)/电影名.年份.mkv</span><br/>
+                                    例如：<span style="background-color: #f0f0f0;">沙海(2018)/Season 01/沙海.S01E01.mkv</span><br/>
+                                    <span style="background-color: #f0f0f0;">哪吒之魔童降世(2019)/哪吒之魔童降世.2019.mkv</span><br/>
+                                    <span style="color: #666;">注：Season 01目录和文件名中的剧名可省略，但建议保留以便识别</span><br/>
+                                    <br/>
+                                </small>
+                            </div>
                         </div>
                     </div>
                 </div>

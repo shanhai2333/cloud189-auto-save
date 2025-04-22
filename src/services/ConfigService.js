@@ -68,6 +68,19 @@ class ConfigService {
       tmdb: {
         enableScraper: false,
         apiKey: ''
+      },
+      system:  {
+        baseUrl: 'http://127.0.0.1:3000',
+        apiKey: ''
+      },
+      openai: {
+        enable: true,
+        baseUrl: 'https://open.bigmodel.cn/api/paas/v4',
+        apiKey: '29321302769749dd9694938a2096644b.6d4cPwhul9kH5bPh',
+        model: 'GLM-4-Flash-250414',
+        rename: {
+          template: "{name} - {se}{ext}",  // 默认模板
+        }
       }
     };
     this._init();
