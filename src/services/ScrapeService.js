@@ -6,6 +6,7 @@ const got = require('got');
 const { logTaskEvent } = require('../utils/logUtils');
 const crypto = require('crypto');
 const AIService = require('./ai');
+const ConfigService = require('./ConfigService');
 
 class ScrapeService {
     constructor() {
@@ -22,8 +23,7 @@ class ScrapeService {
         }
         try {
             // 获取当前目录下所有 .strm 文件
-            const files = await fs.readdir(dirPath);
-            const strmFiles = files.filter(file => file.toLowerCase().endsWith('.strm'));
+            const strmFiles = await this._getStrmFiles(dirPath);
             
             // 先获取媒体信息
             let mediaDetails = null;
@@ -108,8 +108,7 @@ class ScrapeService {
     async scrapeWithAI(dirPath, tmdbId = null) {
         try {
             // 获取目录下的文件
-            const files = await fs.readdir(dirPath);
-            const fileList = files.filter(file => file.toLowerCase().endsWith('.strm'));
+            const fileList = await this._getStrmFiles(dirPath);
             if (fileList.length === 0) {
                 logTaskEvent('目录中没有.strm文件');
                 return null;
@@ -197,9 +196,11 @@ class ScrapeService {
     async _getStrmFiles(dirPath) {
         try {
             const files = await fs.readdir(dirPath);
-            return files
-                .filter(file => file.toLowerCase().endsWith('.strm'))
-                .map(file => path.join(dirPath, file));
+            const mediaSuffixs = ConfigService.getConfigValue('task.mediaSuffix').split(';').map(suffix => suffix.toLowerCase());
+            return files.filter(file => {
+                const ext = path.extname(file).toLowerCase();
+                return ext === '.strm' || mediaSuffixs.includes(ext);
+            });
         } catch (error) {
             console.error('读取目录失败:', error);
             return [];

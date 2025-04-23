@@ -214,9 +214,16 @@ class StrmService {
 
     // 根据文件名获取STRM文件路径
     getStrmPath(task) {
-        let taskName = task.realFolderName.substring(task.realFolderName.indexOf('/') + 1)
-        const targetDir = path.join(this.baseDir,task.account.localStrmPrefix, taskName);
-        return targetDir;
+        let taskName = task.realFolderName.substring(task.realFolderName.indexOf('/') + 1);
+        if (!this.enable){
+            // 如果cloudStrmPrefix存在 且不是url地址
+            if (task.account.cloudStrmPrefix && !task.account.cloudStrmPrefix.startsWith('http')) {
+                return path.join(this.baseDir, task.account.cloudStrmPrefix, taskName);
+            }
+        }else{
+            return path.join(this.baseDir, task.account.localStrmPrefix, taskName);
+        }
+        return '';
     }
 }
 

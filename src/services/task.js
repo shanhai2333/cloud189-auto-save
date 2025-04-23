@@ -682,7 +682,7 @@ class TaskService {
                     files.map(f => ({ id: f.id, name: f.name })),
                     'file'
                 );
-                await this._processRename(cloud189, task, files, resourceInfo.episode, message, newFiles);
+                await this._processRename(cloud189, task, files, resourceInfo, message, newFiles);
             } catch (error) {
                 logTaskEvent('AI 重命名失败，使用正则表达式重命名: ' + error.message);
                 await this._processRegexRename(cloud189, task, files, message, newFiles);
@@ -716,10 +716,13 @@ class TaskService {
     }
 
     // 处理重命名过程
-    async _processRename(cloud189, task, files, newNames, message, newFiles) {
+    async _processRename(cloud189, task, files, resourceInfo, message, newFiles) {
+        const newNames = resourceInfo.episode;
         // 处理aiFilename, 文件命名通过配置文件的占位符获取
         // 获取用户配置的文件名模板，如果没有配置则使用默认模板
-        const template = ConfigService.getConfigValue('openai.rename.template') || '{name} - {se}{ext}';
+        const template = resourceInfo.type === 'movie' 
+        ? '{name} ({year}){ext}'  // 电影模板
+        : ConfigService.getConfigValue('openai.rename.template') || '{name} - {se}{ext}';  // 剧集模板
         for (const file of files) {
             try {
                 const aiFile = newNames.find(f => f.id === file.id);
@@ -727,11 +730,10 @@ class TaskService {
                     newFiles.push(file);
                     continue;
                 }
-                
                 // 构建文件名替换映射
                 const replaceMap = {
                     '{name}': aiFile.name || task.resourceName,
-                    '{year}': aiFile.year || '',
+                    '{year}': resourceInfo.year || '',
                     '{s}': aiFile.season?.padStart(2, '0') || '01',
                     '{e}': aiFile.episode?.padStart(2, '0') || '01',
                     '{sn}': aiFile.episode.season || '1',                    // 不补零的季数

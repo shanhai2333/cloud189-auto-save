@@ -138,27 +138,26 @@ class AIService {
                 无论文件名的内容是什么，都要尽可能提取以下信息：
                 1. name 字段必须是纯净的影视剧名称，不能包含年份、季数等信息
                 2. 所有年份信息必须提取到 year 字段中
-                3. 如果无法从文件名中提取到影视剧名称，使用文件夹名称（同样需要去除年份信息）
-                4. 如果无法确定年份，返回0
-                5. 如果无法判断类型，默认为 movie
-                6. 如果是单个文件，episode 数组只包含一个元素
+                3. 如果无法确定年份，返回0
+                4. 如果无法判断类型，默认为 movie
+                5. 如果是单个文件，episode 数组只包含一个元素
 
                 返回格式必须是: {
                     name: string,  // 纯净的影视剧名称，不含年份
                     year: number,  // 提取的年份信息
                     type: "tv" | "movie",
-                    season: string,
+                    season: string,  // 季编号，必须是纯数字字符串，如："01"
                     episode: [{
                         id: string,
                         name: string, // 如果没有提取到有效的影视剧名称, 使用父级目录中提取到的名称
-                        season: string,
-                        episode: string,
+                        season: string,  // 季编号，必须是纯数字字符串，如："01"
+                        episode: string,  // 集编号，必须是纯数字字符串，如："01"
                         extension: string
                     }]
                 }
                 
                 注意事项：
-                1. 季和剧集编号必须使用两位数格式（如：'01'）
+                1. 季和剧集编号必须使用纯数字的两位数字格式（如：'01'），不要包含'S'或'E'前缀
                 2. 每个剧集必须包含名称：
                      * 优先使用所在文件夹的名称
                      * 如果需要从文件名中提取具体剧集名称时，需要清理：
@@ -220,7 +219,9 @@ class AIService {
         if (!baseValid) return false;
         // 根据类型验证剧集信息
         return result.episode.every(ep => {
-            return ep.id && ep.episode && ep.extension?.startsWith('.');
+            return ep.id && 
+                   ep.extension?.startsWith('.') && 
+                   (result.type !== 'tv' || ep.episode);  // 只在 tv 类型时验证 episode
         });
     }
 
