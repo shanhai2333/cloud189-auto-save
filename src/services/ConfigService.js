@@ -30,7 +30,8 @@ class ConfigService {
         chatId: '',
         bot: {
           enable: false,
-          botToken: ''
+          botToken: '',
+          chatId: ''
         }
       },
       wxpusher: {
@@ -41,16 +42,31 @@ class ConfigService {
         host: '',
         port: 0,
         username: '',
-        password: ''
+        password: '',
+        services: {
+          telegram: true,
+          tmdb: true,
+          cloud189: false
+        }
       },
       bark: {
         enable: false,
         serverUrl: '', 
         key: ''
       },
+      pushplus: {
+        enable: false,           // 是否启用推送
+        token: '',              // PushPlus token
+        topic: '',              // 群组编码，不填仅发送给自己
+        channel: 'wechat',      // 发送渠道：wechat/webhook/cp/sms/mail
+        webhook: '',            // webhook编码，仅在channel为webhook时需要
+        to: ''                  // 好友令牌，用于指定接收消息的用户
+    },
       system: {
         username: 'admin',
-        password: 'admin'
+        password: 'admin',
+        baseUrl: '',
+        apiKey: ''
       },
       strm: {
         enable: false,
@@ -68,7 +84,23 @@ class ConfigService {
       tmdb: {
         enableScraper: false,
         apiKey: ''
-      }
+      },
+      openai: {
+        enable: false,
+        baseUrl: '',
+        apiKey: '',
+        model: 'GLM-4-Flash-250414',
+        rename: {
+          template: "{name} - {se}{ext}",  // 默认模板
+          movieTemplate: "{name} ({year}){ext}",  // 电影模板
+        }
+      },
+      alist: {
+        enable: false,
+        baseUrl: '',
+        apiKey: ''
+      },
+      customPush: [] // 自定义推送
     };
     this._init();
   }
