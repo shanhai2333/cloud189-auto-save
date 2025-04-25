@@ -67,7 +67,16 @@ const sendHistoryLogs = async (res) => {
     }
 }
 
+// 添加发送AI消息的函数
+const sendAIMessage = (message) => {
+    clients.forEach(client => {
+        client.write(`data: ${JSON.stringify({type: 'aimessage', message})}\n\n`);
+    });
+};
+
+
 module.exports = {
     logTaskEvent,
-    initSSE
+    initSSE,
+    sendAIMessage
 }

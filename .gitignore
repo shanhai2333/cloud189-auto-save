@@ -116,3 +116,6 @@ dist
 *.DS_Store
 
 /strm/*
+
+*.pem
+/转存助手/*

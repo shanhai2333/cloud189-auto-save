@@ -228,22 +228,23 @@ function initTaskForm() {
             message.warning('至少选择一个分享目录');
             return;
         }
-         // 将选中的目录中的根目录名称替换为任务名称
-         const rootFolder = selectedFolders[0].split('/')[0];
-         const processedFolders = selectedFolders.map(folder => {
-             if (folder === rootFolder) {
-                 return taskName;
-             }
-             if (folder.startsWith(rootFolder + '/')) {
-                 return taskName + folder.substring(rootFolder.length);
-             }
-             return folder;
-         });
-        const body = { accountId, shareLink, totalEpisodes, targetFolderId, accessCode, matchPattern, matchOperator, matchValue, overwriteFolder: 0, remark, enableCron, cronExpression, targetFolder, selectedFolders:processedFolders, sourceRegex, targetRegex, taskName, enableTaskScraper };
+        const body = { accountId, shareLink, totalEpisodes, targetFolderId, accessCode, matchPattern, matchOperator, matchValue, overwriteFolder: 0, remark, enableCron, cronExpression, targetFolder, selectedFolders, sourceRegex, targetRegex, taskName, enableTaskScraper };
         await createTask(e,body)
             
     });
 
+    // 监听accountId的变化
+    document.getElementById('accountId').addEventListener('change', async () => {
+        const lastTargetFolder = getFromCache('lastTargetFolder')
+        if (lastTargetFolder) {
+            const { lastTargetFolderId, lastTargetFolderName } = JSON.parse(lastTargetFolder);
+            document.getElementById('targetFolderId').value = lastTargetFolderId;
+            document.getElementById('targetFolder').value = lastTargetFolderName; 
+        }else{
+            document.getElementById('targetFolderId').value = '';
+            document.getElementById('targetFolder').value = '';
+        }
+    })
     async function createTask(e, body) {
         const submitBtn = e.target.querySelector('button[type="submit"]');
         submitBtn.classList.add('loading');
@@ -311,6 +312,8 @@ async function showFileListModal(taskId) {
             <h3>文件列表</h3>
             <div class='modal-body'>
                 <button class="batch-rename-btn" onclick="showBatchRenameOptions()">批量重命名</button>
+                <button class="ai-rename-btn" onclick="showAIRenameOptions()">AI重命名</button>
+                <button class="delete-files-btn btn-danger" onclick="deleteTaskFiles()">批量删除</button>
                 <div class='form-body'>
                 <table>
                     <thead>
@@ -326,7 +329,7 @@ async function showFileListModal(taskId) {
                 </div>
             </div>
             <div class="form-actions">
-                <button onclick="closeFileListModal()">关闭</button>
+                <button class="btn-default" onclick="closeFileListModal()">关闭</button>
             </div>
         </div>
     `;
@@ -335,7 +338,7 @@ async function showFileListModal(taskId) {
     // 获取文件列表
     try {
         loading.show()
-        const response = await fetch(`/api/folder/files?accountId=${accountId}&folderId=${folderId}`);
+        const response = await fetch(`/api/folder/files?accountId=${accountId}&taskId=${chooseTask.id}`);
         const data = await response.json();
         loading.hide()
         if (data.success) {
@@ -346,10 +349,12 @@ async function showFileListModal(taskId) {
                         <td><input type="checkbox" class="file-checkbox" data-filename="${file.name}" data-id="${file.id}"></td>
                         <td>${file.name}</td>
                         <td>${formatFileSize(file.size)}</td>
-                        <td>${file.createDate}</td>
+                        <td>${file.lastOpTime}</td>
                     </tr>
                 `;
             });
+        }else{
+            message.error(data.error)
         }
     } catch (error) {
         message.warning('获取文件列表失败：' + error.message);
@@ -403,8 +408,8 @@ function showBatchRenameOptions() {
             </div>
             <div class="form-actions">
                 <button class="saveAndAutoUpdate btn-warning" onclick="previewRename(true)">确定并自动更新</button>
-                <button class="btn-default" onclick="closeRenameOptionsModal()">取消</button>
                 <button class="btn-primary" onclick="previewRename(false)">确定</button>
+                <button class="btn-default" onclick="closeRenameOptionsModal()">取消</button>
             </div>
         </div>
     `;
@@ -505,8 +510,7 @@ function showRenamePreview(newNames, autoUpdate) {
             </div>
             <div class="form-actions">
                 <button onclick="submitRename(${autoUpdate})">确定</button>
-                <button onclick="backToRenameOptions()">返回</button>
-                <button onclick="closeRenamePreviewModal()">取消</button>
+                <button onclick="closeRenamePreviewModal()" class="btn-default">取消</button>
             </div>
         </div>
     `;
@@ -514,13 +518,10 @@ function showRenamePreview(newNames, autoUpdate) {
     modal.style.display = 'flex';
 }
 
-function backToRenameOptions() {
-    closeRenamePreviewModal();
-}
-
 async function submitRename(autoUpdate) {
     const files = Array.from(document.querySelectorAll('.preview-rename-modal tr[data-file-id]')).map(row => ({
         fileId: row.dataset.fileId,
+        oldName: row.querySelector('td:first-child').textContent,
         destFileName: row.querySelector('td:last-child').textContent
     }));
     if (files.length == 0) {
@@ -547,9 +548,9 @@ async function submitRename(autoUpdate) {
         const data = await response.json();
         if (data.success) {
             if (data.data && data.data.length > 0) {
-                message.info('部分文件重命名失败:'+ data.data.join(', '));
+                message.warning('部分文件重命名失败:'+ data.data.join(', '));
             }else{
-                message.warning('重命名成功');
+                message.info('重命名成功');
             }
             closeRenamePreviewModal();
             closeRenameOptionsModal();
@@ -564,8 +565,82 @@ async function submitRename(autoUpdate) {
         }
     } catch (error) {
         message.warning('重命名失败: ' + error.message);
+    }finally {
+        loading.hide();
     }
 }
+
+
+// 显示AI重命名选项
+async function showAIRenameOptions() {
+    const selectedFiles = Array.from(document.querySelectorAll('.file-checkbox:checked')).map(cb => cb.dataset.filename);
+    if (selectedFiles.length === 0) {
+        message.warning('请选择要重命名的文件');
+        return;
+    }
+
+    const modal = document.createElement('div');
+    modal.className = 'modal rename-options-modal';
+    modal.innerHTML = `
+        <div class="modal-content">
+            <h3>AI重命名</h3>
+            <div class="form-body">
+                <div class="rename-description">
+                    AI将分析文件名并提供智能重命名建议。处理速度取决于文件数量和大模型负载，请耐心等待。
+                </div>
+                <div class="rename-preview">
+                    <h4>选中的文件：</h4>
+                    <ul>
+                        ${selectedFiles.map(file => `<li>${file}</li>`).join('')}
+                    </ul>
+                </div>
+            </div>
+            <div class="form-actions">
+                <button class="btn-primary" onclick="executeAIRename()">开始分析</button>
+                <button class="btn-default" onclick="closeRenameOptionsModal()">取消</button>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modal);
+    modal.style.display = 'flex';
+}
+
+// 执行AI重命名
+async function executeAIRename() {
+    const selectedFiles = Array.from(document.querySelectorAll('.file-checkbox:checked'));
+    const fileIds = selectedFiles.map(cb => ({
+        id: cb.dataset.id,
+        name: cb.dataset.filename
+    }));
+
+    try {
+        loading.show();
+        const response = await fetch(`/api/files/ai-rename`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                taskId: chooseTask.id,
+                files: fileIds
+            })
+        });
+
+        const data = await response.json();
+        if (data.success) {
+            // 显示预览对话框
+            // 根据用户配置的模版
+            showRenamePreview(data.data);
+        } else {
+            message.warning('AI分析失败：' + data.error);
+        }
+    } catch (error) {
+        message.warning('操作失败：' + error.message);
+    } finally {
+        loading.hide();
+    }
+}
+
 // 辅助函数
 function formatFileSize(bytes) {
     if (bytes === 0) return '0 B';
@@ -803,12 +878,11 @@ async function parseShareLink() {
     if (!shareLink || !accountId) {
         return;
     }
-    // 如果shareLink是https://cloud.189.cn/t/xxxx（访问码：xxx） 需要匹配出url和访问码
-    const regex = /^(https:\/\/cloud\.189\.cn\/t\/[a-zA-Z0-9]+)(?:\s*（访问码：([a-zA-Z0-9]+)）)?$/;
-    const match = regex.exec(shareLink);
-    if (match && match.length >= 2 && match[2]) {
-        shareLink = match[1];
-        accessCode = match[2];
+    // urldecodeshareLink
+    shareLink = decodeURIComponent(shareLink);
+    const {url: parseShareLink, accessCode: parseAccessCode} =  parseCloudShare(shareLink)
+    if (parseAccessCode) {
+        accessCode = parseAccessCode;
         document.getElementById('accessCode').value = accessCode;
     }
     const shareFoldersGroup = document.querySelector('.share-folders-group');
@@ -818,7 +892,7 @@ async function parseShareLink() {
         const response = await fetch('/api/share/parse', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ shareLink, accessCode, accountId })
+            body: JSON.stringify({ shareLink:parseShareLink, accessCode, accountId })
         });
         loading.hide()
         const data = await response.json();
@@ -827,15 +901,15 @@ async function parseShareLink() {
             shareFoldersList.innerHTML = data.data.map(folder => `
                 <div class="folder-item">
                     <label>
-                        <input type="checkbox" name="chooseShareFolder" value="${folder}" checked>
-                        ${folder}
+                        <input type="checkbox" name="chooseShareFolder" value="${folder.id}" checked>
+                        ${folder.name}
                     </label>
                 </div>
             `).join('');
              // 如果有分享目录数据，使用第一个目录名称作为任务名称
             if (data.data && data.data.length > 0) {
                 const taskName = document.getElementById('taskName')
-                taskName.value = data.data[0];
+                taskName.value = data.data[0].name;
                 // 移除taskName的只读
                 taskName.readOnly = false;
             }
@@ -858,3 +932,109 @@ document.getElementById('selectAllFolders').addEventListener('change', function(
     const checkboxes = document.querySelectorAll('input[name="chooseShareFolder"]');
     checkboxes.forEach(cb => cb.checked = e.target.checked);
 });
+
+
+// 复制直链到剪贴板
+async function copyDirectLink(fileId, taskId) {
+    try {
+        loading.show();
+        const response = await fetch(`/api/files/direct-link?fileId=${fileId}&taskId=${taskId}`);
+        loading.hide();
+        const data = await response.json();
+        if (data.success) {
+            // 复制到剪贴板
+            await navigator.clipboard.writeText(data.data);
+            message.success('直链已复制到剪贴板');
+        } else {
+            message.warning('获取直链失败: ' + data.error);
+        }
+    } catch (error) {
+        loading.hide();
+        message.warning('操作失败: ' + error.message);
+    }
+}
+
+function parseCloudShare(shareText) {
+    // 移除所有空格
+    shareText = shareText.replace(/\s/g, '');
+    
+    // 提取基本URL和访问码
+    let url = '';
+    let accessCode = '';
+    
+    // 匹配访问码的几种常见格式
+    const accessCodePatterns = [
+        /[（(]访问码[：:]\s*([a-zA-Z0-9]{4})[)）]/,  // （访问码：xxxx）
+        /[（(]提取码[：:]\s*([a-zA-Z0-9]{4})[)）]/,  // （提取码：xxxx）
+        /访问码[：:]\s*([a-zA-Z0-9]{4})/,           // 访问码：xxxx
+        /提取码[：:]\s*([a-zA-Z0-9]{4})/,           // 提取码：xxxx
+        /[（(]([a-zA-Z0-9]{4})[)）]/                // （xxxx）
+    ];
+    
+    // 尝试匹配访问码
+    for (const pattern of accessCodePatterns) {
+        const match = shareText.match(pattern);
+        if (match) {
+            accessCode = match[1];
+            // 从原文本中移除访问码部分
+            shareText = shareText.replace(match[0], '');
+            break;
+        }
+    }
+    
+    // 提取URL - 支持两种格式
+    const urlPatterns = [
+        /(https?:\/\/cloud\.189\.cn\/web\/share\?[^\s]+)/,     // web/share格式
+        /(https?:\/\/cloud\.189\.cn\/t\/[a-zA-Z0-9]+)/,        // t/xxx格式
+        /(https?:\/\/h5\.cloud\.189\.cn\/share\.html#\/t\/[a-zA-Z0-9]+)/, // h5分享格式
+        /(https?:\/\/[^/]+\/web\/share\?[^\s]+)/,              // 其他域名的web/share格式
+        /(https?:\/\/[^/]+\/t\/[a-zA-Z0-9]+)/,                 // 其他域名的t/xxx格式
+        /(https?:\/\/[^/]+\/share\.html[^\s]*)/,               // share.html格式
+        /(https?:\/\/content\.21cn\.com[^\s]+)/                // 订阅链接格式
+    ];
+
+    for (const pattern of urlPatterns) {
+        const urlMatch = shareText.match(pattern);
+        if (urlMatch) {
+            url = urlMatch[1];
+            break;
+        }
+    }
+    
+    return {
+        url: url,
+        accessCode: accessCode
+    };
+}
+async function deleteTaskFiles() {
+    const selectedFiles = Array.from(document.querySelectorAll('.file-checkbox:checked')).map(cb => ({id: cb.dataset.id, name: cb.dataset.filename}));
+    if (selectedFiles.length === 0) {
+        message.warning('请选择要删除的文件');
+        return;
+    }
+    if (!confirm('确定要删除选中的文件吗？如果有STRM会同步删除STRM')) return;
+    try{
+        loading.show()
+        const reasponse = await fetch(`/api/tasks/files`, {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({taskId: chooseTask.id,files: selectedFiles})
+        })
+        loading.hide()
+        const data = await reasponse.json();
+        if (data.success) {
+            message.success('删除成功');
+            // 刷新文件列表
+            closeFileListModal()
+            showFileListModal(chooseTask.id);
+            fetchTasks()
+        } else {
+            message.warning('删除失败:'+ data.error);
+        }
+    }catch (error) {
+        message.warning('操作失败:'+ error.message);
+    }finally {
+        loading.hide();
+    }
+
+}
