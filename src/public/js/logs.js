@@ -11,7 +11,10 @@ function initLogs() {
 
         eventSource.onmessage = (event) => {
             const data = JSON.parse(event.data);
-            
+            // 分发事件
+            const customEvent = new CustomEvent('sseMessage', { detail: data });
+            document.dispatchEvent(customEvent);
+
             if (data.type === 'history') {
                 logsContainer.innerHTML = data.logs.join('<br>');
                 logsContainer.scrollTop = logsContainer.scrollHeight;
@@ -31,7 +34,6 @@ function initLogs() {
 
     showLogsBtn.onclick = () => {
         logsModal.style.display = 'block';
-        console.log(eventSource)
         if (!eventSource) {
             connectSSE();
         }
@@ -45,6 +47,9 @@ function initLogs() {
 
     // 页面关闭时才断开连接
     window.addEventListener('beforeunload', () => {
-        eventSource.close();
+        if (eventSource) {
+            eventSource.close();
+        }
     });
+    connectSSE();
 }

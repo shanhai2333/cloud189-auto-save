@@ -796,12 +796,11 @@ async function parseShareLink() {
     if (!shareLink || !accountId) {
         return;
     }
-    // 如果shareLink是https://cloud.189.cn/t/xxxx（访问码：xxx） 需要匹配出url和访问码
-    const regex = /^(https:\/\/cloud\.189\.cn\/t\/[a-zA-Z0-9]+)(?:\s*（访问码：([a-zA-Z0-9]+)）)?$/;
-    const match = regex.exec(shareLink);
-    if (match && match.length >= 2 && match[2]) {
-        shareLink = match[1];
-        accessCode = match[2];
+    // urldecodeshareLink
+    shareLink = decodeURIComponent(shareLink);
+    const {url: parseShareLink, accessCode: parseAccessCode} =  parseCloudShare(shareLink)
+    if (parseAccessCode) {
+        accessCode = parseAccessCode;
         document.getElementById('accessCode').value = accessCode;
     }
     const shareFoldersGroup = document.querySelector('.share-folders-group');
@@ -811,7 +810,7 @@ async function parseShareLink() {
         const response = await fetch('/api/share/parse', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ shareLink, accessCode, accountId })
+            body: JSON.stringify({ shareLink:parseShareLink, accessCode, accountId })
         });
         loading.hide()
         const data = await response.json();
@@ -871,4 +870,52 @@ async function copyDirectLink(fileId, taskId) {
         loading.hide();
         message.warning('操作失败: ' + error.message);
     }
+}
+
+function parseCloudShare(shareText) {
+    // 移除所有空格
+    shareText = shareText.replace(/\s/g, '');
+    
+    // 提取基本URL和访问码
+    let url = '';
+    let accessCode = '';
+    
+    // 匹配访问码的几种常见格式
+    const accessCodePatterns = [
+        /[（(]访问码[：:]\s*([a-zA-Z0-9]{4})[)）]/,  // （访问码：xxxx）
+        /[（(]提取码[：:]\s*([a-zA-Z0-9]{4})[)）]/,  // （提取码：xxxx）
+        /访问码[：:]\s*([a-zA-Z0-9]{4})/,           // 访问码：xxxx
+        /提取码[：:]\s*([a-zA-Z0-9]{4})/,           // 提取码：xxxx
+        /[（(]([a-zA-Z0-9]{4})[)）]/                // （xxxx）
+    ];
+    
+    // 尝试匹配访问码
+    for (const pattern of accessCodePatterns) {
+        const match = shareText.match(pattern);
+        if (match) {
+            accessCode = match[1];
+            // 从原文本中移除访问码部分
+            shareText = shareText.replace(match[0], '');
+            break;
+        }
+    }
+    
+    // 提取URL - 支持两种格式
+    const urlPatterns = [
+        /(https?:\/\/cloud\.189\.cn\/web\/share\?[^\s]+)/,  // web/share格式
+        /(https?:\/\/cloud\.189\.cn\/t\/[a-zA-Z0-9]+)/      // t/xxx格式
+    ];
+
+    for (const pattern of urlPatterns) {
+        const urlMatch = shareText.match(pattern);
+        if (urlMatch) {
+            url = urlMatch[1];
+            break;
+        }
+    }
+    
+    return {
+        url: url,
+        accessCode: accessCode
+    };
 }

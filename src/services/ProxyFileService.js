@@ -1,4 +1,5 @@
 const { ProxyFile } = require('../entities');
+const { In } = require('typeorm');
 
 class ProxyFileService {
     constructor(proxyFileRepo) {
@@ -36,6 +37,12 @@ class ProxyFileService {
             taskId: taskId
         });
     }
+    // 批量删除代理文件
+    async batchDeleteFiles(taskIds) {
+        await this.proxyFileRepo.delete({
+            taskId: In(taskIds) // 使用 In 操作符处理数组
+        });
+    }
 
     // 重命名文件
     async renameFiles(task) {
@@ -52,7 +59,7 @@ class ProxyFileService {
             file.name = destFileName;
             renameFile.push(file)
             // await this.proxyFileRepo.save(file);
-            message.push(` > <font color="info">${file.name} → ${destFileName}成功</font>`)
+            message.push(` > ${file.name} → ${destFileName}`)
             newFiles.push({
                 ...file,
                 name: destFileName

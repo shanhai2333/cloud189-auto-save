@@ -19,8 +19,8 @@ class WeworkService extends MessageService {
         try {
             await got.post(this.config.webhook, {
                 json: {
-                    msgtype: 'markdown',
-                    markdown: {
+                    msgtype: 'text',
+                    text: {
                         content: message
                     }
                 }

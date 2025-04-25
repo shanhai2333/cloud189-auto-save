@@ -2,15 +2,29 @@ const got = require('got');
 const { logTaskEvent } = require('../utils/logUtils');
 const ConfigService = require('./ConfigService');
 const { MessageUtil } = require('./message');
+const { AppDataSource } = require('../database'); 
+const { Task, Account } = require('../entities'); 
+const { Cloud189Service } = require('./cloud189');
+const path = require('path');
+const { StrmService } = require('./strm');
+
+const { Not, IsNull, Like } = require('typeorm'); 
+
 // emby接口
 class EmbyService {
-    constructor() {
+    constructor(taskService) {
         this.enable = ConfigService.getConfigValue('emby');
         this.embyUrl = ConfigService.getConfigValue('emby.serverUrl');
         this.embyApiKey = ConfigService.getConfigValue('emby.apiKey');
         this.embyPathReplace = ''
         this.messageUtil = new MessageUtil();
+
+        this._taskRepo = AppDataSource.getRepository(Task);
+        this._accountRepo = AppDataSource.getRepository(Account);
+        this._taskService = taskService;
+        this._strmService = new StrmService();
     }
+
 
     async notify(task) {
         if (!this.enable){
@@ -35,7 +49,6 @@ class EmbyService {
             return null;
         }
     }
-
 
     // 1. /emby/Items 根据名称搜索
     async searchItemsByName(name) {
@@ -171,6 +184,121 @@ class EmbyService {
         // 如果结尾有斜杠, 则移除
         path = path.replace(/\/+$/, '');
         return path;
+    }
+
+
+    /**
+     * 处理来自 Emby 的 Webhook 通知
+     * @param {object} payload - Webhook 的 JSON 数据
+     */
+    async handleWebhookNotification(payload) {
+        logTaskEvent(`收到 Emby Webhook 通知: ${payload.Event}`);
+
+        // 我们只关心删除事件
+        // Emby 原生删除事件: library.deleted library.new(新剧集入库)
+        const supportedEvents = ['library.deleted'];
+
+        if (!supportedEvents.includes(payload.Event?.toLowerCase())) {
+            // logTaskEvent(`忽略不相关的 Emby 事件: ${payload.Event}`);
+            return;
+        }
+
+        let itemPath = payload.Item?.Path;
+        if (!itemPath) {
+            logTaskEvent('Webhook 通知中缺少有效的 Item.Path');
+            return;
+        }
+        const isFolder = payload.Item?.IsFolder;
+        const type = payload.Item?.Type;
+
+        logTaskEvent(`检测到删除事件，路径: ${itemPath}, 类型: ${type}, 是否文件夹: ${isFolder}`);
+
+        try {
+            // 根据path获取对应的task
+            // 1. 首先获取所有localStrmPrefix或者cloudStrmPrefix不为空的account
+            const accounts = await this._accountRepo.find({
+                where: [
+                    { localStrmPrefix: Not(IsNull()) },
+                    { cloudStrmPrefix: Not(IsNull()) }
+                ]
+            })
+            // 2. 遍历accounts, 检查path是否包含localStrmPrefix或者cloudStrmPrefix
+            const tasks = [];
+            for (const account of accounts) {
+                const localStrmPrefix = account.localStrmPrefix;
+                const cloudStrmPrefix = account.cloudStrmPrefix;
+                if (itemPath.includes(localStrmPrefix) || itemPath.includes(cloudStrmPrefix)) {
+                    // 3. 如果包含, 则获取对应的task, 条件为 accountId = account.id, realFolderName 包含 path中排除localStrmPrefix或者cloudStrmPrefix后的部分
+                    if (!isFolder) {
+                        // 剧集, 需要去掉文件名
+                        itemPath = path.dirname(itemPath);
+                    }
+                    const realFolderName = itemPath.replace(localStrmPrefix, '').replace(cloudStrmPrefix, '');   
+                    const task = await this._taskRepo.findOne({
+                        where: {
+                            accountId: account.id,
+                            realFolderName: Like(`%${realFolderName}%`)
+                        },
+                        relations: {
+                            account: true
+                        },
+                        select: {
+                            account: {
+                                username: true,
+                                password: true,
+                                cookies: true,
+                                localStrmPrefix: true,
+                                cloudStrmPrefix: true,
+                                embyPathReplace: true
+                            }
+                        }
+                    })
+                    if (task) {
+                        tasks.push(task);
+                    }
+                }
+            }
+            logTaskEvent(`找到对应的任务, 任务数量: ${tasks.length}, 任务名称: ${tasks.map(task => task.resourceName).join(', ')}`);
+            if (tasks.length === 0) {
+                logTaskEvent(`未找到对应的任务, 路径: ${itemPath}`);
+                return;
+            }
+            // 4. 遍历tasks, 删除本地strm, 删除任务和网盘
+            for (const task of tasks) {
+                if (!isFolder) {
+                    // 如果是剧集文件，只删除对应的单个文件
+                    logTaskEvent(`删除单个剧集文件, 任务id: ${task.id}, 文件路径: ${itemPath}`);
+                    const cloud189 = Cloud189Service.getInstance(task.account);
+                    const folderInfo = await cloud189.listFiles(task.realFolderId);
+                    if (!folderInfo || !folderInfo.fileListAO) {
+                        logTaskEvent(`未找到对应的网盘文件列表: 跳过删除`);
+                        continue;
+                    }
+                    const fileList = [...(folderInfo.fileListAO.fileList || [])];
+                    const fileName = path.basename(itemPath);
+                    const fileNameWithoutExt = path.parse(fileName).name;
+                    const targetFile = fileList.find(file => path.parse(file.name).name === fileNameWithoutExt);
+                    if (targetFile) {
+                        await this._taskService.deleteCloudFile(cloud189, {
+                            id: targetFile.id,
+                            name: targetFile.name
+                        }, false)
+                        logTaskEvent(`成功删除文件: ${fileName}`);
+                    } else {
+                        logTaskEvent(`未找到对应的网盘文件: ${fileName}`);
+                    }
+                }else{
+                    logTaskEvent(`删除任务和网盘, 任务id: ${task.id}`);
+                    // 删掉任务并且删掉网盘
+                    this._taskService.deleteTasks(tasks.map(task => task.id), true)
+                }
+            }
+
+
+        } catch (error) {
+            logTaskEvent(`处理 Emby Webhook 时发生错误: ${error.message}`);
+            console.error('处理 Emby Webhook 异常:', error);
+        }
     }
 
 }

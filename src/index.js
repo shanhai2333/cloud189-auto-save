@@ -12,15 +12,24 @@ const packageJson = require('../package.json');
 const session = require('express-session');
 const FileStore = require('session-file-store')(session);
 const { SchedulerService } = require('./services/scheduler');
-const { logTaskEvent, initSSE } = require('./utils/logUtils');
+const { logTaskEvent, initSSE, sendAIMessage } = require('./utils/logUtils');
 const TelegramBotManager = require('./utils/TelegramBotManager');
 const fs = require('fs').promises;
 const path = require('path');
 const { setupCloudSaverRoutes, clearCloudSaverToken } = require('./sdk/cloudsaver');
 const { Like } = require('typeorm');
 const CryptoUtils = require('./utils/cryptoUtils');
+const cors = require('cors'); 
+const { EmbyService } = require('./services/emby');
+const AIService = require('./services/ai');
 
 const app = express();
+app.use(cors({
+    origin: '*', // 允许所有来源
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'x-api-key'],
+    credentials: true
+}));
 app.use(express.json());
 
 app.use(session({
@@ -39,6 +48,7 @@ app.use(session({
         maxAge: 24 * 60 * 60 * 1000 * 30 // 30天
     }
 }));
+
 
 // 验证会话的中间件
 const authenticateSession = (req, res, next) => {
@@ -93,6 +103,8 @@ app.use((req, res, next) => {
     if (req.path === '/' || req.path === '/login' 
         || req.path === '/api/auth/login' 
         || req.path === '/api/auth/login' 
+        || req.path.startsWith('/proxy/') 
+        || req.path === '/emby/notify'
         || req.path.match(/\.(css|js|png|jpg|jpeg|gif|ico)$/)) {
         return next();
     }
@@ -120,7 +132,7 @@ AppDataSource.initialize().then(async () => {
     const commonFolderRepo = AppDataSource.getRepository(CommonFolder);
     const proxyFileRepo = AppDataSource.getRepository(ProxyFile);
     const taskService = new TaskService(taskRepo, accountRepo, proxyFileRepo);
-
+    const embyService = new EmbyService(taskService)
     const messageUtil = new MessageUtil();
     // 机器人管理
     const botManager = TelegramBotManager.getInstance();
@@ -230,18 +242,28 @@ AppDataSource.initialize().then(async () => {
     // 任务相关API
     app.get('/api/tasks', async (req, res) => {
         const { status, search } = req.query;
-        let whereClause = {};
-        // 添加状态过滤
+        let whereClause = {}; // 用于构建最终的 where 条件
+
+        // 基础条件（AND）
         if (status && status !== 'all') {
             whereClause.status = status;
         }
 
         // 添加搜索过滤
         if (search) {
-            whereClause = [
+            const searchConditions = [
                 { realFolderName: Like(`%${search}%`) },
-                { remark: Like(`%${search}%`) }
+                { remark: Like(`%${search}%`) },
+                { account: { username: Like(`%${search}%`) } }
             ];
+            if (Object.keys(whereClause).length > 0) {
+                whereClause = searchConditions.map(searchCond => ({
+                    ...whereClause, // 包含基础条件 (如 status)
+                    ...searchCond   // 包含一个搜索条件
+                }));
+            }else{
+                whereClause = searchConditions;
+            }
         }
         const tasks = await taskRepo.find({
             order: { id: 'DESC' },
@@ -267,6 +289,7 @@ AppDataSource.initialize().then(async () => {
             const task = await taskService.createTask(req.body);
             res.json({ success: true, data: task });
         } catch (error) {
+            console.log(error)
             res.json({ success: false, error: error.message });
         }
     });
@@ -608,11 +631,42 @@ AppDataSource.initialize().then(async () => {
             res.status(500).send('Error');
         }
     })
+    // emby 回调
+    app.post('/emby/notify', async (req, res) => {
+        try {
+            await embyService.handleWebhookNotification(req.body);
+            res.status(200).send('OK');
+        }catch (error) {
+            console.log(error);
+            res.status(500).send('Error');
+        }
+    })
+
+    app.post('/api/chat', async (req, res) => {
+        const { message } = req.body;
+        try {
+            let userMessage = message.trim();
+            if(!userMessage) {
+                res.json({ success: true });
+                return
+            }
+            
+            AIService.streamChat(userMessage, async (chunk) => {
+                sendAIMessage(chunk);
+            })
+            res.json({ success: true });
+        } catch (error) {
+            console.error('处理聊天消息失败:', error);
+            res.status(500).json({ success: false, error: '处理消息失败' });
+        }
+    })
     // 全局错误处理中间件
     app.use((err, req, res, next) => {
         console.error('捕获到全局异常:', err.message);
         res.status(500).json({ success: false, error: error.message });
     });
+
+
     initSSE(app)
 
     // 初始化cloudsaver

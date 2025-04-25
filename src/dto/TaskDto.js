@@ -14,7 +14,7 @@ class CreateTaskDto {
         this.cronExpression = data.cronExpression;
         this.realRootFolderId = data.realRootFolderId;
         this.targetFolder = data.targetFolder;
-        this.selectedFolders = data.selectedFolders; // 选中的分享目录
+        this.selectedFolders = data?.selectedFolders; // 选中的分享目录
         this.tgbot = data?.tgbot;
         this.sourceRegex = data?.sourceRegex; // 源正则 (自动重命名)
         this.targetRegex = data?.targetRegex; // 目标正则 (自动重命名)
@@ -28,12 +28,12 @@ class CreateTaskDto {
         if (!this.shareLink) throw new Error('分享链接不能为空');
         if (!this.targetFolderId) throw new Error('目标目录不能为空');
         if (this.matchPattern && !this.matchValue) throw new Error('填了匹配模式, 那么匹配值就必须填');
-        if (this.matchOperator && !['lt', 'eq', 'gt'].includes(this.matchOperator)) {
+        if (this.matchOperator && !['lt', 'eq', 'gt', 'contains', 'notContains'].includes(this.matchOperator)) {
             throw new Error('无效的匹配操作符');
         }
-        if (!this.tgbot && (!this.selectedFolders || this.selectedFolders.length === 0)) {
-            throw new Error('分享目录最少选择一个');
-        }
+        // if (!this.tgbot && (!this.selectedFolders || this.selectedFolders.length === 0)) {
+        //     throw new Error('分享目录最少选择一个');
+        // }
     }
 }
 

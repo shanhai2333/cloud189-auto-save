@@ -58,6 +58,54 @@ class TaskService {
         return shareCode
     }
 
+    async parseCloudShare(shareText) {
+        // 移除所有空格
+        shareText = shareText.replace(/\s/g, '');
+        shareText = decodeURIComponent(shareText);
+        // 提取基本URL和访问码
+        let url = '';
+        let accessCode = '';
+        
+        // 匹配访问码的几种常见格式
+        const accessCodePatterns = [
+            /[（(]访问码[：:]\s*([a-zA-Z0-9]{4})[)）]/,  // （访问码：xxxx）
+            /[（(]提取码[：:]\s*([a-zA-Z0-9]{4})[)）]/,  // （提取码：xxxx）
+            /访问码[：:]\s*([a-zA-Z0-9]{4})/,           // 访问码：xxxx
+            /提取码[：:]\s*([a-zA-Z0-9]{4})/,           // 提取码：xxxx
+            /[（(]([a-zA-Z0-9]{4})[)）]/                // （xxxx）
+        ];
+        
+        // 尝试匹配访问码
+        for (const pattern of accessCodePatterns) {
+            const match = shareText.match(pattern);
+            if (match) {
+                accessCode = match[1];
+                // 从原文本中移除访问码部分
+                shareText = shareText.replace(match[0], '');
+                break;
+            }
+        }
+        
+        // 提取URL - 支持两种格式
+        const urlPatterns = [
+            /(https?:\/\/cloud\.189\.cn\/web\/share\?[^\s]+)/,  // web/share格式
+            /(https?:\/\/cloud\.189\.cn\/t\/[a-zA-Z0-9]+)/      // t/xxx格式
+        ];
+    
+        for (const pattern of urlPatterns) {
+            const urlMatch = shareText.match(pattern);
+            if (urlMatch) {
+                url = urlMatch[1];
+                break;
+            }
+        }
+        
+        return {
+            url: url,
+            accessCode: accessCode
+        };
+    }
+
     // 解析分享链接
     async getShareInfo(cloud189, shareCode) {
          const shareInfo = await cloud189.getShareInfo(shareCode);
@@ -120,9 +168,7 @@ class TaskService {
     async _handleFolderShare(cloud189, shareInfo, taskDto, rootFolder, tasks) {
         const result = await cloud189.listShareDir(shareInfo.shareId, shareInfo.fileId, shareInfo.shareMode, taskDto.accessCode);
         if (!result?.fileListAO) return;
-
         const { fileList: rootFiles = [], folderList: subFolders = [] } = result.fileListAO;
-
         // 处理根目录文件 如果用户选择了根目录, 则生成根目录任务
         if (rootFiles.length > 0 && !rootFolder?.oldFolder) {
             const enableOnlySaveMedia = ConfigService.getConfigValue('task.enableOnlySaveMedia');
@@ -171,6 +217,12 @@ class TaskService {
                 // 检查用户是否选择了该文件夹
                 if (!this.checkFolderInList(taskDto, folder.id)) {
                     continue;
+                }
+                const subFolderContent = await cloud189.listShareDir(shareInfo.shareId, folder.id, shareInfo.shareMode, taskDto.accessCode);
+                const hasFiles = subFolderContent?.fileListAO?.fileList?.length > 0;
+                if (!hasFiles) {
+                    logTaskEvent(`子文件夹 "${folder.name}" (ID: ${folder.id}) 为空，跳过目录。`);
+                    continue; // 跳到下一个子文件夹
                 }
                 let realFolder;
                 if (taskDto.enableSystemProxy) {
@@ -239,6 +291,12 @@ class TaskService {
         const account = await this.accountRepo.findOneBy({ id: taskDto.accountId });
         if (!account) throw new Error('账号不存在');
         
+        // 解析url
+        const {url: parseShareLink, accessCode} = await this.parseCloudShare(taskDto.shareLink)
+        if (accessCode) {
+            taskDto.accessCode = accessCode;
+        }
+        taskDto.shareLink = parseShareLink;
         const cloud189 = Cloud189Service.getInstance(account);
         const shareCode = await this.parseShareCode(taskDto.shareLink);
         const shareInfo = await this.getShareInfo(cloud189, shareCode);
@@ -318,27 +376,13 @@ class TaskService {
 
     // 批量删除
     async deleteTasks(taskIds, deleteCloud) {
-        const tasks = await this.taskRepo.findBy({ id: In(taskIds) });
-        if (!tasks || tasks.length === 0) throw new Error('任务不存在');
-        if (deleteCloud) {
-            for (const task of tasks) {
-                if (task.enableSystemProxy) continue;
-                const account = await this.accountRepo.findOneBy({ id: task.accountId });
-                if (!account) throw new Error('账号不存在');
-                const cloud189 = Cloud189Service.getInstance(account);
-                await this.deleteCloudFile(cloud189,await this.getRootFolder(task), 1);
+        for(const taskId of taskIds) {
+            try{
+                await this.deleteTask(taskId, deleteCloud)
+            }catch (error){
+
             }
         }
-        // 删除定时任务
-        for (const task of tasks) {
-            if (task.enableCron) {
-                SchedulerService.removeTaskJob(task.id)
-            }
-            if (task.enableSystemProxy) {
-                await this.proxyFileService.deleteFiles(task.id)
-            }
-        }
-        await this.taskRepo.remove(tasks);
     }
 
     // 获取文件夹下的所有文件
@@ -432,7 +476,7 @@ class TaskService {
                     isFolder: 0
                 });
             }
-            fileNameList.push(`├─ <font color="warning">${file.name}</font>`);
+            fileNameList.push(`├─ ${file.name}`);
             if (this._checkFileSuffix(file, true, mediaSuffixs)) fileCount++;
         }
         // 如果有多个文件，最后一个文件使用└─
@@ -456,10 +500,67 @@ class TaskService {
         }
         // 修改省略号的显示格式
         if (fileNameList.length > 20) {
-            fileNameList.splice(5, fileNameList.length - 10, '├─ <font color="warning">...</font>');
+            fileNameList.splice(5, fileNameList.length - 10, '├─ ...');
         }
 
         return { fileNameList, fileCount };
+    }
+
+    // 使用 AI 过滤文件列表
+    async _filterFilesWithAI(task, fileList) {
+        logTaskEvent(`任务 ${task.id}: 尝试使用 AI 进行文件过滤...`);
+
+        // 1. 构建中文过滤描述
+        let filterDescription = '';
+        const pattern = task.matchPattern; // 例如: "剧集", "文件名"
+        const operator = task.matchOperator; // 例如: "lt", "gt", "eq", "contains", "not contains"
+        const value = task.matchValue; // 例如: "8", "特效", "1080p"
+
+        if (!pattern || !operator || !value) {
+            logTaskEvent(`任务 ${task.id}: AI 过滤条件不完整，跳过 AI 过滤。`);
+            return null; // 条件不完整，无法生成描述
+        }
+
+        let operatorText = '';
+        switch (operator) {
+            case 'gt': operatorText = '大于'; break;
+            case 'lt': operatorText = '小于'; break;
+            case 'eq': operatorText = '等于'; break;
+            case 'contains': operatorText = '包含'; break;
+            case 'not contains': operatorText = '不包含'; break;
+            default:
+                logTaskEvent(`任务 ${task.id}: 未知的过滤操作符 "${operator}"，跳过 AI 过滤。`);
+                return null;
+        }
+
+        // 根据 pattern 生成更自然的描述
+        filterDescription = `筛选出 ${pattern} ${operatorText} "${value}" 的文件。请根据文件名判断。`;
+        logTaskEvent(`任务 ${task.id}: 生成 AI 过滤描述: "${filterDescription}"`);
+
+
+        // 2. 准备给 AI 的文件列表 (仅含 id 和 name)
+        const filesForAI = fileList.map(f => ({ id: f.id, name: f.name }));
+
+        // 3. 调用 AI 服务
+        try {
+            const aiResponse = await AIService.filterMediaFiles(task.resourceName, filesForAI, filterDescription);
+
+            if (aiResponse.success && Array.isArray(aiResponse.data)) {
+                logTaskEvent(`任务 ${task.id}: AI 文件过滤成功，保留 ${aiResponse.data.length} 个文件。`);
+                // 使用 AI 返回的 id 列表来过滤原始的完整文件列表
+                const keptFileIds = new Set(aiResponse.data);
+                // 先应用后缀过滤，再应用AI过滤结果
+                const filteredList = fileList.filter(file => keptFileIds.has(file.id));
+                return filteredList; 
+            } else {
+                logTaskEvent(`任务 ${task.id}: AI 文件过滤失败: ${aiResponse.error || '未知错误'}。`);
+                return null;
+            }
+        } catch (error) {
+            logTaskEvent(`任务 ${task.id}: 调用 AI 文件过滤时发生错误: ${error.message}`);
+            console.error(`AI filter error for task ${task.id}:`, error);
+            return null; 
+        }
     }
 
     // 执行任务
@@ -502,13 +603,22 @@ class TaskService {
                 existingFileNames: new Set(), 
                 existingMediaCount: 0 
             });
+            let aiFiltered = false;
+            if (AIService.isEnabled() && task.matchPattern && task.matchOperator && task.matchValue) {
+                const aiResult = await this._filterFilesWithAI(task, shareFiles)
+                if (aiResult != null) {
+                    shareFiles = aiResult;
+                    aiFiltered = true;
+                }
+            }
+            
             const newFiles = shareFiles
                 .filter(file => 
                     !file.isFolder && !existingFiles.has(file.md5) 
                    && !existingFileNames.has(file.name)
                    && this._checkFileSuffix(file, enableOnlySaveMedia, mediaSuffixs)
-                && this._handleMatchMode(task, file));
-
+                && (aiFiltered || this._handleMatchMode(task, file)));
+            // 处理新文件并保存到数据库和云盘
             if (newFiles.length > 0) {
                 const { fileNameList, fileCount } = await this._handleNewFiles(task, newFiles, cloud189, mediaSuffixs);
                 const resourceName = task.shareFolderName? `${task.resourceName}/${task.shareFolderName}` : task.resourceName;
@@ -736,8 +846,8 @@ class TaskService {
                     '{year}': resourceInfo.year || '',
                     '{s}': aiFile.season?.padStart(2, '0') || '01',
                     '{e}': aiFile.episode?.padStart(2, '0') || '01',
-                    '{sn}': aiFile.episode.season || '1',                    // 不补零的季数
-                    '{en}': aiFile.episode.episode || '1',                   // 不补零的集数
+                    '{sn}': aiFile.season || '1',                    // 不补零的季数
+                    '{en}': aiFile.episode || '1',                   // 不补零的集数
                     '{ext}': aiFile.extension || path.extname(file.name),
                     '{se}': `S${aiFile.season?.padStart(2, '0') || '01'}E${aiFile.episode?.padStart(2, '0') || '01'}`
                 };
@@ -1192,7 +1302,7 @@ class TaskService {
 
     // 校验目录是否在目录列表中
     checkFolderInList(taskDto, folderId) {
-        return taskDto.tgbot || (taskDto.selectedFolders?.includes(folderId) || false);
+        return (!this.selectedFolders || this.selectedFolders.length === 0) || taskDto.tgbot || (taskDto.selectedFolders?.includes(folderId) || false);
     }
 
     // 校验云盘中是否存在同名目录
@@ -1201,6 +1311,7 @@ class TaskService {
         if (!folderInfo) {
             throw new Error('获取文件列表失败');
         }
+
         // 检查目标文件夹是否存在
         const { folderList = [] } = folderInfo.fileListAO;
         const existFolder = folderList.find(folder => folder.name === folderName);

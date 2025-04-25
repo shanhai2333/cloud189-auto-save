@@ -218,7 +218,7 @@ class StrmService {
         if (!this.enable){
             // 如果cloudStrmPrefix存在 且不是url地址
             if (task.account.cloudStrmPrefix && !task.account.cloudStrmPrefix.startsWith('http')) {
-                return path.join(this.baseDir, task.account.cloudStrmPrefix, taskName);
+                return path.join(task.account.cloudStrmPrefix, taskName);
             }
         }else{
             return path.join(this.baseDir, task.account.localStrmPrefix, taskName);

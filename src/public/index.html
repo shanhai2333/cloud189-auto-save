@@ -28,6 +28,7 @@
     <link rel="stylesheet" href="/css/message.css">
     <link rel="stylesheet" href="/css/floating-btn.css">
     <link rel="stylesheet" href="/css/cloudsaver.css">
+    <link rel="stylesheet" href="/css/chat.css">
 </head>
 <body>
     <div class="header">
@@ -130,7 +131,7 @@
                                     <option value="failed">失败</option>
                                     <option value="pending">等待中</option>
                                 </select>
-                                <input type="text" id="taskSearch" placeholder="搜索资源名称">
+                                <input type="text" id="taskSearch" placeholder="搜索资源名称/账号/备注">
                                 <button type="button" onclick="fetchTasks()" class="btn-icon" title="刷新任务列表">
                                     <img src="/icons/refresh.svg" alt="刷新" class="refresh-icon">
                                 </button>
@@ -550,6 +551,7 @@
 <script src="/js/loading.js"></script>
 <script src="/js/message.js"></script>
 <script src="/js/cloudsaver.js"></script>
+<script src="/js/chat.js"></script>
 
 
 </body>
@@ -613,6 +615,8 @@
                             <option value="lt">小于</option>
                             <option value="eq">等于</option>
                             <option value="gt">大于</option>
+                            <option value="contains">包含</option>
+                            <option value="notContains">不包含</option>
                         </select>
                         <input id="editMatchValue" placeholder="值" min="0" style="flex: 1 1 100px;">
                     </div>
@@ -689,6 +693,9 @@
         <div class="floating-btn" onclick="showCloudsaver()" title="CloudSaver">
             <img src="/icons/cloudsaver.svg" alt="CloudSaver" style="filter:none">
         </div>
+        <div class="floating-btn" onclick="showAIChat()" title="AI助手" style="bottom: 100px;">
+            <img src="/icons/ai.svg" alt="AI Chat">
+        </div>
         <div class="floating-btn" id="showLogsBtn" title="查看日志">
             <img src="/icons/logs.svg" alt="查看日志">
         </div>
@@ -726,6 +733,20 @@
                     <button onclick="handleSelectedResource('create')">创建任务</button>
                 </div>
             </div>
+        </div>
+    </div>
+</div>
+
+<!-- AI聊天窗口 -->
+<div id="aiChatModal" class="modal">
+    <div class="modal-content" style="width: 80%; max-width: 800px; height: 80vh;">
+        <div class="chat-header">
+            <h3>AI助手</h3>
+            <button onclick="closeAIChat()" class="close-btn">&times;</button>
+        </div>
+        <div id="chatMessages" class="chat-messages"></div>
+        <div class="chat-input">
+            <input type="text" id="messageInput" placeholder="输入消息，按回车发送...">
         </div>
     </div>
 </div>

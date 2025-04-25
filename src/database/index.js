@@ -18,6 +18,8 @@ const AppDataSource = new DataSource({
     migrations: [],
     timezone: '+08:00',  // 添加时区设置
     dateStrings: true,   // 将日期作为字符串返回
+    poolSize: 10,
+    queryTimeout: 30000,
     // 添加自定义日期处理
     extra: {
         dateStrings: true,
