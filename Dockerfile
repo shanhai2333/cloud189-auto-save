@@ -21,9 +21,6 @@ RUN apt-get update && \
     apt-get install -y ca-certificates && \
     rm -rf /var/lib/apt/lists/*
 
-# 安装依赖
-RUN yarn install
-
 # 安装cloud189-sdk依赖
 RUN cd vender/cloud189-sdk && \
     yarn install && \
@@ -31,6 +28,9 @@ RUN cd vender/cloud189-sdk && \
 
 # 回到项目根目录
 WORKDIR /home
+
+# 安装依赖
+RUN yarn install
 
 # 编译主项目源代码
 RUN yarn build
