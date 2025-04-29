@@ -9,5 +9,8 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "strict": true
-  }
+  },
+  "exclude": [
+    "vender/cloud189-sdk"
+  ]
 }
