@@ -24,6 +24,11 @@ RUN apt-get update && \
 # 安装依赖
 RUN yarn install
 
+# 打印当前目录和目录下的文件
+RUN pwd && \
+    ls -al
+# 查看vender下的目录
+RUN ls -al vendor
 # 安装cloud189-sdk依赖
 RUN cd vendor/cloud189-sdk && \
     yarn install && \
