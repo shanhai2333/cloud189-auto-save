@@ -16,12 +16,7 @@ const TelegramBotManager = require('./utils/TelegramBotManager');
 const fs = require('fs').promises;
 const path = require('path');
 const { setupCloudSaverRoutes, clearCloudSaverToken } = require('./sdk/cloudsaver');
-<<<<<<< HEAD
 const { Like, Not, IsNull, In, Or } = require('typeorm');
-=======
-const { Like, Not, IsNull } = require('typeorm');
-const CryptoUtils = require('./utils/cryptoUtils');
->>>>>>> 02c29e2 (feat: 添加转存后刷新Alist缓存和全量生成STRM)
 const cors = require('cors'); 
 const { EmbyService } = require('./services/emby');
 const { StrmService } = require('./services/strm');
@@ -705,31 +700,19 @@ AppDataSource.initialize().then(async () => {
     app.post('/api/strm/generate-all', async (req, res) => {
         try {
             const overwrite = req.body.overwrite || false;
-<<<<<<< HEAD
             const accountIds = req.body.accountIds;
             if (!accountIds || accountIds.length == 0) {
                 throw new Error('账号ID不能为空');
             }
-=======
->>>>>>> 02c29e2 (feat: 添加转存后刷新Alist缓存和全量生成STRM)
             const accounts = await accountRepo.find({
                 where: {
                     localStrmPrefix: Not(IsNull()),
                     cloudStrmPrefix: Not(IsNull()),
-<<<<<<< HEAD
                     id: In(accountIds)
                 }
             });
             const strmService = new StrmService();
             strmService.generateAll(accounts, overwrite);
-=======
-                }
-            });
-            const strmService = new StrmService();
-            for(const account of accounts) {
-                strmService.generateAll(account, overwrite);
-            }
->>>>>>> 02c29e2 (feat: 添加转存后刷新Alist缓存和全量生成STRM)
             res.json({ success: true, data: null });
         } catch (error) {
             res.json({ success: false, error: error.message });
@@ -746,7 +729,6 @@ AppDataSource.initialize().then(async () => {
             res.json({ success: false, error: error.message });
         }
     });
-<<<<<<< HEAD
 
     // ai重命名
     app.post('/api/files/ai-rename', async (req, res) => {
@@ -784,8 +766,6 @@ AppDataSource.initialize().then(async () => {
             res.json({ success: false, error: error.message });
         }
     })
-=======
->>>>>>> 02c29e2 (feat: 添加转存后刷新Alist缓存和全量生成STRM)
     
     // 全局错误处理中间件
     app.use((err, req, res, next) => {

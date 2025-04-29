@@ -99,12 +99,8 @@ class ConfigService {
         enable: false,
         baseUrl: '',
         apiKey: ''
-<<<<<<< HEAD
       },
       customPush: [] // 自定义推送
-=======
-      }
->>>>>>> 02c29e2 (feat: 添加转存后刷新Alist缓存和全量生成STRM)
     };
     this._init();
   }

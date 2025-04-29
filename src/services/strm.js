@@ -4,10 +4,7 @@ const ConfigService = require('./ConfigService');
 const { logTaskEvent } = require('../utils/logUtils');
 const CryptoUtils = require('../utils/cryptoUtils');
 const alistService = require('./alistService');
-<<<<<<< HEAD
 const { MessageUtil } = require('./message');
-=======
->>>>>>> 02c29e2 (feat: 添加转存后刷新Alist缓存和全量生成STRM)
 
 class StrmService {
     constructor() {
@@ -28,29 +25,6 @@ class StrmService {
             
         const parts = relativePath.split(path.sep);
         let currentPath = this.baseDir;  // 从基础目录开始
-
-        for (const part of parts) {
-            if (part) {
-                currentPath = path.join(currentPath, part);
-                try {
-                    await fs.mkdir(currentPath);
-                    if (process.getuid && process.getuid() === 0) {
-                        await fs.chown(currentPath, parseInt(this.puid), parseInt(this.pgid));
-                    }
-                    await fs.chmod(currentPath, 0o777);
-                } catch (error) {
-                    if (error.code !== 'EEXIST') {
-                        throw new Error(`创建目录失败: ${error.message}`);
-                    }
-                }
-            }
-        }
-    }
-
-    // 确保目录存在并设置权限和组，递归创建的所有目录都设置为 777 权限
-    async _ensureDirectoryExists(dirPath) {
-        const parts = dirPath.split(path.sep);
-        let currentPath = '';
 
         for (const part of parts) {
             if (part) {
@@ -119,10 +93,6 @@ class StrmService {
                     const fileName = file.name;
                     const parsedPath = path.parse(fileName);
                     const fileNameWithoutExt = parsedPath.name;
-<<<<<<< HEAD
-=======
-                    await this._ensureDirectoryExists(targetDir);
->>>>>>> 02c29e2 (feat: 添加转存后刷新Alist缓存和全量生成STRM)
                     const strmPath = path.join(targetDir, `${fileNameWithoutExt}.strm`);
 
                     // 检查文件是否存在
@@ -174,7 +144,6 @@ class StrmService {
      * @param {string} startPath - 起始目录路径
      * @returns {Promise<object>} - 返回处理结果统计
      */
-<<<<<<< HEAD
     async generateAll(accounts, overwrite = false) {
         if (!alistService.Enable()) {
             throw new Error('Alist功能未启用');
@@ -215,51 +184,6 @@ class StrmService {
         if (messages.length > 0) {
             this.messageUtil.sendMessage(messages.join('\n\n'));
         }   
-=======
-    async generateAll(account, overwrite = false) {
-        if (!alistService.Enable()) {
-            throw new Error('Alist功能未启用');
-        }
-        let startPath = path.basename(account.cloudStrmPrefix);
-        // 初始化统计信息
-        const stats = {
-            success: 0,
-            failed: 0,
-            skipped: 0,
-            totalFiles: 0,
-            processedDirs: new Set()
-        };
-
-        try {
-            // 获取媒体文件后缀列表
-            const mediaSuffixs = ConfigService.getConfigValue('task.mediaSuffix').split(';').map(suffix => suffix.toLowerCase());
-            
-            await this._processDirectory(startPath, account, stats, mediaSuffixs, overwrite);
-
-            // 生成最终统计信息
-            const message = `🎉生成STRM文件完成\n` +
-                          `处理目录数: ${stats.processedDirs.size}\n` +
-                          `总文件数: ${stats.totalFiles}\n` +
-                          `成功数: ${stats.success}\n` +
-                          `失败数: ${stats.failed}\n` +
-                          `跳过数: ${stats.skipped}`;
-            logTaskEvent(message);
-
-            // 返回处理结果
-            return {
-                success: stats.success,
-                failed: stats.failed,
-                skipped: stats.skipped,
-                totalFiles: stats.totalFiles,
-                processedDirs: Array.from(stats.processedDirs)
-            };
-
-        } catch (error) {
-            const message = `生成STRM文件失败: ${error.message}`;
-            logTaskEvent(message);
-            throw new Error(message);
-        }
->>>>>>> 02c29e2 (feat: 添加转存后刷新Alist缓存和全量生成STRM)
     }
 
     /**
@@ -280,10 +204,6 @@ class StrmService {
         }
 
         const files = alistResponse.data.content;
-<<<<<<< HEAD
-=======
-        // stats.processedDirs.add(dirPath);
->>>>>>> 02c29e2 (feat: 添加转存后刷新Alist缓存和全量生成STRM)
         logTaskEvent(`开始处理目录 ${dirPath}, 文件数量: ${files.length}`);
 
         for (const file of files) {
@@ -295,20 +215,13 @@ class StrmService {
                     stats.totalFiles++;
                     // 检查是否为媒体文件
                     if (!this._checkFileSuffix(file, mediaSuffixs)) {
-<<<<<<< HEAD
                         // console.log(`文件不是媒体文件，跳过: ${file.name}`);
-=======
->>>>>>> 02c29e2 (feat: 添加转存后刷新Alist缓存和全量生成STRM)
                         stats.skipped++;
                         continue;
                     }
 
                     // 构建STRM文件路径
-<<<<<<< HEAD
                     const relativePath = dirPath.substring(dirPath.indexOf('/') + 1).replace(/^\/+|\/+$/g, '')
-=======
-                    const relativePath = dirPath.replace(/^\/+|\/+$/g, '');
->>>>>>> 02c29e2 (feat: 添加转存后刷新Alist缓存和全量生成STRM)
                     const targetDir = path.join(this.baseDir, account.localStrmPrefix, relativePath);
                     const parsedPath = path.parse(file.name);
                     const strmPath = path.join(targetDir, `${parsedPath.name}.strm`);
@@ -317,12 +230,8 @@ class StrmService {
                     try {
                         await fs.access(strmPath);
                         if (!overwrite) {
-<<<<<<< HEAD
                             // console.log(`STRM文件已存在，跳过: ${strmPath}`);
                             stats.skipped++
-=======
-                            skipped++
->>>>>>> 02c29e2 (feat: 添加转存后刷新Alist缓存和全量生成STRM)
                             continue;
                         }
                     } catch (err) {
@@ -332,11 +241,7 @@ class StrmService {
                     await this._ensureDirectoryExists(targetDir);
 
                     // 生成STRM文件内容
-<<<<<<< HEAD
                     const content = this._joinUrl(account.cloudStrmPrefix, path.join(relativePath.replace(/^\/+|\/+$/g, ''), file.name));
-=======
-                    const content = this._joinUrl(account.cloudStrmPrefix, path.join(relativePath.substring(relativePath.indexOf('/') + 1).replace(/^\/+|\/+$/g, ''), file.name));
->>>>>>> 02c29e2 (feat: 添加转存后刷新Alist缓存和全量生成STRM)
                     // 写入STRM文件
                     await fs.writeFile(strmPath, content, 'utf8');
                     if (process.getuid && process.getuid() === 0) {
@@ -370,28 +275,12 @@ class StrmService {
             for (const item of items) {
                 const fullPath = path.join(targetPath, item.name);
                 const relativePath = path.relative(this.baseDir, fullPath);
-<<<<<<< HEAD
                 if (item.isFile() && !item.name.startsWith('.') && path.extname(item.name) === '.strm') {
-=======
-                
-                if (item.isDirectory()) {
-                    results.push({
-                        id: item.name,
-                        name: item.name,
-                        path: relativePath,
-                    });
-                } else if (item.isFile() && !item.name.startsWith('.')) {
->>>>>>> 02c29e2 (feat: 添加转存后刷新Alist缓存和全量生成STRM)
                     // 读取STRM文件内容
                     results.push({
                         id: item.name,
                         name: item.name,
-<<<<<<< HEAD
                         path: relativePath
-=======
-                        path: relativePath,
-                        isFile: true
->>>>>>> 02c29e2 (feat: 添加转存后刷新Alist缓存和全量生成STRM)
                     });
                 }
             }
