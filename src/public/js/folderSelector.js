@@ -1,5 +1,6 @@
 class FolderSelector {
     constructor(options = {}) {
+        this.title = options.title || '选择目录';
         this.onSelect = options.onSelect || (() => {});
         this.accountId = options.accountId || '';
         this.selectedNode = null;
@@ -9,6 +10,7 @@ class FolderSelector {
         this.favoritesKey = options.favoritesKey || 'defaultFavoriteDirectories'; // 常用目录缓存key
         this.isShowingFavorites = false;
         this.currentPath = []; 
+        this.favorites = []
         // API配置
         this.apiConfig = {
             url: options.apiUrl || '/api/folders', // 默认API地址
@@ -17,6 +19,27 @@ class FolderSelector {
             validateResponse: options.validateResponse || ((data) => data.success) // 验证响应数据
         };
 
+
+        this.buttons = options.buttons || [
+            {
+                text: '确定',
+                class: 'btn-primary',
+                action: 'confirm'
+            },
+            {
+                text: '取消',
+                class: 'btn-default',
+                action: 'cancel'
+            }
+        ];
+
+        // 新增按钮回调函数配置
+        this.buttonCallbacks = {
+            confirm: options.onConfirm || this.defaultConfirm.bind(this),
+            cancel: options.onCancel || this.defaultCancel.bind(this),
+            ...options.buttonCallbacks
+        };
+        
         this.initModal();
     }
 
@@ -95,7 +118,7 @@ class FolderSelector {
             <div id="${this.modalId}" class="modal">
                 <div class="modal-content">
                     <div class="modal-header">
-                        <h3 class="modal-title">选择目录</h3>
+                        <h3 class="modal-title">${this.title}</h3>
                         <a href="javascript:;" class="refresh-link" data-action="refresh">
                             <span class="refresh-icon">🔄</span> 刷新
                         </a>
@@ -104,8 +127,9 @@ class FolderSelector {
                         <div id="${this.treeId}" class="folder-tree"></div>
                     </div>
                     <div class="form-actions">
-                        <button class="modal-btn modal-btn-primary" data-action="confirm">确定</button>
-                        <button class="modal-btn modal-btn-default" data-action="cancel">取消</button>
+                    ${this.buttons.map(btn => `
+                        <button class="${btn.class}" data-action="${btn.action}">${btn.text}</button>
+                    `).join('')}
                     </div>
                 </div>
             </div>
@@ -118,7 +142,7 @@ class FolderSelector {
 
         this.modal = document.getElementById(this.modalId);
         this.folderTree = document.getElementById(this.treeId);
-
+        this.currentPath = []
         // 绑定事件
         this.modal.addEventListener('click', (e) => {
             if (e.target === this.modal) {
@@ -127,15 +151,19 @@ class FolderSelector {
         });
         // 添加刷新事件监听
         this.modal.querySelector('[data-action="refresh"]').addEventListener('click', () => this.refreshTree());
-        this.modal.querySelector('[data-action="cancel"]').addEventListener('click', () => this.close());
-        this.modal.querySelector('[data-action="confirm"]').addEventListener('click', () => this.confirm());
+        this.buttons.forEach(btn => {
+            const button = this.modal.querySelector(`[data-action="${btn.action}"]`);
+            if (button && this.buttonCallbacks[btn.action]) {
+                button.addEventListener('click', () => this.buttonCallbacks[btn.action]());
+            }
+        });
     }
 
     // 添加刷新方法
     async refreshTree() {
         const refreshLink = this.modal.querySelector('.refresh-link');
         refreshLink.classList.add('loading');
-        
+        this.currentPath = []; 
         try {
             if (this.isShowingFavorites) {
                 await this.loadFolderNodes(null, this.folderTree, false);
@@ -162,6 +190,8 @@ class FolderSelector {
         this.modal.style.zIndex = 1001;
         this.selectedNode = null;
         this.isShowingFavorites = false;
+        this.favorites =  await this.getFavorites()
+        this.modal.querySelector('.modal-title').textContent = this.title;
         await this.loadFolderNodes('-11');
     }
 
@@ -172,7 +202,7 @@ class FolderSelector {
         this.initModal();
     }
 
-    confirm() {
+    defaultConfirm() {
         if (this.selectedNode) {
             this.onSelect({
                 id: this.selectedNode.id,
@@ -185,6 +215,11 @@ class FolderSelector {
         }
     }
 
+    // 默认取消按钮回调
+    defaultCancel() {
+        this.close();
+    }
+
     async loadFolderNodes(folderId, parentElement = this.folderTree, refresh = false) {
         try {
             let nodes;
@@ -192,7 +227,7 @@ class FolderSelector {
                 // 从缓存加载常用目录数据
                 nodes = await this.getFavorites();
             }else{
-                const params = this.apiConfig.buildParams(this.accountId, folderId);
+                const params = this.apiConfig.buildParams(this.accountId, folderId, this);
                 const response = await fetch(`${this.apiConfig.url}/${params}${refresh ? '&refresh=true' : ''}`);
                 const data = await response.json();
                 if (!this.apiConfig.validateResponse(data)) {
@@ -209,12 +244,12 @@ class FolderSelector {
 
     async renderFolderNodes(nodes, parentElement = this.folderTree) {
         parentElement.innerHTML = '';
-        const favorites =  await this.getFavorites()
+        let favorites = this.favorites
         nodes.forEach(node => {
             const item = document.createElement('div');
             item.className = 'folder-tree-item';
-            // 常用目录视图不显示展开图标和复选框
-            const expandIcon = this.isShowingFavorites ? '' : '<span class="expand-icon">▶</span>';
+            // 常用目录视图不显示展开图标和复选框 是否允许点击
+            const expandIcon = (this.isShowingFavorites || node.isFile) ? '' : '<span class="expand-icon">▶</span>';
             const isFavorite = favorites.some(f => f.id === node.id);
             const favoriteIcon = this.enableFavorites ? `
                 <span class="favorite-icon ${isFavorite ? 'active' : ''}" data-id="${node.id}" data-name="${node.name}">
@@ -229,7 +264,7 @@ class FolderSelector {
 
             item.innerHTML = `
                 ${favoriteIcon}
-                <span class="folder-icon">📁</span>
+                <span class="folder-icon">${node.isFile?'📃':'📁'}</span>
                 <span class="folder-name">${displayName}</span>
                 ${expandIcon}
             `;
@@ -256,16 +291,17 @@ class FolderSelector {
                     }
                 });
             }
-
             item.addEventListener('click', async (e) => {
                 e.stopPropagation();
+                this.selectFolder(node, item);
+                if (this.isShowingFavorites || node.isFile) {
+                    return;
+                }
                 if (!item.classList.contains('expanded')) {
                     await this.loadFolderNodes(node.id, children);
                 }
                 item.classList.toggle('expanded');
-                this.selectFolder(node, item);
             });
-
             parentElement.appendChild(item);
         });
     }
@@ -313,6 +349,7 @@ class FolderSelector {
         this.modal.style.zIndex = 1001;
         this.selectedNode = null;
         this.isShowingFavorites = true;
+        this.modal.querySelector('.modal-title').textContent = '常用目录';
         this.loadFolderNodes(null, this.folderTree, false, true);
     }
 }

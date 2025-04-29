@@ -257,7 +257,7 @@
                         </div>
                         <div class="form-actions">
                             <button type="submit">创建</button>
-                            <button type="button" onclick="closeCreateTaskModal()">取消</button>
+                            <button type="button" class="btn-default" onclick="closeCreateTaskModal()">取消</button>
                         </div>
                     </form>
                 </div>
@@ -397,7 +397,7 @@
                 </div>
 
                 <div class="form-group">
-                    <label for="proxySettings">代理设置（仅用于 Telegram, TMDB</label>
+                    <label for="proxySettings">代理设置(仅用于 Telegram, TMDB, 天翼云盘)</label>
                     <div class="proxy-settings">
                         <input type="text" id="proxyHost" placeholder="代理地址: 127.0.0.1">
                         <input type="number" id="proxyPort" placeholder="代理端口">
@@ -509,6 +509,18 @@
                 </div>
 
                 <div class="form-group">
+                    <label>Alist 设置</label>
+                    <div class="proxy-settings" style="border: 1px solid var(--border-color);padding: 12px;">
+                            <label style="display: flex;align-items: center;gap: 8px;margin-bottom: 0;width: 15%;">
+                                <input type="checkbox" id="enableAlist" style="width: auto;">
+                                启用
+                            </label>
+                            <input type="text" id="alistServer" style="height: 32px; width: 40%;" placeholder="例如: http://localhost:5244">
+                            <input type="text" id="alistApiKey" style="height: 32px;" placeholder="Alist 令牌">
+                    </div>
+                </div>
+
+                <div class="form-group">
                     <label>刮削设置 (实验特性)</label>
                     <div class="push-settings">
                         <div class="push-item">
@@ -552,6 +564,7 @@
 <script src="/js/message.js"></script>
 <script src="/js/cloudsaver.js"></script>
 <script src="/js/chat.js"></script>
+<script src="/js/strm.js"></script>
 
 
 </body>
@@ -639,7 +652,7 @@
             </div>
             <div class="form-actions">
                 <button type="submit">保存</button>
-                <button type="button" onclick="closeEditTaskModal()">取消</button>
+                <button type="button" class="btn-default" onclick="closeEditTaskModal()">取消</button>
             </div>
         </form>
     </div>
@@ -696,6 +709,9 @@
         <div class="floating-btn" onclick="showAIChat()" title="AI助手" style="bottom: 100px;">
             <img src="/icons/ai.svg" alt="AI Chat">
         </div>
+        <div class="floating-btn" onclick="showStrm()" title="STRM生成器">
+            <img src="/icons/link.svg" alt="STRM">
+        </div>
         <div class="floating-btn" id="showLogsBtn" title="查看日志">
             <img src="/icons/logs.svg" alt="查看日志">
         </div>
@@ -747,6 +763,22 @@
         <div id="chatMessages" class="chat-messages"></div>
         <div class="chat-input">
             <input type="text" id="messageInput" placeholder="输入消息，按回车发送...">
+        </div>
+    </div>
+</div>
+
+<!-- STRM弹窗 -->
+<div id="strmModal" class="modal">
+    <div class="modal-content" style="width: 80%; max-width: 800px;">
+        <div class="modal-header">
+            <h3>STRM生成</h3>
+            <button class="close-btn" onclick="closeStrm()">&times;</button>
+        </div>
+        <div class="strm-container">
+            <div class="strm-actions">
+                <button onclick="generateAllStrm()" class="primary-btn">一键生成STRM</button>
+            </div>
+            <div id="strmFolderTree" class="folder-tree"></div>
         </div>
     </div>
 </div>

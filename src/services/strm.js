@@ -3,6 +3,7 @@ const path = require('path');
 const ConfigService = require('./ConfigService');
 const { logTaskEvent } = require('../utils/logUtils');
 const CryptoUtils = require('../utils/cryptoUtils');
+const alistService = require('./alistService');
 
 class StrmService {
     constructor() {
@@ -11,6 +12,29 @@ class StrmService {
         // 从环境变量获取 PUID 和 PGID，默认值设为 0
         this.puid = process.env.PUID || 0;
         this.pgid = process.env.PGID || 0;
+    }
+
+    // 确保目录存在并设置权限和组，递归创建的所有目录都设置为 777 权限
+    async _ensureDirectoryExists(dirPath) {
+        const parts = dirPath.split(path.sep);
+        let currentPath = '';
+
+        for (const part of parts) {
+            if (part) {
+                currentPath = path.join(currentPath, part);
+                try {
+                    await fs.mkdir(currentPath);
+                    if (process.getuid && process.getuid() === 0) {
+                        await fs.chown(currentPath, parseInt(this.puid), parseInt(this.pgid));
+                    }
+                    await fs.chmod(currentPath, 0o777);
+                } catch (error) {
+                    if (error.code !== 'EEXIST') {
+                        throw new Error(`创建目录失败: ${error.message}`);
+                    }
+                }
+            }
+        }
     }
 
     /**
@@ -30,14 +54,6 @@ class StrmService {
         let failed = 0;
         let skipped = 0;
         try {
-            // 确保基础目录存在
-            await fs.mkdir(this.baseDir, { recursive: true });
-            // 设置基础目录权限
-            if (process.getuid && process.getuid() === 0) {
-                await fs.chown(this.baseDir, parseInt(this.puid), parseInt(this.pgid));
-            }
-            await fs.chmod(this.baseDir, 0o777);
-
             // mediaSuffixs转为小写
             const mediaSuffixs = ConfigService.getConfigValue('task.mediaSuffix').split(';').map(suffix => suffix.toLowerCase())
             let taskName = task.realFolderName.substring(task.realFolderName.indexOf('/') + 1)
@@ -58,13 +74,7 @@ class StrmService {
                     const fileName = file.name;
                     const parsedPath = path.parse(fileName);
                     const fileNameWithoutExt = parsedPath.name;
-                    // 确保目标目录存在
-                    await fs.mkdir(targetDir, { recursive: true });
-                    // 设置目录权限
-                    if (process.getuid && process.getuid() === 0) {
-                        await fs.chown(targetDir, parseInt(this.puid), parseInt(this.pgid));
-                    }
-                    await fs.chmod(targetDir, 0o777);
+                    await this._ensureDirectoryExists(targetDir);
                     const strmPath = path.join(targetDir, `${fileNameWithoutExt}.strm`);
 
                     // 检查文件是否存在
@@ -114,6 +124,168 @@ class StrmService {
         const message = `🎉生成STRM文件完成, 总文件数: ${files.length}, 成功数: ${success}, 失败数: ${failed}, 跳过数: ${skipped}`
         logTaskEvent(message);
         return message;
+    }
+
+    /**
+     * 批量生成STRM文件 根据Alist目录
+     * @param {string} startPath - 起始目录路径
+     * @returns {Promise<object>} - 返回处理结果统计
+     */
+    async generateAll(account, overwrite = false) {
+        if (!alistService.Enable()) {
+            throw new Error('Alist功能未启用');
+        }
+        let startPath = path.basename(account.cloudStrmPrefix);
+        // 初始化统计信息
+        const stats = {
+            success: 0,
+            failed: 0,
+            skipped: 0,
+            totalFiles: 0,
+            processedDirs: new Set()
+        };
+
+        try {
+            // 获取媒体文件后缀列表
+            const mediaSuffixs = ConfigService.getConfigValue('task.mediaSuffix').split(';').map(suffix => suffix.toLowerCase());
+            
+            await this._processDirectory(startPath, account, stats, mediaSuffixs, overwrite);
+
+            // 生成最终统计信息
+            const message = `🎉生成STRM文件完成\n` +
+                          `处理目录数: ${stats.processedDirs.size}\n` +
+                          `总文件数: ${stats.totalFiles}\n` +
+                          `成功数: ${stats.success}\n` +
+                          `失败数: ${stats.failed}\n` +
+                          `跳过数: ${stats.skipped}`;
+            logTaskEvent(message);
+
+            // 返回处理结果
+            return {
+                success: stats.success,
+                failed: stats.failed,
+                skipped: stats.skipped,
+                totalFiles: stats.totalFiles,
+                processedDirs: Array.from(stats.processedDirs)
+            };
+
+        } catch (error) {
+            const message = `生成STRM文件失败: ${error.message}`;
+            logTaskEvent(message);
+            throw new Error(message);
+        }
+    }
+
+    /**
+     * 处理单个目录
+     * @param {string} dirPath - 目录路径
+     * @param {object} stats - 统计信息
+     * @param {array} mediaSuffixs - 媒体文件后缀列表
+     * @private
+     */
+    async _processDirectory(dirPath, account, stats, mediaSuffixs, overwrite) {
+        // 获取alist文件列表
+        const alistResponse = await alistService.listFiles(dirPath);
+        if (!alistResponse || !alistResponse.data) {
+            throw new Error(`获取Alist文件列表失败: ${dirPath}`);
+        }
+        if (!alistResponse.data.content) {
+            return;
+        }
+
+        const files = alistResponse.data.content;
+        // stats.processedDirs.add(dirPath);
+        logTaskEvent(`开始处理目录 ${dirPath}, 文件数量: ${files.length}`);
+
+        for (const file of files) {
+            try {
+                if (file.is_dir) {
+                    // 递归处理子目录
+                    await this._processDirectory(path.join(dirPath, file.name), account, stats, mediaSuffixs, overwrite);
+                } else {
+                    stats.totalFiles++;
+                    // 检查是否为媒体文件
+                    if (!this._checkFileSuffix(file, mediaSuffixs)) {
+                        stats.skipped++;
+                        continue;
+                    }
+
+                    // 构建STRM文件路径
+                    const relativePath = dirPath.replace(/^\/+|\/+$/g, '');
+                    const targetDir = path.join(this.baseDir, account.localStrmPrefix, relativePath);
+                    const parsedPath = path.parse(file.name);
+                    const strmPath = path.join(targetDir, `${parsedPath.name}.strm`);
+                    overwrite && await this._deleteDirAllStrm(targetDir)
+                    // 检查文件是否存在
+                    try {
+                        await fs.access(strmPath);
+                        if (!overwrite) {
+                            skipped++
+                            continue;
+                        }
+                    } catch (err) {
+                        // 文件不存在，继续处理
+                    }
+
+                    await this._ensureDirectoryExists(targetDir);
+
+                    // 生成STRM文件内容
+                    const content = this._joinUrl(account.cloudStrmPrefix, path.join(relativePath.substring(relativePath.indexOf('/') + 1).replace(/^\/+|\/+$/g, ''), file.name));
+                    // 写入STRM文件
+                    await fs.writeFile(strmPath, content, 'utf8');
+                    if (process.getuid && process.getuid() === 0) {
+                        await fs.chown(strmPath, parseInt(this.puid), parseInt(this.pgid));
+                    }
+                    await fs.chmod(strmPath, 0o777);
+
+                    stats.success++;
+                    logTaskEvent(`生成STRM文件成功: ${strmPath}`);
+                }
+            } catch (error) {
+                stats.failed++;
+                logTaskEvent(`处理文件失败: ${file.name}, 错误: ${error.message}`);
+            }
+        }
+    }
+
+    async listStrmFiles(dirPath = '') {
+        try {
+            const targetPath = path.join(this.baseDir, dirPath);
+            const results = [];
+            
+            // 检查目录是否存在
+            try {
+                await fs.access(targetPath);
+            } catch (err) {
+                return results;
+            }
+            // 读取目录内容
+            const items = await fs.readdir(targetPath, { withFileTypes: true });
+            for (const item of items) {
+                const fullPath = path.join(targetPath, item.name);
+                const relativePath = path.relative(this.baseDir, fullPath);
+                
+                if (item.isDirectory()) {
+                    results.push({
+                        id: item.name,
+                        name: item.name,
+                        path: relativePath,
+                    });
+                } else if (item.isFile() && !item.name.startsWith('.')) {
+                    // 读取STRM文件内容
+                    results.push({
+                        id: item.name,
+                        name: item.name,
+                        path: relativePath,
+                        isFile: true
+                    });
+                }
+            }
+            
+            return results;
+        } catch (error) {
+            throw new Error(`列出STRM文件失败: ${error.message}`);
+        }
     }
 
     /**

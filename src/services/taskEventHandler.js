@@ -3,6 +3,8 @@ const { EmbyService } = require('./emby');
 const { logTaskEvent } = require('../utils/logUtils');
 const ConfigService = require('./ConfigService');
 const { ScrapeService } = require('./ScrapeService');
+const alistService = require('./alistService');
+const path = require('path');
 
 class TaskEventHandler {
     constructor(messageUtil) {
@@ -22,6 +24,19 @@ class TaskEventHandler {
             if (ConfigService.getConfigValue('strm.enable')) {
                 const message = await strmService.generate(task, taskCompleteEventDto.fileList, taskCompleteEventDto.overwriteStrm);
                 this.messageUtil.sendMessage(message);
+            }
+
+            // 如果开启了alist 并且设置了cloudStrmPrefix, 则刷新alist缓存
+            if (ConfigService.getConfigValue('alist.enable') && !task.enableSystemProxy &&task.account.cloudStrmPrefix) {
+                // 获取路径 去掉第一个目录和最后一个 获取cloudStrmPrefix的最后一个目录拼接
+                const pathParts = task.realFolderName.split('/');
+                let alistPath = pathParts.slice(1, -1).join('/');
+                alistPath = path.join(path.basename(task.account.cloudStrmPrefix), alistPath)
+                logTaskEvent(`刷新alist上级目录缓存: ${alistPath}`);
+                await alistService.listFiles(alistPath);
+                const currentPath = path.join(alistPath, path.basename(task.realFolderName))
+                logTaskEvent(`刷新alist当前目录缓存: ${currentPath}`);
+                await alistService.listFiles(currentPath);
             }
             // 如果开启了刮削
             if (ConfigService.getConfigValue('tmdb.enableScraper') && task?.enableTaskScraper) {

@@ -79,6 +79,11 @@ class ConfigService {
         rename: {
           template: "{name} - {se}{ext}",  // 默认模板
         }
+      },
+      alist: {
+        enable: false,
+        baseUrl: '',
+        apiKey: ''
       }
     };
     this._init();

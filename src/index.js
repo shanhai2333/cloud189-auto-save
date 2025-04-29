@@ -17,10 +17,11 @@ const TelegramBotManager = require('./utils/TelegramBotManager');
 const fs = require('fs').promises;
 const path = require('path');
 const { setupCloudSaverRoutes, clearCloudSaverToken } = require('./sdk/cloudsaver');
-const { Like } = require('typeorm');
+const { Like, Not, IsNull } = require('typeorm');
 const CryptoUtils = require('./utils/cryptoUtils');
 const cors = require('cors'); 
 const { EmbyService } = require('./services/emby');
+const { StrmService } = require('./services/strm');
 const AIService = require('./services/ai');
 
 const app = express();
@@ -396,7 +397,7 @@ AppDataSource.initialize().then(async () => {
             folderCache.set(cacheKey, folders);
             res.json({ success: true, data: folders });
         } catch (error) {
-            res.status(500).json({ success: false, error: error.message });
+            res.json({ success: false, error: error.message });
         }
     });
 
@@ -452,8 +453,12 @@ AppDataSource.initialize().then(async () => {
             throw new Error('任务不存在');
         }
         const cloud189 = Cloud189Service.getInstance(account);
-        const fileList =  await taskService.getAllFolderFiles(cloud189, task);
-        res.json({ success: true, data: fileList });
+        try {
+            const fileList =  await taskService.getAllFolderFiles(cloud189, task);    
+            res.json({ success: true, data: fileList });
+        }catch (error) {
+            res.status(500).json({ success: false, error: error.message });
+        }
     });
     app.post('/api/files/rename', async (req, res) => {
         const {taskId, accountId, files, sourceRegex, targetRegex } = req.body;
@@ -514,6 +519,7 @@ AppDataSource.initialize().then(async () => {
         );
         // 修改配置, 重新实例化消息推送
         messageUtil.updateConfig()
+        Cloud189Service.setProxy()
         res.json({success: true, data: null})
     })
 
@@ -660,6 +666,39 @@ AppDataSource.initialize().then(async () => {
             res.status(500).json({ success: false, error: '处理消息失败' });
         }
     })
+
+
+    // STRM相关API
+    app.post('/api/strm/generate-all', async (req, res) => {
+        try {
+            const overwrite = req.body.overwrite || false;
+            const accounts = await accountRepo.find({
+                where: {
+                    localStrmPrefix: Not(IsNull()),
+                    cloudStrmPrefix: Not(IsNull()),
+                }
+            });
+            const strmService = new StrmService();
+            for(const account of accounts) {
+                strmService.generateAll(account, overwrite);
+            }
+            res.json({ success: true, data: null });
+        } catch (error) {
+            res.json({ success: false, error: error.message });
+        }
+    });
+
+    app.get('/api/strm/list', async (req, res) => {
+        try {
+            const path = req.query.path || '';
+            const strmService = new StrmService();
+            const files = await strmService.listStrmFiles(path);
+            res.json({ success: true, data: files });
+        } catch (error) {
+            res.json({ success: false, error: error.message });
+        }
+    });
+    
     // 全局错误处理中间件
     app.use((err, req, res, next) => {
         console.error('捕获到全局异常:', err.message);

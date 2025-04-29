@@ -1,7 +1,7 @@
 const fs = require('fs').promises;
 const path = require('path');
 const { TMDBService } = require('./tmdb');
-const MediaTypeDetector = require('../utils/MediaFileParser');
+// const MediaTypeDetector = require('../utils/MediaFileParser');
 const got = require('got');
 const { logTaskEvent } = require('../utils/logUtils');
 const crypto = require('crypto');
@@ -20,6 +20,9 @@ class ScrapeService {
         if (this.ai.isEnabled()) {
             logTaskEvent('使用AI进行刮削');
             return await this.scrapeWithAI(dirPath, tmdbId);
+        }else{
+            logTaskEvent('使用AI, 跳过刮削');
+            return null;
         }
         try {
             // 获取当前目录下所有 .strm 文件
@@ -412,10 +415,11 @@ class ScrapeService {
     }
 
     async _parseMediaInfo(parsedPath) {
-        return MediaTypeDetector.detect({
-            filename: parsedPath.strmFile,
-            dirPath: parsedPath.seasonDir
-        });
+        // return MediaTypeDetector.detect({
+        //     filename: parsedPath.strmFile,
+        //     dirPath: parsedPath.seasonDir
+        // });
+        return {}
     }
 
     async _fetchTMDBInfo(mediaInfo, currentEpisodes) {

@@ -76,6 +76,11 @@ async function loadSettings() {
             document.getElementById('openaiApiKey').value = settings.openai?.apiKey || '';
             document.getElementById('openaiModel').value = settings.openai?.model || '';
             document.getElementById('openaiTemplate').value = settings.openai?.rename?.template || '';
+
+            // alist
+            document.getElementById('enableAlist').checked = settings.alist?.enable || false;
+            document.getElementById('alistServer').value = settings.alist?.baseUrl || '';
+            document.getElementById('alistApiKey').value = settings.alist?.apiKey || '';
         }
     } catch (error) {
         console.error('加载设置失败:', error);

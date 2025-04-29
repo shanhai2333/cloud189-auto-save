@@ -36,7 +36,11 @@ async function saveMediaSettings() {
             rename: {
                 template: document.getElementById('openaiTemplate').value,
             }
-
+        },
+        alist: {
+            enable: document.getElementById('enableAlist').checked,
+            baseUrl: document.getElementById('alistServer').value,
+            apiKey: document.getElementById('alistApiKey').value
         }
     };
 

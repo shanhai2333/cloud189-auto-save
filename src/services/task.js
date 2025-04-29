@@ -392,7 +392,7 @@ class TaskService {
         }
         const folderId = task.realFolderId
         const folderInfo = await cloud189.listFiles(folderId);
-        // todo 如果folderInfo.res_code == FileNotFound 需要重新创建目录
+        // 如果folderInfo.res_code == FileNotFound 需要重新创建目录
         if (folderInfo.res_code == "FileNotFound") {
             logTaskEvent('文件夹不存在!')
             if (!task) {
@@ -974,7 +974,7 @@ class TaskService {
                 saveResults.push(result)
             }
             } catch (error) {
-                console.error(`任务${task.id}执行失败:`, error);
+                logTaskEvent(`任务${task.id}执行失败: ${error.message}`);
             }finally {
                 logTaskEvent(`任务[${taskName}]执行完成`);
             }
@@ -1302,7 +1302,7 @@ class TaskService {
 
     // 校验目录是否在目录列表中
     checkFolderInList(taskDto, folderId) {
-        return (!this.selectedFolders || this.selectedFolders.length === 0) || taskDto.tgbot || (taskDto.selectedFolders?.includes(folderId) || false);
+        return (!taskDto.selectedFolders || taskDto.selectedFolders.length === 0) || taskDto.tgbot || (taskDto.selectedFolders?.includes(folderId) || false);
     }
 
     // 校验云盘中是否存在同名目录

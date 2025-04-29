@@ -310,7 +310,6 @@ async function showFileListModal(taskId) {
                             <th>文件名</th>
                             <th>大小</th>
                             <th>修改时间</th>
-                            <th>操作</th>
                         </tr>
                     </thead>
                     <tbody id="fileListBody"></tbody>
@@ -318,7 +317,7 @@ async function showFileListModal(taskId) {
                 </div>
             </div>
             <div class="form-actions">
-                <button onclick="closeFileListModal()">关闭</button>
+                <button class="btn-default" onclick="closeFileListModal()">关闭</button>
             </div>
         </div>
     `;
@@ -339,7 +338,6 @@ async function showFileListModal(taskId) {
                         <td>${file.name}</td>
                         <td>${formatFileSize(file.size)}</td>
                         <td>${file.lastOpTime}</td>
-                        <td><a href="javascript:void(0)" onclick="copyDirectLink('${file.id}', ${chooseTask.id})">复制直链</a></td>
                     </tr>
                 `;
             });
@@ -396,8 +394,8 @@ function showBatchRenameOptions() {
             </div>
             <div class="form-actions">
                 <button class="saveAndAutoUpdate btn-warning" onclick="previewRename(true)">确定并自动更新</button>
-                <button class="btn-default" onclick="closeRenameOptionsModal()">取消</button>
                 <button class="btn-primary" onclick="previewRename(false)">确定</button>
+                <button class="btn-default" onclick="closeRenameOptionsModal()">取消</button>
             </div>
         </div>
     `;
@@ -498,17 +496,12 @@ function showRenamePreview(newNames, autoUpdate) {
             </div>
             <div class="form-actions">
                 <button onclick="submitRename(${autoUpdate})">确定</button>
-                <button onclick="backToRenameOptions()">返回</button>
-                <button onclick="closeRenamePreviewModal()">取消</button>
+                <button onclick="closeRenamePreviewModal()" class="btn-default">取消</button>
             </div>
         </div>
     `;
     document.body.appendChild(modal);
     modal.style.display = 'flex';
-}
-
-function backToRenameOptions() {
-    closeRenamePreviewModal();
 }
 
 async function submitRename(autoUpdate) {
