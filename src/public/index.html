@@ -457,8 +457,12 @@
                 </div>
 
                 <div class="form-group">
+<<<<<<< HEAD
                     <label for="proxySettings">代理设置</label>
                     <div class="push-item">
+=======
+                    <label for="proxySettings">代理设置(仅用于 Telegram, TMDB, 天翼云盘)</label>
+>>>>>>> 02c29e2 (feat: 添加转存后刷新Alist缓存和全量生成STRM)
                     <div class="proxy-settings">
                         <input type="text" id="proxyHost" placeholder="代理地址: 127.0.0.1">
                         <input type="number" id="proxyPort" placeholder="代理端口">
@@ -659,7 +663,10 @@
 <script src="/js/cloudsaver.js"></script>
 <script src="/js/chat.js"></script>
 <script src="/js/strm.js"></script>
+<<<<<<< HEAD
 <script src="/js/customPush.js"></script> 
+=======
+>>>>>>> 02c29e2 (feat: 添加转存后刷新Alist缓存和全量生成STRM)
 
 
 </body>
@@ -747,7 +754,10 @@
             </div>
             <div class="form-actions">
                 <button type="submit">保存</button>
+<<<<<<< HEAD
                 <input type="hidden" id="editAccountId">
+=======
+>>>>>>> 02c29e2 (feat: 添加转存后刷新Alist缓存和全量生成STRM)
                 <button type="button" class="btn-default" onclick="closeEditTaskModal()">取消</button>
             </div>
         </form>
@@ -805,12 +815,18 @@
         <div class="floating-btn" onclick="showAIChat()" title="AI助手" style="bottom: 100px;">
             <img src="/icons/ai.svg" alt="AI Chat">
         </div>
+<<<<<<< HEAD
         <div class="floating-btn" onclick="openStrmModal()" title="STRM生成器">
             <img src="/icons/link.svg" alt="STRM">
         </div>
         <div class="floating-btn" onclick="openCustomPushManagementModal()" title="自定义推送">
             <img src="/icons/push.svg" alt="自定义推送">
         </div>
+=======
+        <div class="floating-btn" onclick="showStrm()" title="STRM生成器">
+            <img src="/icons/link.svg" alt="STRM">
+        </div>
+>>>>>>> 02c29e2 (feat: 添加转存后刷新Alist缓存和全量生成STRM)
         <div class="floating-btn" id="showLogsBtn" title="查看日志">
             <img src="/icons/logs.svg" alt="查看日志">
         </div>
@@ -868,6 +884,7 @@
 
 <!-- STRM弹窗 -->
 <div id="strmModal" class="modal">
+<<<<<<< HEAD
     <div class="modal-content">
         <h3>生成STRM文件</h3>        
         <form id="strmForm">
@@ -1001,5 +1018,18 @@
                 <button type="button" class="btn-default" onclick="closeAddEditCustomPushModal()">取消</button>
             </div>
         </form>
+=======
+    <div class="modal-content" style="width: 80%; max-width: 800px;">
+        <div class="modal-header">
+            <h3>STRM生成</h3>
+            <button class="close-btn" onclick="closeStrm()">&times;</button>
+        </div>
+        <div class="strm-container">
+            <div class="strm-actions">
+                <button onclick="generateAllStrm()" class="primary-btn">一键生成STRM</button>
+            </div>
+            <div id="strmFolderTree" class="folder-tree"></div>
+        </div>
+>>>>>>> 02c29e2 (feat: 添加转存后刷新Alist缓存和全量生成STRM)
     </div>
 </div>

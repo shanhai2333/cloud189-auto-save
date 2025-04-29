@@ -65,6 +65,21 @@ async function loadSettings() {
             document.getElementById('enableScraper').checked = settings.tmdb?.enableScraper || false;
             // tmdbkey
             document.getElementById('tmdbApiKey').value = settings.tmdb?.tmdbApiKey || '';
+<<<<<<< HEAD
+=======
+
+            // openai配置
+            document.getElementById('enableOpenAI').checked = settings.openai?.enable || false;
+            document.getElementById('openaiBaseUrl').value = settings.openai?.baseUrl || '';
+            document.getElementById('openaiApiKey').value = settings.openai?.apiKey || '';
+            document.getElementById('openaiModel').value = settings.openai?.model || '';
+            document.getElementById('openaiTemplate').value = settings.openai?.rename?.template || '';
+
+            // alist
+            document.getElementById('enableAlist').checked = settings.alist?.enable || false;
+            document.getElementById('alistServer').value = settings.alist?.baseUrl || '';
+            document.getElementById('alistApiKey').value = settings.alist?.apiKey || '';
+>>>>>>> 02c29e2 (feat: 添加转存后刷新Alist缓存和全量生成STRM)
         }
     } catch (error) {
         console.error('加载设置失败:', error);

@@ -215,29 +215,33 @@ class EmbyService {
 
         try {
             // 根据path获取对应的task
-            // 1. 首先获取所有localStrmPrefix或者cloudStrmPrefix不为空的account
+            // 1. 首先获取所有embyPathReplacex不为空的account
             const accounts = await this._accountRepo.find({
                 where: [
-                    { localStrmPrefix: Not(IsNull()) },
-                    { cloudStrmPrefix: Not(IsNull()) }
+                    { embyPathReplace: Not(IsNull()) }
                 ]
             })
-            // 2. 遍历accounts, 检查path是否包含localStrmPrefix或者cloudStrmPrefix
+            // 2. 遍历accounts, 检查path是否包含embyPathReplace(本地路径) embyPathReplace的内容为: xx(网盘路径):xxx(本地路径)
             const tasks = [];
             for (const account of accounts) {
-                const localStrmPrefix = account.localStrmPrefix;
-                const cloudStrmPrefix = account.cloudStrmPrefix;
-                if (itemPath.includes(localStrmPrefix) || itemPath.includes(cloudStrmPrefix)) {
-                    // 3. 如果包含, 则获取对应的task, 条件为 accountId = account.id, realFolderName 包含 path中排除localStrmPrefix或者cloudStrmPrefix后的部分
+                let embyPathReplace = account.embyPathReplace.split(':');
+                let embyPath = ""
+                let cloudPath = embyPathReplace[0]
+                if (embyPathReplace.length === 2) {
+                    embyPath = embyPathReplace[1]
+                }
+                // 检查itemPath是否是embyPath开头
+                if (itemPath.startsWith(embyPath)) {
+                    // 将itemPath中的embyPath替换为cloudPath 并且去掉首尾的/
+                    itemPath = itemPath.replace(embyPath, cloudPath).replace(/^\/+|\/+$/g, '');
                     if (!isFolder) {
                         // 剧集, 需要去掉文件名
                         itemPath = path.dirname(itemPath);
                     }
-                    const realFolderName = itemPath.replace(localStrmPrefix, '').replace(cloudStrmPrefix, '');   
                     const task = await this._taskRepo.findOne({
                         where: {
                             accountId: account.id,
-                            realFolderName: Like(`%${realFolderName}%`)
+                            realFolderName: Like(`%${itemPath}%`)
                         },
                         relations: {
                             account: true
@@ -255,14 +259,14 @@ class EmbyService {
                     })
                     if (task) {
                         tasks.push(task);
-                    }
+                    }   
                 }
             }
-            logTaskEvent(`找到对应的任务, 任务数量: ${tasks.length}, 任务名称: ${tasks.map(task => task.resourceName).join(', ')}`);
             if (tasks.length === 0) {
                 logTaskEvent(`未找到对应的任务, 路径: ${itemPath}`);
                 return;
             }
+            logTaskEvent(`找到对应的任务, 任务数量: ${tasks.length}, 任务名称: ${tasks.map(task => task.resourceName).join(', ')}`);
             // 4. 遍历tasks, 删除本地strm, 删除任务和网盘
             for (const task of tasks) {
                 if (!isFolder) {

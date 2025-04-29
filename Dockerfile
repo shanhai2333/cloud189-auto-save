@@ -24,6 +24,17 @@ RUN apt-get update && \
 # 安装依赖
 RUN yarn install
 
+# 安装cloud189-sdk依赖
+RUN cd vendor/cloud189-sdk && \
+    yarn install && \
+    yarn build
+
+# 回到项目根目录
+WORKDIR /home
+
+# 编译主项目源代码
+RUN yarn build
+
 # 创建数据目录
 RUN mkdir -p /home/data
 
