@@ -21,6 +21,9 @@ RUN apt-get update && \
     apt-get install -y ca-certificates && \
     rm -rf /var/lib/apt/lists/*
 
+RUN git submodule init && \
+    git submodule update
+
 # 安装依赖
 RUN yarn install
 
