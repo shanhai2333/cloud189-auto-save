@@ -150,9 +150,9 @@ class StrmService {
             const mediaSuffixs = ConfigService.getConfigValue('task.mediaSuffix').split(';').map(suffix => suffix.toLowerCase());
             
             await this._processDirectory(startPath, account, stats, mediaSuffixs, overwrite);
-
+            const userrname = account.username.replace(/(.{3}).*(.{4})/, '$1****$2');
             // 生成最终统计信息
-            const message = `🎉生成STRM文件完成\n` +
+            const message = `🎉账号: ${userrname}生成STRM文件完成\n` +
                           `处理目录数: ${stats.processedDirs.size}\n` +
                           `总文件数: ${stats.totalFiles}\n` +
                           `成功数: ${stats.success}\n` +
@@ -166,7 +166,8 @@ class StrmService {
                 failed: stats.failed,
                 skipped: stats.skipped,
                 totalFiles: stats.totalFiles,
-                processedDirs: Array.from(stats.processedDirs)
+                processedDirs: Array.from(stats.processedDirs),
+                message: message
             };
 
         } catch (error) {
