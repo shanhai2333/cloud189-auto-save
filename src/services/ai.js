@@ -23,7 +23,7 @@ class AIService {
     async chat(messages, config = {}) {
         try {
             const openaiConfig = ConfigService.getConfigValue('openai')
-            if (!this.isEnabled(openaiConfig))  {
+            if (!this.isEnabled(openaiConfig)) {
                 throw new Error('AI服务未配置或未启用');
             }
             const apiKey = openaiConfig?.apiKey;
@@ -50,11 +50,23 @@ class AIService {
                 data: response.body.choices[0].message.content
             };
         } catch (error) {
-            console.error('AI 服务调用失败:', error.message);
+            let errorDetails = error.message;
+            if (error.response) {
+                errorDetails += `\n状态码: ${error.response.statusCode}`;
+                errorDetails += `\n响应头: ${JSON.stringify(error.response.headers)}`;
+                errorDetails += `\n响应体: ${JSON.stringify(error.response.body)}`;
+            }
+
+            console.error('AI 服务调用失败:', errorDetails);
             return {
                 success: false,
-                error: error.message
-            };
+                error: errorDetails,
+                response: error.response ? {
+                    status: error.response.statusCode,
+                    headers: error.response.headers,
+                    body: error.response.body
+                } : null
+            }
         }
     }
 
@@ -139,7 +151,7 @@ class AIService {
         let baseResult = null;
 
         if (!this.isEnabled()) {
-             return { success: false, error: 'AI服务未配置或未启用' };
+            return { success: false, error: 'AI服务未配置或未启用' };
         }
 
         try {
@@ -254,13 +266,13 @@ class AIService {
                         type: resultChunk.type,
                         season: resultChunk.season // 存储季编号
                     };
-                     if (!resultChunk.episode || !Array.isArray(resultChunk.episode)) {
-                         throw new Error(`AI 返回格式错误 (块 1): 缺少 'episode' 数组`);
+                    if (!resultChunk.episode || !Array.isArray(resultChunk.episode)) {
+                        throw new Error(`AI 返回格式错误 (块 1): 缺少 'episode' 数组`);
                     }
                     allEpisodes.push(...resultChunk.episode);
                 } else {
-                     if (!resultChunk.episode || !Array.isArray(resultChunk.episode)) {
-                         throw new Error(`AI 返回格式错误 (块 ${i / CHUNK_SIZE + 1}): 缺少 'episode' 数组`);
+                    if (!resultChunk.episode || !Array.isArray(resultChunk.episode)) {
+                        throw new Error(`AI 返回格式错误 (块 ${i / CHUNK_SIZE + 1}): 缺少 'episode' 数组`);
                     }
                     // 对于后续块，确保 episode 里的 name 和 season 与 baseResult 一致
                     const correctedEpisodes = resultChunk.episode.map(ep => ({
@@ -305,8 +317,8 @@ class AIService {
             return { success: false, error: '缺少过滤描述' };
         }
         if (!files || files.length === 0) {
-             logTaskEvent('AI过滤：文件列表为空，无需过滤');
-             return { success: true, data: [] }; // 返回空数组
+            logTaskEvent('AI过滤：文件列表为空，无需过滤');
+            return { success: true, data: [] }; // 返回空数组
         }
 
         const CHUNK_SIZE = 50; // 定义每次处理的文件数量 (根据需要调整)
@@ -408,8 +420,8 @@ class AIService {
 
                     if (!Array.isArray(resultChunk) || !resultChunk.every(id => typeof id === 'string' || typeof id === 'number')) {
                         logTaskEvent(`AI过滤：块 ${chunkNumber} 返回格式错误，期望得到 ID 字符串或数字数组。原始数据: ${response.data}`);
-                       throw new Error(`AI 返回格式错误 (块 ${chunkNumber}): 期望得到 ID 字符串或数字数组`);
-                   }
+                        throw new Error(`AI 返回格式错误 (块 ${chunkNumber}): 期望得到 ID 字符串或数字数组`);
+                    }
 
                     logTaskEvent(`AI过滤：块 ${chunkNumber} 成功解析，得到 ${resultChunk.length} 个文件 ID。`);
                     allKeptFileIds.push(...resultChunk); // 合并当前块的结果
@@ -446,7 +458,7 @@ class AIService {
     async streamChat(message, onChunk) {
         try {
             const openaiConfig = ConfigService.getConfigValue('openai')
-            if (!this.isEnabled(openaiConfig))  {
+            if (!this.isEnabled(openaiConfig)) {
                 throw new Error('AI服务未配置或未启用');
             }
             const apiKey = openaiConfig?.apiKey;
@@ -490,7 +502,7 @@ class AIService {
                     console.error('处理响应块时出错:', error);
                 }
             }
-             // 所有块处理完成后，发送结束标识
+            // 所有块处理完成后，发送结束标识
             onChunk('[END]');
         } catch (error) {
             console.error('AI 流式服务调用失败:', error.message);
@@ -509,24 +521,24 @@ class AIService {
         if (!baseValid) return false;
         // 根据类型验证剧集信息
         return result.episode.every(ep => {
-            return ep.id && 
-                   ep.extension?.startsWith('.') && 
-                   (result.type !== 'tv' || ep.episode);  // 只在 tv 类型时验证 episode
+            return ep.id &&
+                ep.extension?.startsWith('.') &&
+                (result.type !== 'tv' || ep.episode);  // 只在 tv 类型时验证 episode
         });
     }
 
     _validateFolderResponse(result) {
-         // 基础验证
-         const baseValid = result.name &&
-         typeof result.year === 'number' &&
-         ['tv', 'movie'].includes(result.type);
-     
+        // 基础验证
+        const baseValid = result.name &&
+            typeof result.year === 'number' &&
+            ['tv', 'movie'].includes(result.type);
+
         if (!baseValid) return false;
 
         // 如果存在 folders 才进行文件夹验证
         if (result.folders) {
-            return Array.isArray(result.folders) && result.folders.every(folder => 
-                folder.id && 
+            return Array.isArray(result.folders) && result.folders.every(folder =>
+                folder.id &&
                 folder.name
             );
         }
