@@ -98,7 +98,7 @@ app.post('/api/auth/login', (req, res) => {
         res.status(401).json({ success: false, error: '用户名或密码错误' });
     }
 });
-app.use(express.static('src/public'));
+app.use(express.static(path.join(__dirname,'public')));
 // 为所有路由添加认证（除了登录页和登录接口）
 app.use((req, res, next) => {
     if (req.path === '/' || req.path === '/login' 
