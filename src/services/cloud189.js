@@ -1,4 +1,4 @@
-const { CloudClient, FileTokenStore } = require('cloud189-sdk');
+const { CloudClient, FileTokenStore } = require('../../vender/cloud189-sdk');
 const { logTaskEvent } = require('../utils/logUtils');
 const crypto = require('crypto');
 const got = require('got');
