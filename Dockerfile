@@ -1,5 +1,5 @@
 # 使用Node.js v16.19.0作为基础镜像
-FROM node:16.19.0-slim as builder
+FROM node:16.19.0-slim AS builder
 
 # 设置工作目录
 WORKDIR /home
@@ -17,7 +17,7 @@ RUN yarn install && \
     yarn build
 
 # 构建生产版本
-FROM node:16.19.0-alpine as production
+FROM node:16.19.0-alpine AS production
 
 # 设置工作目录
 WORKDIR /home
@@ -40,9 +40,8 @@ RUN ln -sf /usr/share/zoneinfo/$TZ /etc/localtime && \
     echo $TZ > /etc/timezone
     
 # 安装必要的依赖项
-RUN apt-get update && \
-    apt-get install -y ca-certificates && \
-    rm -rf /var/lib/apt/lists/*
+RUN apk update && \
+    apk add --no-cache ca-certificates
 
 # 创建数据目录
 RUN mkdir -p /home/data
