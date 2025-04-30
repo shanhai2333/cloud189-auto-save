@@ -19,11 +19,11 @@ RUN apt-get update && \
 
 # 安装cloud189-sdk依赖
 RUN cd vender/cloud189-sdk && \
-    yarn install  --production && \
+    yarn install && \
     yarn build
 
 # 安装依赖
-RUN yarn install  --production && \
+RUN yarn install && \
     yarn build
 
 # 移除vender/cloud189-sdk的源代码
