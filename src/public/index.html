@@ -458,11 +458,16 @@
 
                 <div class="form-group">
 <<<<<<< HEAD
+<<<<<<< HEAD
                     <label for="proxySettings">代理设置</label>
                     <div class="push-item">
 =======
                     <label for="proxySettings">代理设置(仅用于 Telegram, TMDB, 天翼云盘)</label>
 >>>>>>> 02c29e2 (feat: 添加转存后刷新Alist缓存和全量生成STRM)
+=======
+                    <label for="proxySettings">代理设置</label>
+                    <div class="push-item">
+>>>>>>> af4c8ef (refactor(proxy): 重构代理服务配置，支持按服务启用代理)
                     <div class="proxy-settings">
                         <input type="text" id="proxyHost" placeholder="代理地址: 127.0.0.1">
                         <input type="number" id="proxyPort" placeholder="代理端口">
@@ -471,6 +476,7 @@
                     </div>
                     <div class="proxy-options" style="margin-top: 10px;">
                         <label style="display: block; margin-bottom: 5px;">启用代理的服务：</label>
+<<<<<<< HEAD
                         <div class="proxy-services-container">
                             <label class="proxy-service-item">
                                 <input type="checkbox" id="proxyTelegram">
@@ -492,6 +498,21 @@
                                 <input type="checkbox" id="proxyCustomPush">
                                 <span>自定义推送</span>
                             </label>
+=======
+                        <div style="display: flex; gap: 30px; align-items: center;">
+                            <label style="display: flex; align-items: center; cursor: pointer; min-width: 100px;">
+                                <input type="checkbox" id="proxyTelegram" style="margin-right: 5px;">
+                                <span>Telegram</span>
+                            </label>
+                            <label style="display: flex; align-items: center; cursor: pointer; min-width: 80px;">
+                                <input type="checkbox" id="proxyTmdb" style="margin-right: 5px;">
+                                <span>TMDB</span>
+                            </label>
+                            <label style="display: flex; align-items: center; cursor: pointer; min-width: 80px;">
+                                <input type="checkbox" id="proxyCloud189" style="margin-right: 5px;">
+                                <span>天翼</span>
+                            </label>
+>>>>>>> af4c8ef (refactor(proxy): 重构代理服务配置，支持按服务启用代理)
                         </div>
                     </div>
                     </div>
