@@ -16,8 +16,13 @@ class StrmService {
 
     // 确保目录存在并设置权限和组，递归创建的所有目录都设置为 777 权限
     async _ensureDirectoryExists(dirPath) {
-        const parts = dirPath.split(path.sep);
-        let currentPath = '';
+        // 确保使用相对路径
+        const relativePath = dirPath.startsWith(this.baseDir) 
+            ? path.relative(this.baseDir, dirPath)
+            : dirPath;
+            
+        const parts = relativePath.split(path.sep);
+        let currentPath = this.baseDir;  // 从基础目录开始
 
         for (const part of parts) {
             if (part) {
@@ -48,7 +53,7 @@ class StrmService {
             logTaskEvent(`STRM生成未启用, 请启用后执行`);
             return;
         }
-        logTaskEvent(`开始生成STRM文件, 总文件数: ${files.length}`);
+        logTaskEvent(`${task.resourceName} 开始生成STRM文件, 总文件数: ${files.length}`);
         const results = [];
         let success = 0;
         let failed = 0;
@@ -62,6 +67,7 @@ class StrmService {
             // 构建完整的目标目录路径
             const targetDir = path.join(this.baseDir,task.account.localStrmPrefix, taskName);
             overwrite && await this._deleteDirAllStrm(targetDir)
+            await this._ensureDirectoryExists(targetDir);
             for (const file of files) {
                 // 检查文件是否是媒体文件
                 if (!this._checkFileSuffix(file, mediaSuffixs)) {
@@ -74,7 +80,6 @@ class StrmService {
                     const fileName = file.name;
                     const parsedPath = path.parse(fileName);
                     const fileNameWithoutExt = parsedPath.name;
-                    await this._ensureDirectoryExists(targetDir);
                     const strmPath = path.join(targetDir, `${fileNameWithoutExt}.strm`);
 
                     // 检查文件是否存在
@@ -121,7 +126,7 @@ class StrmService {
             failed++
         }
         // 记录文件总数, 成功数, 失败数, 跳过数
-        const message = `🎉生成STRM文件完成, 总文件数: ${files.length}, 成功数: ${success}, 失败数: ${failed}, 跳过数: ${skipped}`
+        const message = `🎉${task.resourceName} 生成STRM文件完成, 总文件数: ${files.length}, 成功数: ${success}, 失败数: ${failed}, 跳过数: ${skipped}`
         logTaskEvent(message);
         return message;
     }
@@ -131,50 +136,44 @@ class StrmService {
      * @param {string} startPath - 起始目录路径
      * @returns {Promise<object>} - 返回处理结果统计
      */
-    async generateAll(account, overwrite = false) {
+    async generateAll(accounts, overwrite = false) {
         if (!alistService.Enable()) {
             throw new Error('Alist功能未启用');
         }
-        let startPath = path.basename(account.cloudStrmPrefix);
-        // 初始化统计信息
-        const stats = {
-            success: 0,
-            failed: 0,
-            skipped: 0,
-            totalFiles: 0,
-            processedDirs: new Set()
-        };
-
-        try {
-            // 获取媒体文件后缀列表
-            const mediaSuffixs = ConfigService.getConfigValue('task.mediaSuffix').split(';').map(suffix => suffix.toLowerCase());
-            
-            await this._processDirectory(startPath, account, stats, mediaSuffixs, overwrite);
-            const userrname = account.username.replace(/(.{3}).*(.{4})/, '$1****$2');
-            // 生成最终统计信息
-            const message = `🎉账号: ${userrname}生成STRM文件完成\n` +
-                          `处理目录数: ${stats.processedDirs.size}\n` +
-                          `总文件数: ${stats.totalFiles}\n` +
-                          `成功数: ${stats.success}\n` +
-                          `失败数: ${stats.failed}\n` +
-                          `跳过数: ${stats.skipped}`;
-            logTaskEvent(message);
-
-            // 返回处理结果
-            return {
-                success: stats.success,
-                failed: stats.failed,
-                skipped: stats.skipped,
-                totalFiles: stats.totalFiles,
-                processedDirs: Array.from(stats.processedDirs),
-                message: message
-            };
-
-        } catch (error) {
-            const message = `生成STRM文件失败: ${error.message}`;
-            logTaskEvent(message);
-            throw new Error(message);
+        const messages = [];
+        for(const account of accounts) {
+            try {
+                let startPath = path.basename(account.cloudStrmPrefix);
+                // 初始化统计信息
+                const stats = {
+                    success: 0,
+                    failed: 0,
+                    skipped: 0,
+                    totalFiles: 0,
+                    processedDirs: new Set()
+                };
+                // 获取媒体文件后缀列表
+                const mediaSuffixs = ConfigService.getConfigValue('task.mediaSuffix').split(';').map(suffix => suffix.toLowerCase());
+                
+                await this._processDirectory(startPath, account, stats, mediaSuffixs, overwrite);
+                const userrname = account.username.replace(/(.{3}).*(.{4})/, '$1****$2');
+                // 生成最终统计信息
+                const message = `🎉账号: ${userrname}生成STRM文件完成\n` +
+                              `处理目录数: ${stats.processedDirs.size}\n` +
+                              `总文件数: ${stats.totalFiles}\n` +
+                              `成功数: ${stats.success}\n` +
+                              `失败数: ${stats.failed}\n` +
+                              `跳过数: ${stats.skipped}`;
+                logTaskEvent(message);
+                messages.push(message);
+            } catch (error) {
+                const message = `生成STRM文件失败: ${error.message}`;
+                logTaskEvent(message);
+            }
         }
+        if (messages.length > 0) {
+            messageUtil.sendMessage(messages.join('\n\n'));
+        }   
     }
 
     /**
@@ -195,7 +194,6 @@ class StrmService {
         }
 
         const files = alistResponse.data.content;
-        // stats.processedDirs.add(dirPath);
         logTaskEvent(`开始处理目录 ${dirPath}, 文件数量: ${files.length}`);
 
         for (const file of files) {
@@ -212,7 +210,7 @@ class StrmService {
                     }
 
                     // 构建STRM文件路径
-                    const relativePath = dirPath.replace(/^\/+|\/+$/g, '');
+                    const relativePath = dirPath.substring(dirPath.indexOf('/') + 1).replace(/^\/+|\/+$/g, '')
                     const targetDir = path.join(this.baseDir, account.localStrmPrefix, relativePath);
                     const parsedPath = path.parse(file.name);
                     const strmPath = path.join(targetDir, `${parsedPath.name}.strm`);
@@ -231,7 +229,7 @@ class StrmService {
                     await this._ensureDirectoryExists(targetDir);
 
                     // 生成STRM文件内容
-                    const content = this._joinUrl(account.cloudStrmPrefix, path.join(relativePath.substring(relativePath.indexOf('/') + 1).replace(/^\/+|\/+$/g, ''), file.name));
+                    const content = this._joinUrl(account.cloudStrmPrefix, path.join(relativePath.replace(/^\/+|\/+$/g, ''), file.name));
                     // 写入STRM文件
                     await fs.writeFile(strmPath, content, 'utf8');
                     if (process.getuid && process.getuid() === 0) {

@@ -41,7 +41,12 @@ class ConfigService {
         host: '',
         port: 0,
         username: '',
-        password: ''
+        password: '',
+        services: {
+          telegram: true,
+          tmdb: true,
+          cloud189: false
+        }
       },
       bark: {
         enable: false,

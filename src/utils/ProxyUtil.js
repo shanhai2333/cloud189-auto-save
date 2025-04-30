@@ -3,8 +3,11 @@ const { HttpsProxyAgent } = require('https-proxy-agent');
 const { HttpProxyAgent } = require('http-proxy-agent');
 
 class ProxyUtil {
-    static getProxy() {
+    static getProxy(service) {
         let proxy = null;
+        if (!this._checkServiceEnabled(service)) {
+            return proxy;
+        }
         const proxyConfig = ConfigService.getConfigValue('proxy');
         const { type = 'http', host, port, username, password } = proxyConfig;
         if (host && port) {
@@ -16,12 +19,19 @@ class ProxyUtil {
         }
         return proxy;
     }
-    static getProxyAgent() {
-        const proxy = this.getProxy();
+    static getProxyAgent(service) {
+        const proxy = this.getProxy(service);
         return !proxy?{}:{
             http: new HttpProxyAgent(proxy),
             https: new HttpsProxyAgent(proxy)
         }
+    }
+    static _checkServiceEnabled(service) {
+        const services = ['tmdb', 'cloud189', 'telegram'];
+        if (!services.includes(service)) {
+            return false;
+        }
+        return ConfigService.getConfigValue(`proxy.serrvices.${service}`);
     }
 }
 

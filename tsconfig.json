@@ -8,9 +8,10 @@
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "strict": true
+    "strict": true,
   },
   "exclude": [
-    "vender/cloud189-sdk"
+    "vender/cloud189-sdk",
+    "node_modules"
   ]
 }

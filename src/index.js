@@ -679,14 +679,7 @@ AppDataSource.initialize().then(async () => {
                 }
             });
             const strmService = new StrmService();
-            const messages = [];
-            for(const account of accounts) {
-                const message = strmService.generateAll(account, overwrite);
-                messages.push(message);
-            }
-            if (messages.length > 0) {
-                messageUtil.sendMessage(messages.join('\n\n'));
-            }
+            strmService.generateAll(accounts, overwrite);
             res.json({ success: true, data: null });
         } catch (error) {
             res.json({ success: false, error: error.message });

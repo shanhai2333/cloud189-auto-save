@@ -9,7 +9,7 @@ class TMDBService {
     }
 
     async _request(endpoint, params = {}) {
-        const proxy = ProxyUtil.getProxyAgent();
+        const proxy = ProxyUtil.getProxyAgent('tmdb');
         try {
             // DNS解析开始
             const response = await got(`${this.baseURL}${endpoint}`, {

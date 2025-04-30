@@ -24,15 +24,13 @@ class Cloud189Service {
             _options.ssonCookie = account.cookies
             _options.password = null   
         }
-        _options.proxyUrl = ProxyUtil.getProxy()
+        _options.proxy = ProxyUtil.getProxy('cloud189')
         this.client = new CloudClient(_options);
-        
-       
     }
 
     // 重新给所有实例设置代理
     static setProxy() {
-        const proxyUrl = ProxyUtil.getProxy()
+        const proxyUrl = ProxyUtil.getProxy('cloud189')
         this.instances.forEach(instance => {
             instance.client.setProxy(proxyUrl);
         });

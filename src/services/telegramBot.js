@@ -46,7 +46,7 @@ class TelegramBotService {
             return;
         }
         // 从配置文件获取代理
-        const proxy = ProxyUtil.getProxy();
+        const proxy = ProxyUtil.getProxy('telegram');
         this.bot = new TelegramBot(this.token, { 
             polling: true, 
             request: {

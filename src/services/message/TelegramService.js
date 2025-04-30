@@ -14,7 +14,7 @@ class TelegramService extends MessageService {
      * 配置代理信息
      */
     _proxy() {
-        return ProxyUtil.getProxyAgent()
+        return ProxyUtil.getProxyAgent('telegram');
     }
 
 
