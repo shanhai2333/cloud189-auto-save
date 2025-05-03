@@ -40,6 +40,8 @@
 :root {
     --primary-rgb: 64, 158, 255;  /* #409eff 的 RGB 值 */
     --bg-color: #ffffff;
+    --background-color: #ffffff;
+    --hover-color: #f5f5f5;
     --text-color: rgba(0, 0, 0, 0.85);
     --border-color: #e0e0e0;
     --hover-bg: #f5f5f5;
@@ -60,6 +62,8 @@
 [data-theme="dark"] {
     --primary-rgb: 64, 158, 255;  /* #409eff 的 RGB 值 */
     --bg-color: #1a1a1a;
+    --background-color: #1a1a1a;
+    --hover-color: #1f1f1f;
     --text-color: rgba(255, 255, 255, 0.85);
     --border-color: #303030;
     --hover-bg: #1f1f1f;

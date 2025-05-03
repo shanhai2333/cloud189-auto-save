@@ -29,9 +29,10 @@ class ProxyUtil {
     static _checkServiceEnabled(service) {
         const services = ['tmdb', 'cloud189', 'telegram'];
         if (!services.includes(service)) {
+            console.log(`[ProxyUtil] 未知的服务: ${service}`);
             return false;
         }
-        return ConfigService.getConfigValue(`proxy.serrvices.${service}`);
+        return ConfigService.getConfigValue(`proxy.services.${service}`);
     }
 }
 

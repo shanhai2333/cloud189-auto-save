@@ -846,8 +846,8 @@ class TaskService {
                     '{year}': resourceInfo.year || '',
                     '{s}': aiFile.season?.padStart(2, '0') || '01',
                     '{e}': aiFile.episode?.padStart(2, '0') || '01',
-                    '{sn}': aiFile.season || '1',                    // 不补零的季数
-                    '{en}': aiFile.episode || '1',                   // 不补零的集数
+                    '{sn}': parseInt(aiFile.season) || '1',                    // 不补零的季数
+                    '{en}': parseInt(aiFile.episode) || '1',                   // 不补零的集数
                     '{ext}': aiFile.extension || path.extname(file.name),
                     '{se}': `S${aiFile.season?.padStart(2, '0') || '01'}E${aiFile.episode?.padStart(2, '0') || '01'}`
                 };

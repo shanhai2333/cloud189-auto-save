@@ -1,7 +1,14 @@
+let accountsList = []
 // 账号相关功能
 async function fetchAccounts(updateSelect = false) {
     const response = await fetch('/api/accounts');
     const data = await response.json();
+    // 如果http状态码为401, 则跳转到登录页面
+    if (response.status === 401) {
+        window.location.href = '/login';
+        return;
+    }
+    
     if (data.success) {
         const tbody = document.querySelector('#accountTable tbody');
         const select = document.querySelector('#accountId');
@@ -9,6 +16,7 @@ async function fetchAccounts(updateSelect = false) {
         if (updateSelect) {
             select.innerHTML = '' 
         }
+        accountsList = data.data
         data.data.forEach(account => {
             tbody.innerHTML += `
                 <tr>
@@ -16,6 +24,7 @@ async function fetchAccounts(updateSelect = false) {
                         `<button class="btn-warning" onclick="updateCookie(${account.id})">修改Cookie</button>` 
                         : ''}<button class="btn-danger" onclick="deleteAccount(${account.id})">删除</button></td>
                     <td data-label='账户名'>${account.username}</td>
+                    <td data-label='别名' onclick="updateAlias(${account.id}, '${account.alias || ''}')">${account.alias}</td>
                     <td data-label='个人容量'>${formatBytes(account.capacity.cloudCapacityInfo.usedSize) + '/' + formatBytes(account.capacity.cloudCapacityInfo.totalSize)}</td>
                     <td data-label='家庭容量'>${formatBytes(account.capacity.familyCapacityInfo.usedSize) + '/' + formatBytes(account.capacity.familyCapacityInfo.totalSize)}</td>
                     <td class='strm-prefix' data-label='媒体目录' style="cursor: pointer;" onclick="updateCloudStrmPrefix(${account.id}, '${account.cloudStrmPrefix || ''}')">${account.cloudStrmPrefix || ''}</td>
@@ -24,9 +33,12 @@ async function fetchAccounts(updateSelect = false) {
                 </tr>
             `;
             if (updateSelect) {
-                select.innerHTML += `
-                <option value="${account.id}">${account.username}</option>
-            `;
+                // n_打头的账号不显示在下拉列表中
+                if (!account.username.startsWith('n_')) {
+                    select.innerHTML += `
+                    <option value="${account.id}">${account.username}</option>
+                `;
+                }
             }
         });
     }
@@ -74,6 +86,7 @@ function initAccountForm() {
         const username = document.getElementById('username').value;
         const password = document.getElementById('password').value;
         const cookies  = document.getElementById('cookie').value;
+        const alias = document.getElementById('alias').value;
         if (!username ) {
             message.warning('用户名不能为空');
             return;
@@ -85,7 +98,7 @@ function initAccountForm() {
         const response = await fetch('/api/accounts', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username, password, cookies })
+            body: JSON.stringify({ username, password, cookies, alias })
         });
         const data = await response.json();
         if (data.success) {
@@ -192,5 +205,26 @@ async function updateEmbyPathReplace(id, embyPathReplace) {
         }
     } catch (error) {
         message.warning('操作失败: ' + error.message);
+    }
+}
+
+async function updateAlias(id, currentAlias) {
+    const newAlias = prompt('请输入新的别名', currentAlias);
+    if (newAlias === null) return; 
+    try {
+        const response = await fetch(`/api/accounts/${id}/alias`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ alias: newAlias })
+        })
+        const data = await response.json();
+        if (data.success) {
+            message.success('更新成功');
+            fetchAccounts(true);
+        } else {
+            message.warning('更新失败:'+ data.error);
+        }
+    } catch (error) {
+        message.warning('操作失败:'+ error.message);
     }
 }

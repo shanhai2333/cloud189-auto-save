@@ -85,6 +85,10 @@
                 <div class="form-group">
                 <small class="form-text">密码和Cookie至少填写一个, 如果都填写, 则只有账号密码生效</small>
                 </div>
+                <div class="form-group">
+                    <label for="alias">别名(可选)</label>
+                    <input type="text" id="alias">
+                </div>
                 <div class="form-actions" style="justify-content: flex-start;">
                     <button type="submit">添加账号</button>
                     <button type="button" onclick="clearRecycleBin()" class="btn-warning">清空回收站</button>
@@ -728,7 +732,7 @@
         <div class="floating-btn" onclick="showAIChat()" title="AI助手" style="bottom: 100px;">
             <img src="/icons/ai.svg" alt="AI Chat">
         </div>
-        <div class="floating-btn" onclick="showStrm()" title="STRM生成器">
+        <div class="floating-btn" onclick="openStrmModal()" title="STRM生成器">
             <img src="/icons/link.svg" alt="STRM">
         </div>
         <div class="floating-btn" id="showLogsBtn" title="查看日志">
@@ -788,16 +792,36 @@
 
 <!-- STRM弹窗 -->
 <div id="strmModal" class="modal">
-    <div class="modal-content" style="width: 80%; max-width: 800px;">
-        <div class="modal-header">
-            <h3>STRM生成</h3>
-            <button class="close-btn" onclick="closeStrm()">&times;</button>
-        </div>
-        <div class="strm-container">
-            <div class="strm-actions">
-                <button onclick="generateAllStrm()" class="primary-btn">一键生成STRM</button>
+    <div class="modal-content">
+        <h3>生成STRM文件</h3>        
+        <form id="strmForm">
+            <div class="form-body">
+                <div class="form-group">
+                    <label>选择账号</label>
+                    <div class="account-list" style="max-height: 300px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: 4px; padding: 10px;">
+                        <div class="account-select-header" style="margin-bottom: 10px;">
+                            <label style="display: flex; align-items: center; cursor: pointer;">
+                                <input type="checkbox" id="selectAllAccounts">
+                                <span style="margin-left: 5px;">全选</span>
+                            </label>
+                        </div>
+                        <div id="accountsList" style="display: flex; flex-direction: column; gap: 8px;">
+                        </div>
+                    </div>
+                </div>
+                <div class="help-text-container">
+                    <button type="button" class="toggle-help-text" onclick="toggleHelpText(this)">显示帮助</button>
+                    <small class="form-text">
+                        <p>此功能依赖Alist，将根据选中账号的媒体目录（cloudStrmPrefix配置项）最后一个/后的目录名称递归生成STRM文件。</p>
+                        <p style="margin-top: 5px; font-size: 0.9em;">例如：配置项为 /我的云盘/媒体库，则会以"媒体库"为根目录遍历alist对应"媒体库"目录生成STRM文件。</p>
+                    </small>
+                </div>
             </div>
-            <div id="strmFolderTree" class="folder-tree"></div>
-        </div>
-    </div>
-</div>
+            
+            <div class="form-actions">
+                <button type="button" onclick="generateAllStrm(false)">一键生成</button>
+                <button type="button" class="btn-warning" onclick="generateAllStrm(true)">覆盖生成</button>
+                <button type="button" class="btn-default" onclick="closeStrmModal()">取消</button>
+            </div>
+        </form>
+    </di

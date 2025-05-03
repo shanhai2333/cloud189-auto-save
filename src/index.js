@@ -17,7 +17,7 @@ const TelegramBotManager = require('./utils/TelegramBotManager');
 const fs = require('fs').promises;
 const path = require('path');
 const { setupCloudSaverRoutes, clearCloudSaverToken } = require('./sdk/cloudsaver');
-const { Like, Not, IsNull } = require('typeorm');
+const { Like, Not, IsNull, In } = require('typeorm');
 const CryptoUtils = require('./utils/cryptoUtils');
 const cors = require('cors'); 
 const { EmbyService } = require('./services/emby');
@@ -88,7 +88,6 @@ app.get('/login', (req, res) => {
 // 登录接口
 app.post('/api/auth/login', (req, res) => {
     const { username, password } = req.body;
-    
     if (username === ConfigService.getConfigValue('system.username') && 
         password === ConfigService.getConfigValue('system.password')) {
         req.session.authenticated = true;
@@ -152,15 +151,19 @@ AppDataSource.initialize().then(async () => {
         const accounts = await accountRepo.find();
         // 获取容量
         for (const account of accounts) {
-            const cloud189 = Cloud189Service.getInstance(account);
-            const capacity = await cloud189.getUserSizeInfo()
+            
             account.capacity = {
                 cloudCapacityInfo: {usedSize:0,totalSize:0},
                 familyCapacityInfo: {usedSize:0,totalSize:0}
             }
-            if (capacity && capacity.res_code == 0) {
-                account.capacity.cloudCapacityInfo = capacity.cloudCapacityInfo;
-                account.capacity.familyCapacityInfo = capacity.familyCapacityInfo;
+            // 如果账号名是s打头 则不获取容量
+            if (!account.username.startsWith('n_')) {
+                const cloud189 = Cloud189Service.getInstance(account);
+                const capacity = await cloud189.getUserSizeInfo()
+                if (capacity && capacity.res_code == 0) {
+                    account.capacity.cloudCapacityInfo = capacity.cloudCapacityInfo;
+                    account.capacity.familyCapacityInfo = capacity.familyCapacityInfo;
+                }
             }
             // username脱敏
             account.username = account.username.replace(/(.{3}).*(.{4})/, '$1****$2');
@@ -233,6 +236,21 @@ AppDataSource.initialize().then(async () => {
             if (type == 'emby') {
                 account.embyPathReplace = strmPrefix;
             }
+            await accountRepo.save(account);
+            res.json({ success: true });
+        } catch (error) {
+            res.json({ success: false, error: error.message });
+        }
+    })
+
+    // 修改别名
+    app.put('/api/accounts/:id/alias', async (req, res) => {
+        try {
+            const accountId = parseInt(req.params.id);
+            const { alias } = req.body;
+            const account = await accountRepo.findOneBy({ id: accountId });
+            if (!account) throw new Error('账号不存在');
+            account.alias = alias;
             await accountRepo.save(account);
             res.json({ success: true });
         } catch (error) {
@@ -672,10 +690,15 @@ AppDataSource.initialize().then(async () => {
     app.post('/api/strm/generate-all', async (req, res) => {
         try {
             const overwrite = req.body.overwrite || false;
+            const accountIds = req.body.accountIds;
+            if (!accountIds || accountIds.length == 0) {
+                throw new Error('账号ID不能为空');
+            }
             const accounts = await accountRepo.find({
                 where: {
                     localStrmPrefix: Not(IsNull()),
                     cloudStrmPrefix: Not(IsNull()),
+                    id: In(accountIds)
                 }
             });
             const strmService = new StrmService();

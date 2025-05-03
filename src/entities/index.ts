@@ -45,6 +45,9 @@ export class Account {
 
     @Column('boolean', { nullable: true, default: false })
     tgBotActive!: boolean;
+
+    @Column('text', { nullable: true, default: '' })
+    alias!: string;
 }
 
 @Entity()
