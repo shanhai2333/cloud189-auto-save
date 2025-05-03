@@ -789,7 +789,26 @@ class TaskService {
                     newFiles.push(file);
                     continue;
                 }
+<<<<<<< HEAD
                 const newName = this._generateFileName(file, aiFile, resourceInfo, template);
+=======
+                // 构建文件名替换映射
+                const replaceMap = {
+                    '{name}': aiFile.name || task.resourceName,
+                    '{year}': resourceInfo.year || '',
+                    '{s}': aiFile.season?.padStart(2, '0') || '01',
+                    '{e}': aiFile.episode?.padStart(2, '0') || '01',
+                    '{sn}': parseInt(aiFile.season) || '1',                    // 不补零的季数
+                    '{en}': parseInt(aiFile.episode) || '1',                   // 不补零的集数
+                    '{ext}': aiFile.extension || path.extname(file.name),
+                    '{se}': `S${aiFile.season?.padStart(2, '0') || '01'}E${aiFile.episode?.padStart(2, '0') || '01'}`
+                };
+                // 替换模板中的占位符
+                let newName = template;
+                for (const [key, value] of Object.entries(replaceMap)) {
+                    newName = newName.replace(new RegExp(key, 'g'), value);
+                }
+>>>>>>> 75adc9a (feat: 添加账号别名功能并优化STRM生成器界面)
                 // 判断文件名是否已存在
                 if (file.name === newName) {
                     newFiles.push(file);

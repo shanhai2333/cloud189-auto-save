@@ -78,6 +78,7 @@
                         </div>
                     </div>
                 </div>
+<<<<<<< HEAD
             </div>
             <div id="addAccountModal" class="modal">
                 <div class="modal-content">
@@ -132,6 +133,15 @@
                             <button type="button" class="btn-default" onclick="closeAddAccountModal()">取消</button>
                         </div>
                     </form>
+=======
+                <div class="form-group">
+                    <label for="alias">别名(可选)</label>
+                    <input type="text" id="alias">
+                </div>
+                <div class="form-actions" style="justify-content: flex-start;">
+                    <button type="submit">添加账号</button>
+                    <button type="button" onclick="clearRecycleBin()" class="btn-warning">清空回收站</button>
+>>>>>>> 75adc9a (feat: 添加账号别名功能并优化STRM生成器界面)
                 </div>
             </div>
 
@@ -837,6 +847,7 @@
             <img src="/icons/ai.svg" alt="AI Chat">
         </div>
 <<<<<<< HEAD
+<<<<<<< HEAD
         <div class="floating-btn" onclick="openStrmModal()" title="STRM生成器">
             <img src="/icons/link.svg" alt="STRM">
         </div>
@@ -845,6 +856,9 @@
         </div>
 =======
         <div class="floating-btn" onclick="showStrm()" title="STRM生成器">
+=======
+        <div class="floating-btn" onclick="openStrmModal()" title="STRM生成器">
+>>>>>>> 75adc9a (feat: 添加账号别名功能并优化STRM生成器界面)
             <img src="/icons/link.svg" alt="STRM">
         </div>
 >>>>>>> 02c29e2 (feat: 添加转存后刷新Alist缓存和全量生成STRM)
@@ -906,6 +920,9 @@
 <!-- STRM弹窗 -->
 <div id="strmModal" class="modal">
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> 75adc9a (feat: 添加账号别名功能并优化STRM生成器界面)
     <div class="modal-content">
         <h3>生成STRM文件</h3>        
         <form id="strmForm">
@@ -926,6 +943,7 @@
                 <div class="help-text-container">
                     <button type="button" class="toggle-help-text" onclick="toggleHelpText(this)">显示帮助</button>
                     <small class="form-text">
+<<<<<<< HEAD
                         <p>此功能依赖Alist，将根据选中账号的媒体目录最后一个/后的目录名称递归生成STRM文件。</p>
                         <p style="margin-top: 5px; font-size: 0.9em;">例如：配置项为 /我的云盘/媒体库，则会以"媒体库"为根目录遍历alist对应"媒体库"目录生成STRM文件。</p>
                     </small>
@@ -1054,3 +1072,18 @@
 >>>>>>> 02c29e2 (feat: 添加转存后刷新Alist缓存和全量生成STRM)
     </div>
 </div>
+=======
+                        <p>此功能依赖Alist，将根据选中账号的媒体目录（cloudStrmPrefix配置项）最后一个/后的目录名称递归生成STRM文件。</p>
+                        <p style="margin-top: 5px; font-size: 0.9em;">例如：配置项为 /我的云盘/媒体库，则会以"媒体库"为根目录遍历alist对应"媒体库"目录生成STRM文件。</p>
+                    </small>
+                </div>
+            </div>
+            
+            <div class="form-actions">
+                <button type="button" onclick="generateAllStrm(false)">一键生成</button>
+                <button type="button" class="btn-warning" onclick="generateAllStrm(true)">覆盖生成</button>
+                <button type="button" class="btn-default" onclick="closeStrmModal()">取消</button>
+            </div>
+        </form>
+    </di
+>>>>>>> 75adc9a (feat: 添加账号别名功能并优化STRM生成器界面)

@@ -1,57 +1,72 @@
-// STRM功能相关的JavaScript代码
-let currentPath = '';
-
-
-let strmFolderSelector = new FolderSelector({
-    apiUrl: '/api/strm/list',
-    title: "本地STRM",
-    buildParams: (accountId, path, obj) => {
-        return `?path=${path=='-11'?'':obj.currentPath.join('/')}`
-    },
-    buttons: [
-        {
-            text: '一键生成',
-            class: 'modal-btn modal-btn-primary',
-            action: 'confirm'
-        },
-        {
-            text: '覆盖生成',
-            class: 'btn-warning',
-            action: 'overviewConfirm'
-        },
-        {
-            text: '关闭',
-            class: 'btn-default',
-            action: 'cancel'
+function fillAccountsList() {
+    const accountsListDom = document.getElementById('accountsList');
+    // 从全局账号列表获取数据并填充
+    accountsList.forEach(account => {
+        const accountItem = document.createElement('label');
+        accountItem.onmouseover = () => {
+            accountItem.style.backgroundColor = 'var(--hover-color)';
+        };
+        accountItem.onmouseout = () => {
+            accountItem.style.backgroundColor = 'var(--background-color)';
+        };
+        
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.value = account.id;
+        checkbox.className = 'account-checkbox';
+        
+        const label = document.createElement('span');
+        label.textContent = account.username;
+        if (account.alias) {
+            label.textContent += ` (${account.alias})`;
         }
-    ],
-    buttonCallbacks: {
-        confirm: () => {
-            generateAllStrm()
-        },
-        overviewConfirm: () => {
-            // 自定义取消逻辑
-            generateAllStrm(true)
-        }
-    }
-});
-
-function showStrm() {
-    // document.getElementById('strmModal').style.display = 'block';
-    strmFolderSelector.show(1);
+        
+        accountItem.appendChild(checkbox);
+        accountItem.appendChild(label);
+        accountsListDom.appendChild(accountItem);
+    });
 }
 
-function closeStrm() {
-    strmFolderSelector.close()
+function openStrmModal() {
+    document.getElementById('strmModal').style.display = 'block';
+    document.getElementById('accountsList').innerHTML = ''; // 清空现有列表
+    fillAccountsList();
+    
+    // 添加全选事件监听
+    document.getElementById('selectAllAccounts').addEventListener('change', handleSelectAllAccounts);
 }
 
+function closeStrmModal() {
+    const modal = document.getElementById('strmModal');
+    modal.style.display = 'none';
+}
+
+function handleSelectAllAccounts() {
+    const selectAllCheckbox = document.getElementById('selectAllAccounts');
+    const accountCheckboxes = document.querySelectorAll('.account-checkbox');
+    accountCheckboxes.forEach(checkbox => {
+        checkbox.checked = selectAllCheckbox.checked;
+    });
+}
 
 async function generateAllStrm(overwrite = false) {
+    const selectedAccounts = Array.from(document.querySelectorAll('.account-checkbox:checked'))
+        .map(checkbox => checkbox.value);
+    
+    if (selectedAccounts.length === 0) {
+        message.error('请至少选择一个账号');
+        return;
+    }
+    console.log(JSON.stringify({
+        accountIds: selectedAccounts,
+        overwrite: overwrite
+    }));
     try {
         const response = await fetch('/api/strm/generate-all', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
+                accountIds: selectedAccounts,
                 overwrite: overwrite
             })
         });

@@ -545,4 +545,52 @@
 
 .btn-icon:hover .refresh-icon {
     transform: rotate(180deg);
+<<<<<<< HEAD
+=======
+}
+
+.help-text-container .form-text {
+    display: none;
+}
+.toggle-help-text {
+    background: none;
+    border: none;
+    color: var(--text-color);
+    text-decoration: underline;
+    cursor: pointer;
+    padding: 0;
+    font-size: 12px;
+    margin-bottom: 8px;
+}
+
+.toggle-help-text:hover {
+    color: var(--primary-color);
+}
+
+.help-text-container {
+    margin-top: 8px;
+}
+
+#strmModal input[type='checkbox'] {
+    width: 16px;
+    height: 16px;
+    margin-right: 10px;
+    cursor: pointer;
+}
+
+#strmModal label {
+    display: flex;
+    align-items: center;
+    padding: 8px 12px;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: background-color 0.2s;
+    margin-bottom: 4px;
+    background-color: var(--background-color);
+}
+
+#strmModal span {
+    flex: 1;
+    font-size: 14px;
+>>>>>>> 75adc9a (feat: 添加账号别名功能并优化STRM生成器界面)
 }

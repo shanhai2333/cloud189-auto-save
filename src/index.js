@@ -16,7 +16,12 @@ const TelegramBotManager = require('./utils/TelegramBotManager');
 const fs = require('fs').promises;
 const path = require('path');
 const { setupCloudSaverRoutes, clearCloudSaverToken } = require('./sdk/cloudsaver');
+<<<<<<< HEAD
 const { Like, Not, IsNull, In, Or } = require('typeorm');
+=======
+const { Like, Not, IsNull, In } = require('typeorm');
+const CryptoUtils = require('./utils/cryptoUtils');
+>>>>>>> 75adc9a (feat: 添加账号别名功能并优化STRM生成器界面)
 const cors = require('cors'); 
 const { EmbyService } = require('./services/emby');
 const { StrmService } = require('./services/strm');
@@ -259,6 +264,7 @@ AppDataSource.initialize().then(async () => {
             res.json({ success: false, error: error.message });
         }
     })
+<<<<<<< HEAD
     app.put('/api/accounts/:id/default', async (req, res) => {
         try {
             const accountId = parseInt(req.params.id);
@@ -271,6 +277,9 @@ AppDataSource.initialize().then(async () => {
             res.json({ success: false, error: error.message });
         }
     })
+=======
+    
+>>>>>>> 75adc9a (feat: 添加账号别名功能并优化STRM生成器界面)
     // 任务相关API
     app.get('/api/tasks', async (req, res) => {
         const { status, search } = req.query;
