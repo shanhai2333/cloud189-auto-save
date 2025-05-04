@@ -1180,6 +1180,15 @@ class TaskService {
     // 根据realRootFolderId获取根目录
     async getRootFolder(task) {
         if (task.realRootFolderId) {
+            // 判断realRootFolderId下是否还有其他目录, 通过任务查询 查询realRootFolderId是否有多个任务, 如果存在多个 则使用realFolderId
+            const tasks = await this.taskRepo.find({
+                where: {
+                    realRootFolderId: task.realRootFolderId
+                }
+            })
+            if (tasks.length > 1) {
+                return {id: task.realFolderId, name: task.realFolderName}    
+            }
             return {id: task.realRootFolderId, name: task.shareFolderName}
         }
         logTaskEvent(`任务[${task.resourceName}]为老版本系统创建, 无法删除网盘内容, 跳过`)
