@@ -808,7 +808,12 @@ class TaskService {
                 for (const [key, value] of Object.entries(replaceMap)) {
                     newName = newName.replace(new RegExp(key, 'g'), value);
                 }
+<<<<<<< HEAD
 >>>>>>> 75adc9a (feat: 添加账号别名功能并优化STRM生成器界面)
+=======
+                // 清理文件名中的非法字符
+                newName = this._sanitizeFileName(newName);
+>>>>>>> 49dcd38 (fix: 修复重命名中同名文件判断异常)
                 // 判断文件名是否已存在
                 if (file.name === newName) {
                     newFiles.push(file);

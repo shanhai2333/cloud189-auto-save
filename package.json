@@ -1,10 +1,14 @@
 {
   "name": "cloud189-auto-save",
 <<<<<<< HEAD
+<<<<<<< HEAD
   "version": "2.2.40",
 =======
   "version": "2.2.23",
 >>>>>>> 75adc9a (feat: 添加账号别名功能并优化STRM生成器界面)
+=======
+  "version": "2.2.24",
+>>>>>>> 49dcd38 (fix: 修复重命名中同名文件判断异常)
   "description": "天翼云盘自动转存系统",
   "main": "src/index.js",
   "scripts": {
