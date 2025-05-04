@@ -856,14 +856,13 @@ class TaskService {
                 for (const [key, value] of Object.entries(replaceMap)) {
                     newName = newName.replace(new RegExp(key, 'g'), value);
                 }
+                // 清理文件名中的非法字符
+                newName = this._sanitizeFileName(newName);
                 // 判断文件名是否已存在
                 if (file.name === newName) {
                     newFiles.push(file);
                     continue;   
                 }
-
-                // 清理文件名中的非法字符
-                newName = this._sanitizeFileName(newName);
                 await this._renameFile(cloud189, task, file, newName, message, newFiles);
             } catch (error) {
                 logTaskEvent(`${file.name}重命名失败: ${error.message}`);
@@ -907,7 +906,7 @@ class TaskService {
         }
 
         if (!task.enableSystemProxy && (!renameResult || renameResult.res_code != 0)) {
-            message.push(`├─ ${file.name} → ${newName}失败, 原因:${newName}${renameResult?.res_msg}`);
+            // message.push(`├─ ${file.name} → ${newName}失败, 原因:${newName}${renameResult?.res_msg}`);
             newFiles.push(file);
         } else {
             message.push(`├─ ${file.name} → ${newName}`);
