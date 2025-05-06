@@ -20,7 +20,7 @@ class WxPusherService extends MessageService {
             const url = "https://wxpusher.zjiecode.com/api/send/message/simple-push";
             const msg = await this.convertToMarkdown(message)
             const data = {
-                summary: "天翼云盘更新",
+                // summary: "天翼云盘更新",
                 content: msg,
                 content_type: 3,
                 spt: this.config.spt
@@ -46,7 +46,7 @@ class WxPusherService extends MessageService {
 
             await got.post('https://wxpusher.zjiecode.com/api/send/message/simple-push', {
                 json: {
-                    summary: "刮削通知",
+                    summary: message.title,
                     content: content,
                     content_type: 2, // HTML类型
                     spt: this.config.spt

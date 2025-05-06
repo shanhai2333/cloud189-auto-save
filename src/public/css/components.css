@@ -592,5 +592,20 @@
 #strmModal span {
     flex: 1;
     font-size: 14px;
+<<<<<<< HEAD
 >>>>>>> 75adc9a (feat: 添加账号别名功能并优化STRM生成器界面)
+=======
+}
+
+.default-star {
+    cursor: pointer;
+    color: var(--text-color);
+    font-size: 18px;
+    margin-right: 8px;
+    user-select: none;
+}
+
+.default-star:hover {
+    opacity: 0.8;
+>>>>>>> da4b78e (feat: 新增默认账号功能及AI重命名支持)
 }

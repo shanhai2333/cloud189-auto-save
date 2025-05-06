@@ -48,6 +48,10 @@ export class Account {
 
     @Column('text', { nullable: true, default: '' })
     alias!: string;
+
+    // 默认账号
+    @Column('boolean', { nullable: true, default: false })
+    isDefault!: boolean;
 }
 
 @Entity()

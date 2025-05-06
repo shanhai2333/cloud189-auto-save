@@ -57,7 +57,7 @@ function renderResults() {
     } else {
         document.querySelector('.cloudsaver-action-buttons').style.display = 'flex';
         resultsDiv.innerHTML = `
-            <div style="padding: 8px; color: #999; font-size: 12px;">以下资源来自 CloudSaver</div>
+            <div style="padding: 8px; color: #999; font-size: 12px;">以下资源来自 <a href="https://github.com/jiangrui1994/cloudsaver" target="_blank" style="color: #666; text-decoration: underline;">CloudSaver</a></div>
             ${searchResults.map((item, index) => `
                 <div class="cloudsaver-result-item" onclick="selectItem(${index})" data-index="${index}">
                     ${item.title}

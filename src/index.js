@@ -139,6 +139,7 @@ AppDataSource.initialize().then(async () => {
     const taskService = new TaskService(taskRepo, accountRepo);
     const embyService = new EmbyService(taskService)
     const messageUtil = new MessageUtil();
+    const proxyFileService = new ProxyFileService(proxyFileRepo);
     // 机器人管理
     const botManager = TelegramBotManager.getInstance();
     // 初始化机器人
@@ -265,6 +266,9 @@ AppDataSource.initialize().then(async () => {
         }
     })
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> da4b78e (feat: 新增默认账号功能及AI重命名支持)
     app.put('/api/accounts/:id/default', async (req, res) => {
         try {
             const accountId = parseInt(req.params.id);
@@ -277,9 +281,12 @@ AppDataSource.initialize().then(async () => {
             res.json({ success: false, error: error.message });
         }
     })
+<<<<<<< HEAD
 =======
     
 >>>>>>> 75adc9a (feat: 添加账号别名功能并优化STRM生成器界面)
+=======
+>>>>>>> da4b78e (feat: 新增默认账号功能及AI重命名支持)
     // 任务相关API
     app.get('/api/tasks', async (req, res) => {
         const { status, search } = req.query;
@@ -537,7 +544,14 @@ AppDataSource.initialize().then(async () => {
         }
         const newFiles = files.map(file => ({id: file.fileId, name: file.destFileName}))
         if(task.enableSystemProxy) {
+<<<<<<< HEAD
             throw new Error('系统代理模式已移除');
+=======
+            const proxyFiles = files.map(file => ({id: file.fileId, name: file.destFileName}))
+            await proxyFileService.batchUpdateFiles(proxyFiles);
+            res.json({ success: true, data: [] });
+            return;
+>>>>>>> da4b78e (feat: 新增默认账号功能及AI重命名支持)
         }
         const cloud189 = Cloud189Service.getInstance(account);
         const result = []
@@ -761,6 +775,7 @@ AppDataSource.initialize().then(async () => {
             res.json({ success: false, error: error.message });
         }
     })
+<<<<<<< HEAD
 
     app.post('/api/custom-push/test', async (req, res) => {
         try{
@@ -775,6 +790,8 @@ AppDataSource.initialize().then(async () => {
             res.json({ success: false, error: error.message });
         }
     })
+=======
+>>>>>>> da4b78e (feat: 新增默认账号功能及AI重命名支持)
     
     // 全局错误处理中间件
     app.use((err, req, res, next) => {

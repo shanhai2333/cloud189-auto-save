@@ -14,8 +14,11 @@ const { EventService } = require('./eventService');
 const { TaskEventHandler } = require('./taskEventHandler');
 const AIService = require('./ai');
 const harmonizedFilter = require('../utils/BloomFilter');
+<<<<<<< HEAD
 const cloud189Utils = require('../utils/Cloud189Utils');
 const alistService = require('./alistService');
+=======
+>>>>>>> da4b78e (feat: 新增默认账号功能及AI重命名支持)
 
 class TaskService {
     constructor(taskRepo, accountRepo) {
@@ -790,6 +793,7 @@ class TaskService {
                     continue;
                 }
 <<<<<<< HEAD
+<<<<<<< HEAD
                 const newName = this._generateFileName(file, aiFile, resourceInfo, template);
 =======
                 // 构建文件名替换映射
@@ -814,6 +818,9 @@ class TaskService {
                 // 清理文件名中的非法字符
                 newName = this._sanitizeFileName(newName);
 >>>>>>> 49dcd38 (fix: 修复重命名中同名文件判断异常)
+=======
+                const newName = this._generateFileName(file, aiFile, resourceInfo, template);
+>>>>>>> da4b78e (feat: 新增默认账号功能及AI重命名支持)
                 // 判断文件名是否已存在
                 if (file.name === newName) {
                     newFiles.push(file);
@@ -1343,7 +1350,11 @@ class TaskService {
     // ai命名处理
     async handleAiRename(files, resourceInfo) {
         const template = resourceInfo.type === 'movie' 
+<<<<<<< HEAD
         ? ConfigService.getConfigValue('openai.rename.movieTemplate') || '{name} ({year}){ext}'  // 电影模板
+=======
+        ? '{name} ({year}){ext}'  // 电影模板
+>>>>>>> da4b78e (feat: 新增默认账号功能及AI重命名支持)
         : ConfigService.getConfigValue('openai.rename.template') || '{name} - {se}{ext}';  // 剧集模板
         const aiNames = resourceInfo.episode
         const newFiles = [];
@@ -1379,6 +1390,7 @@ class TaskService {
         }    
         return false
     }
+<<<<<<< HEAD
 
     // 根据文件id批量删除文件
     async deleteFiles(taskId, files) {
@@ -1442,6 +1454,8 @@ class TaskService {
         const cloud189 = Cloud189Service.getInstance(task.account);
         return await this.getAllFolderFiles(cloud189, task)
     }
+=======
+>>>>>>> da4b78e (feat: 新增默认账号功能及AI重命名支持)
 }
 
 module.exports = { TaskService };
