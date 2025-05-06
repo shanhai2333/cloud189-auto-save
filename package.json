@@ -3,6 +3,7 @@
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
   "version": "2.2.40",
 =======
   "version": "2.2.23",
@@ -13,6 +14,9 @@
 =======
   "version": "2.2.25",
 >>>>>>> da4b78e (feat: 新增默认账号功能及AI重命名支持)
+=======
+  "version": "2.2.26",
+>>>>>>> 4ceabf8 (fix: 修复tg机器人分享链接识别异常)
   "description": "天翼云盘自动转存系统",
   "main": "src/index.js",
   "scripts": {

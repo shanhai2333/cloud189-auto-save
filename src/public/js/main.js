@@ -75,11 +75,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // 从缓存获取数据
 function getFromCache(key) {
-    return localStorage.getItem(key);
+    // 拼接用户 ID
+    const userId = document.getElementById('accountId').value;
+    return localStorage.getItem(key + '_' + userId);
 }
 // 保存数据到缓存
 function saveToCache(key, value) {
-    localStorage.setItem(key, value);
+    const userId = document.getElementById('accountId').value;
+    localStorage.setItem(key + '_' + userId, value);
 }
 
 document.addEventListener('DOMContentLoaded', function() {
