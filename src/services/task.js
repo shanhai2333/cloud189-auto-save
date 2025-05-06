@@ -15,6 +15,7 @@ const { TaskEventHandler } = require('./taskEventHandler');
 const { ProxyFileService } = require('./ProxyFileService');
 const AIService = require('./ai');
 const harmonizedFilter = require('../utils/BloomFilter');
+const cloud189Utils = require('../utils/Cloud189Utils');
 
 class TaskService {
     constructor(taskRepo, accountRepo, proxyFileRepo) {
@@ -32,79 +33,6 @@ class TaskService {
                 taskEventHandler.handle(eventDto);
             });
         }
-    }
-
-    // 解析分享码
-    async parseShareCode(shareLink) {
-        // 解析分享链接
-        let shareCode;
-        const shareUrl = new URL(shareLink);
-        if (shareUrl.origin.includes('content.21cn.com')) {
-            // 处理订阅链接
-            const params = new URLSearchParams(shareUrl.hash.split('?')[1]);
-            shareCode = params.get('shareCode');
-        } else if (shareUrl.pathname === '/web/share') {
-            shareCode = shareUrl.searchParams.get('code');
-        } else if (shareUrl.pathname.startsWith('/t/')) {
-            shareCode = shareUrl.pathname.split('/').pop();
-        }else if (shareUrl.hash && shareUrl.hash.includes('/t/')) {
-            shareCode = shareUrl.hash.split('/').pop();
-        }else if (shareUrl.pathname.includes('share.html')) {
-            // 其他可能的 share.html 格式
-            const hashParts = shareUrl.hash.split('/');
-            shareCode = hashParts[hashParts.length - 1];
-        }
-        
-        if (!shareCode) throw new Error('无效的分享链接');
-        return shareCode
-    }
-
-    async parseCloudShare(shareText) {
-        // 移除所有空格
-        shareText = shareText.replace(/\s/g, '');
-        shareText = decodeURIComponent(shareText);
-        // 提取基本URL和访问码
-        let url = '';
-        let accessCode = '';
-        
-        // 匹配访问码的几种常见格式
-        const accessCodePatterns = [
-            /[（(]访问码[：:]\s*([a-zA-Z0-9]{4})[)）]/,  // （访问码：xxxx）
-            /[（(]提取码[：:]\s*([a-zA-Z0-9]{4})[)）]/,  // （提取码：xxxx）
-            /访问码[：:]\s*([a-zA-Z0-9]{4})/,           // 访问码：xxxx
-            /提取码[：:]\s*([a-zA-Z0-9]{4})/,           // 提取码：xxxx
-            /[（(]([a-zA-Z0-9]{4})[)）]/                // （xxxx）
-        ];
-        
-        // 尝试匹配访问码
-        for (const pattern of accessCodePatterns) {
-            const match = shareText.match(pattern);
-            if (match) {
-                accessCode = match[1];
-                // 从原文本中移除访问码部分
-                shareText = shareText.replace(match[0], '');
-                break;
-            }
-        }
-        
-        // 提取URL - 支持两种格式
-        const urlPatterns = [
-            /(https?:\/\/cloud\.189\.cn\/web\/share\?[^\s]+)/,  // web/share格式
-            /(https?:\/\/cloud\.189\.cn\/t\/[a-zA-Z0-9]+)/      // t/xxx格式
-        ];
-    
-        for (const pattern of urlPatterns) {
-            const urlMatch = shareText.match(pattern);
-            if (urlMatch) {
-                url = urlMatch[1];
-                break;
-            }
-        }
-        
-        return {
-            url: url,
-            accessCode: accessCode
-        };
     }
 
     // 解析分享链接
@@ -293,13 +221,13 @@ class TaskService {
         if (!account) throw new Error('账号不存在');
         
         // 解析url
-        const {url: parseShareLink, accessCode} = await this.parseCloudShare(taskDto.shareLink)
+        const {url: parseShareLink, accessCode} = cloud189Utils.parseCloudShare(taskDto.shareLink)
         if (accessCode) {
             taskDto.accessCode = accessCode;
         }
         taskDto.shareLink = parseShareLink;
         const cloud189 = Cloud189Service.getInstance(account);
-        const shareCode = await this.parseShareCode(taskDto.shareLink);
+        const shareCode = cloud189Utils.parseShareCode(taskDto.shareLink);
         const shareInfo = await this.getShareInfo(cloud189, shareCode);
         // 如果分享链接是加密链接, 且没有提供访问码, 则抛出错误
         if (shareInfo.shareMode == 1 ) {
@@ -1309,7 +1237,7 @@ class TaskService {
             throw new Error('账号不存在')
         }
         const cloud189 = Cloud189Service.getInstance(account);
-        const shareCode = await this.parseShareCode(shareLink)
+        const shareCode = cloud189Utils.parseShareCode(shareLink)
         const shareInfo = await this.getShareInfo(cloud189, shareCode)
         if (shareInfo.shareMode == 1) {
             if (!accessCode) {
