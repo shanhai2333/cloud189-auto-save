@@ -15,10 +15,14 @@ const { TaskEventHandler } = require('./taskEventHandler');
 const AIService = require('./ai');
 const harmonizedFilter = require('../utils/BloomFilter');
 <<<<<<< HEAD
+<<<<<<< HEAD
 const cloud189Utils = require('../utils/Cloud189Utils');
 const alistService = require('./alistService');
 =======
 >>>>>>> da4b78e (feat: 新增默认账号功能及AI重命名支持)
+=======
+const cloud189Utils = require('../utils/Cloud189Utils');
+>>>>>>> 3f47691 (refactor(utils): 将解析云盘分享链接的逻辑提取到Cloud189Utils模块)
 
 class TaskService {
     constructor(taskRepo, accountRepo) {

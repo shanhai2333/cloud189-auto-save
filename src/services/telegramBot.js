@@ -8,6 +8,7 @@ const { TMDBService } = require('./tmdb');
 const path = require('path');
 const { default: cloudSaverSDK } = require('../sdk/cloudsaver/sdk');
 const ProxyUtil = require('../utils/ProxyUtil');
+const cloud189Utils = require('../utils/Cloud189Utils');
 
 class TelegramBotService {
     constructor(token) {
@@ -167,7 +168,7 @@ class TelegramBotService {
                         return;
                     }
                     try {
-                        const { shareLink, accessCode } = this._parseShareLink(cacheShareLink);
+                        const { shareLink, accessCode } = cloud189Utils.parseCloudShare(cacheShareLink);
                         // 处理分享链接
                         await this.handleFolderSelection(chatId, shareLink, null, accessCode);
                         return
@@ -188,7 +189,7 @@ class TelegramBotService {
             }
             try {
                 if (!this._checkUserId(chatId)) return;
-                const { shareLink, accessCode } = this._parseShareLink(msg.text);
+                const { shareLink, accessCode } = cloud189Utils.parseCloudShare(msg.text);
                 await this.handleFolderSelection(chatId, shareLink, null, accessCode);
             } catch (error) {
                 console.log(error)
@@ -1052,22 +1053,6 @@ class TelegramBotService {
                 await this.bot.sendMessage(chatId, '长时间未搜索，已自动退出搜索模式');
             }
         }, 3 * 60 * 1000);  // 3分钟
-    }
-    // 解析分享链接
-    _parseShareLink(shareLink) {
-        let accessCode = '';
-        // 需要验证shareLink是否包含访问码
-        if (shareLink.includes('访问码：')) {
-            // 验证并解析分享链接
-            const regex = /^(https:\/\/cloud\.189\.cn\/t\/[a-zA-Z0-9]+)(?:\s*（访问码：([a-zA-Z0-9]+)）)?$/;
-            const linkMatch = regex.exec(shareLink);
-            if (!linkMatch) {
-                throw new Error('无效的天翼云盘分享链接');
-            }
-            shareLink = linkMatch[1];
-            accessCode = linkMatch[2] || '';
-        }
-        return { shareLink, accessCode };
     }
 }
 
