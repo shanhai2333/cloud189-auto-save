@@ -134,6 +134,7 @@ AppDataSource.initialize().then(async () => {
     const taskService = new TaskService(taskRepo, accountRepo, proxyFileRepo);
     const embyService = new EmbyService(taskService)
     const messageUtil = new MessageUtil();
+    const proxyFileService = new ProxyFileService(proxyFileRepo);
     // 机器人管理
     const botManager = TelegramBotManager.getInstance();
     // 初始化机器人
@@ -257,7 +258,18 @@ AppDataSource.initialize().then(async () => {
             res.json({ success: false, error: error.message });
         }
     })
-    
+    app.put('/api/accounts/:id/default', async (req, res) => {
+        try {
+            const accountId = parseInt(req.params.id);
+            // 清除所有账号的默认状态
+            await accountRepo.update({}, { isDefault: false });
+            // 设置指定账号为默认
+            await accountRepo.update({ id: accountId }, { isDefault: true });
+            res.json({ success: true });
+        } catch (error) {
+            res.json({ success: false, error: error.message });
+        }
+    })
     // 任务相关API
     app.get('/api/tasks', async (req, res) => {
         const { status, search } = req.query;
@@ -492,8 +504,10 @@ AppDataSource.initialize().then(async () => {
             throw new Error('任务不存在');
         }
         if(task.enableSystemProxy) {
-            await ProxyFileService.renameFiles(task);
+            const proxyFiles = files.map(file => ({id: file.fileId, name: file.destFileName}))
+            await proxyFileService.batchUpdateFiles(proxyFiles);
             res.json({ success: true, data: [] });
+            return;
         }
         const cloud189 = Cloud189Service.getInstance(account);
         const result = []
@@ -719,6 +733,29 @@ AppDataSource.initialize().then(async () => {
             res.json({ success: false, error: error.message });
         }
     });
+
+    // ai重命名
+    app.post('/api/files/ai-rename', async (req, res) => {
+        try {
+            const { taskId, files } = req.body;
+            if (files.length == 0) {
+                throw new Error('未获取到需要修改的文件');
+            }
+            const task = await taskService.getTaskById(taskId);
+            if (!task) {
+                throw new Error('任务不存在');
+            }
+            // 开始ai分析
+            const resourceInfo = await taskService._analyzeResourceInfo(
+                task.resourceName,
+                files,
+                'file'
+            )
+            return res.json({ success: true, data: await taskService.handleAiRename(files, resourceInfo) });
+        } catch (error) {
+            res.json({ success: false, error: error.message });
+        }
+    })
     
     // 全局错误处理中间件
     app.use((err, req, res, next) => {

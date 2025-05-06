@@ -590,3 +590,15 @@
     flex: 1;
     font-size: 14px;
 }
+
+.default-star {
+    cursor: pointer;
+    color: var(--text-color);
+    font-size: 18px;
+    margin-right: 8px;
+    user-select: none;
+}
+
+.default-star:hover {
+    opacity: 0.8;
+}

@@ -4,6 +4,7 @@ const ConfigService = require('./ConfigService');
 const { logTaskEvent } = require('../utils/logUtils');
 const CryptoUtils = require('../utils/cryptoUtils');
 const alistService = require('./alistService');
+const { MessageUtil } = require('./message');
 
 class StrmService {
     constructor() {
@@ -12,6 +13,7 @@ class StrmService {
         // 从环境变量获取 PUID 和 PGID，默认值设为 0
         this.puid = process.env.PUID || 0;
         this.pgid = process.env.PGID || 0;
+        this.messageUtil = new MessageUtil();
     }
 
     // 确保目录存在并设置权限和组，递归创建的所有目录都设置为 777 权限
@@ -172,7 +174,7 @@ class StrmService {
             }
         }
         if (messages.length > 0) {
-            messageUtil.sendMessage(messages.join('\n\n'));
+            this.messageUtil.sendMessage(messages.join('\n\n'));
         }   
     }
 
@@ -346,7 +348,7 @@ class StrmService {
         }
     }
     // 删除目录下的所有.strm文件
-    async _deleteDirAllStrm(dirPath) {
+    async  _deleteDirAllStrm(dirPath) {
         // 检查目录是否存在
         try {
             await fs.access(dirPath);

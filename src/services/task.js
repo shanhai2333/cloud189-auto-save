@@ -14,6 +14,7 @@ const { EventService } = require('./eventService');
 const { TaskEventHandler } = require('./taskEventHandler');
 const { ProxyFileService } = require('./ProxyFileService');
 const AIService = require('./ai');
+const harmonizedFilter = require('../utils/BloomFilter');
 
 class TaskService {
     constructor(taskRepo, accountRepo, proxyFileRepo) {
@@ -473,7 +474,8 @@ class TaskService {
                 taskInfoList.push({
                     fileId: file.id,
                     fileName: file.name,
-                    isFolder: 0
+                    isFolder: 0,
+                    md5: file.md5,
                 });
             }
             fileNameList.push(`├─ ${file.name}`);
@@ -617,7 +619,10 @@ class TaskService {
                     !file.isFolder && !existingFiles.has(file.md5) 
                    && !existingFileNames.has(file.name)
                    && this._checkFileSuffix(file, enableOnlySaveMedia, mediaSuffixs)
-                && (aiFiltered || this._handleMatchMode(task, file)));
+                   && (aiFiltered || this._handleMatchMode(task, file))
+                   && !this.isHarmonized(file)
+                );
+
             // 处理新文件并保存到数据库和云盘
             if (newFiles.length > 0) {
                 const { fileNameList, fileCount } = await this._handleNewFiles(task, newFiles, cloud189, mediaSuffixs);
@@ -825,6 +830,30 @@ class TaskService {
         message.length > 0 && this.messageUtil.sendMessage(`${task.resourceName}自动重命名: \n${message.join('\n')}`);
     }
 
+    // 根据AI分析结果生成新文件名
+    _generateFileName(file, aiFile, resourceInfo, template) {
+        if (!aiFile) return file.name;
+        
+        // 构建文件名替换映射
+        const replaceMap = {
+            '{name}': aiFile.name || resourceInfo.name,
+            '{year}': resourceInfo.year || '',
+            '{s}': aiFile.season?.padStart(2, '0') || '01',
+            '{e}': aiFile.episode?.padStart(2, '0') || '01',
+            '{sn}': parseInt(aiFile.season) || '1',                    // 不补零的季数
+            '{en}': parseInt(aiFile.episode) || '1',                   // 不补零的集数
+            '{ext}': aiFile.extension || path.extname(file.name),
+            '{se}': `S${aiFile.season?.padStart(2, '0') || '01'}E${aiFile.episode?.padStart(2, '0') || '01'}`
+        };
+
+        // 替换模板中的占位符
+        let newName = template;
+        for (const [key, value] of Object.entries(replaceMap)) {
+            newName = newName.replace(new RegExp(key, 'g'), value);
+        }
+        // 清理文件名中的非法字符
+        return this._sanitizeFileName(newName);
+    }
     // 处理重命名过程
     async _processRename(cloud189, task, files, resourceInfo, message, newFiles) {
         const newNames = resourceInfo.episode;
@@ -840,24 +869,7 @@ class TaskService {
                     newFiles.push(file);
                     continue;
                 }
-                // 构建文件名替换映射
-                const replaceMap = {
-                    '{name}': aiFile.name || task.resourceName,
-                    '{year}': resourceInfo.year || '',
-                    '{s}': aiFile.season?.padStart(2, '0') || '01',
-                    '{e}': aiFile.episode?.padStart(2, '0') || '01',
-                    '{sn}': parseInt(aiFile.season) || '1',                    // 不补零的季数
-                    '{en}': parseInt(aiFile.episode) || '1',                   // 不补零的集数
-                    '{ext}': aiFile.extension || path.extname(file.name),
-                    '{se}': `S${aiFile.season?.padStart(2, '0') || '01'}E${aiFile.episode?.padStart(2, '0') || '01'}`
-                };
-                // 替换模板中的占位符
-                let newName = template;
-                for (const [key, value] of Object.entries(replaceMap)) {
-                    newName = newName.replace(new RegExp(key, 'g'), value);
-                }
-                // 清理文件名中的非法字符
-                newName = this._sanitizeFileName(newName);
+                const newName = this._generateFileName(file, aiFile, resourceInfo, template);
                 // 判断文件名是否已存在
                 if (file.name === newName) {
                     newFiles.push(file);
@@ -919,12 +931,13 @@ class TaskService {
     }
 
     // 检查任务状态
-    async checkTaskStatus(cloud189, taskId, count = 0, type = "SHARE_SAVE") {
+    async checkTaskStatus(cloud189, taskId, count = 0, batchTaskDto) {
         if (count > 5) {
              return false;
         }
+        let type = batchTaskDto.type || 'SHARE_SAVE';
         // 轮询任务状态
-        const task = await cloud189.checkTaskStatus(taskId, type)
+        const task = await cloud189.checkTaskStatus(taskId, batchTaskDto)
         if (!task) {
             return false;
         }
@@ -932,9 +945,29 @@ class TaskService {
         if (task.taskStatus == 3 || task.taskStatus == 1) {
             // 暂停200毫秒
             await new Promise(resolve => setTimeout(resolve, 200));
-            return await this.checkTaskStatus(cloud189,taskId, count++, type)
+            return await this.checkTaskStatus(cloud189,taskId, count++, batchTaskDto)
         }
         if (task.taskStatus == 4) {
+            // 如果failedCount > 0 说明有失败或者被和谐的文件, 需要查一次文件列表
+            if (task.failedCount > 0 && type == 'SHARE_SAVE') {
+                const targetFolderId = batchTaskDto.targetFolderId;
+                const fileList = await this.getAllFolderFiles(cloud189, {
+                    enableSystemProxy: false,
+                    realFolderId: targetFolderId
+                });
+                //  当前转存的文件列表为taskInfos 需反序列化
+                const taskInfos = JSON.parse(batchTaskDto.taskInfos);
+                // fileList和taskInfos进行对比 拿到不在fileList中的文件
+                const conflictFiles = taskInfos.filter(taskInfo => {
+                    return !fileList.some(file => file.md5 === taskInfo.md5);
+                });
+                if (conflictFiles.length > 0) {
+                    // 打印日志
+                    logTaskEvent(`任务编号: ${task.taskId}, 任务状态: ${task.taskStatus}, 有${conflictFiles.length}个文件冲突, 已忽略: ${conflictFiles.map(file => file.fileName).join(',')}`);
+                    // 加入和谐文件中
+                    harmonizedFilter.addHarmonizedList(conflictFiles.map(file => file.md5))
+                }
+            }
             return true;
         }
         // 如果status == 2 说明有冲突
@@ -950,7 +983,7 @@ class TaskService {
             }
             await cloud189.manageBatchTask(taskId, conflictTaskInfo.targetFolderId, taskInfos);
             await new Promise(resolve => setTimeout(resolve, 200));
-            return await this.checkTaskStatus(cloud189, taskId, count++, type)
+            return await this.checkTaskStatus(cloud189, taskId, count++, batchTaskDto)
         }
         return false;
     }
@@ -1118,7 +1151,7 @@ class TaskService {
             throw new Error(resp.res_msg);
         }
         logTaskEvent(`批量任务处理中: ${JSON.stringify(resp)}`)
-        if (!await this.checkTaskStatus(cloud189,resp.taskId, 0 , batchTaskDto.type)) {
+        if (!await this.checkTaskStatus(cloud189,resp.taskId, 0 , batchTaskDto)) {
             throw new Error('检查批量任务状态: 批量任务处理失败');
         }
         logTaskEvent(`批量任务处理完成`)
@@ -1348,6 +1381,45 @@ class TaskService {
                 }
             }
         });
+    }
+    // ai命名处理
+    async handleAiRename(files, resourceInfo) {
+        const template = resourceInfo.type === 'movie' 
+        ? '{name} ({year}){ext}'  // 电影模板
+        : ConfigService.getConfigValue('openai.rename.template') || '{name} - {se}{ext}';  // 剧集模板
+        const aiNames = resourceInfo.episode
+        const newFiles = [];
+        for (const file of files) {
+            try {
+                const aiFile = aiNames.find(f => f.id === file.id);
+                if (!aiFile) {
+                    continue;
+                }
+                const newName = this._generateFileName(file, aiFile, resourceInfo, template);
+                // 判断文件名是否已存在
+                if (file.name === newName) {
+                    continue;   
+                }
+                newFiles.push({
+                    ...file,
+                    fileId: file.id,
+                    oldName: file.name,
+                    destFileName: newName
+                });
+            } catch (error) {
+                logTaskEvent(`${file.name}AI重命名处理失败: ${error.message}`);
+            }
+        }
+        return newFiles;
+    }
+    // 根据布隆过滤器判断是否被和谐
+    isHarmonized(file) {
+        // 检查资源是否被和谐
+        if (harmonizedFilter.isHarmonized(file.md5)) {
+            logTaskEvent(`文件 ${file.name} 被和谐`);
+            return true;
+        }    
+        return false
     }
 }
 

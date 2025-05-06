@@ -202,6 +202,10 @@ class FolderSelector {
         this.initModal();
     }
 
+    setAccountId(accountId) {
+        this.accountId = accountId;
+    }
+
     defaultConfirm() {
         if (this.selectedNode) {
             this.onSelect({

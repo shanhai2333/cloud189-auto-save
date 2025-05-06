@@ -22,7 +22,11 @@ async function fetchAccounts(updateSelect = false) {
                 <tr>
                     <td>${account.cookies && !account.password ? 
                         `<button class="btn-warning" onclick="updateCookie(${account.id})">修改Cookie</button>` 
-                        : ''}<button class="btn-danger" onclick="deleteAccount(${account.id})">删除</button></td>
+                        : ''}  <span class="default-star" onclick="setDefaultAccount(${account.id})" title="设为默认账号">
+                            ${account.isDefault ? '★' : '☆'}
+                        </span>
+                        <button class="btn-danger" onclick="deleteAccount(${account.id})">删除</button>
+                        </td>
                     <td data-label='账户名'>${account.username}</td>
                     <td data-label='别名' onclick="updateAlias(${account.id}, '${account.alias || ''}')">${account.alias}</td>
                     <td data-label='个人容量'>${formatBytes(account.capacity.cloudCapacityInfo.usedSize) + '/' + formatBytes(account.capacity.cloudCapacityInfo.totalSize)}</td>
@@ -36,7 +40,7 @@ async function fetchAccounts(updateSelect = false) {
                 // n_打头的账号不显示在下拉列表中
                 if (!account.username.startsWith('n_')) {
                     select.innerHTML += `
-                    <option value="${account.id}">${account.username}</option>
+                    <option value="${account.id}" selected="${account.isDefault?true:false}">${account.username}</option>
                 `;
                 }
             }
@@ -226,5 +230,23 @@ async function updateAlias(id, currentAlias) {
         }
     } catch (error) {
         message.warning('操作失败:'+ error.message);
+    }
+}
+
+async function setDefaultAccount(id) {
+    try {
+        const response = await fetch(`/api/accounts/${id}/default`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' }
+        });
+        const data = await response.json();
+        if (data.success) {
+            message.success('设置默认账号成功');
+            fetchAccounts(true);  // 更新账号列表和下拉框
+        } else {
+            message.warning('设置默认账号失败: ' + data.error);
+        }
+    } catch (error) {
+        message.warning('操作失败: ' + error.message);
     }
 }

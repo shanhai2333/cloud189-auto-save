@@ -37,6 +37,7 @@ function showEditTaskModal(id) {
     document.getElementById('editTaskModal').style.display = 'block';
     document.getElementById('editEnableCron').checked = task.enableCron;
     document.getElementById('editCronExpression').value = task.cronExpression;
+    document.getElementById('editAccountId').value = task.accountId;
 
     document.getElementsByClassName('cronExpression-box')[1].style.display = task.enableCron?'block':'none';
     document.getElementById('editEnableCron').addEventListener('change', function() {
@@ -45,7 +46,6 @@ function showEditTaskModal(id) {
         cronInput.style.display = this.checked? 'block' : 'none';
     });
     document.getElementById('editEnableTaskScraper').checked = task?.enableTaskScraper;
-    
 }
 
 function closeEditTaskModal() {
@@ -55,7 +55,7 @@ function closeEditTaskModal() {
 function initEditTaskForm() {
     document.getElementById('shareFolder').addEventListener('click', (e) => {
         e.preventDefault();
-        const accountId = document.getElementById('accountId').value;
+        const accountId = document.getElementById('editAccountId').value;
         if (!accountId) {
             message.warning('请先选择账号');
             return;
@@ -66,7 +66,7 @@ function initEditTaskForm() {
     // 更新目录也改为点击触发
     document.getElementById('editRealFolder').addEventListener('click', (e) => {
         e.preventDefault();
-        const accountId = document.getElementById('accountId').value;
+        const accountId = document.getElementById('editAccountId').value;
         if (!accountId) {
             message.warning('请先选择账号');
             return;

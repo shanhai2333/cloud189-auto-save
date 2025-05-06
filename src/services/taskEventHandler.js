@@ -12,6 +12,9 @@ class TaskEventHandler {
     }
 
     async handle(taskCompleteEventDto) {
+        if (taskCompleteEventDto.fileList.length === 0) {
+            return;
+        }
         const task = taskCompleteEventDto.task;
         logTaskEvent(` ${task.resourceName} 触发事件:`);
         try {
