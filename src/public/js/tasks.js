@@ -235,6 +235,18 @@ function initTaskForm() {
             
     });
 
+    // 监听accountId的变化
+    document.getElementById('accountId').addEventListener('change', async () => {
+        const lastTargetFolder = getFromCache('lastTargetFolder')
+        if (lastTargetFolder) {
+            const { lastTargetFolderId, lastTargetFolderName } = JSON.parse(lastTargetFolder);
+            document.getElementById('targetFolderId').value = lastTargetFolderId;
+            document.getElementById('targetFolder').value = lastTargetFolderName; 
+        }else{
+            document.getElementById('targetFolderId').value = '';
+            document.getElementById('targetFolder').value = '';
+        }
+    })
     async function createTask(e, body) {
         const submitBtn = e.target.querySelector('button[type="submit"]');
         submitBtn.classList.add('loading');

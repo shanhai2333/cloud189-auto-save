@@ -168,7 +168,7 @@ class TelegramBotService {
                         return;
                     }
                     try {
-                        const { shareLink, accessCode } = cloud189Utils.parseCloudShare(cacheShareLink);
+                        const { url: shareLink, accessCode } = cloud189Utils.parseCloudShare(cacheShareLink);
                         // 处理分享链接
                         await this.handleFolderSelection(chatId, shareLink, null, accessCode);
                         return
@@ -189,7 +189,7 @@ class TelegramBotService {
             }
             try {
                 if (!this._checkUserId(chatId)) return;
-                const { shareLink, accessCode } = cloud189Utils.parseCloudShare(msg.text);
+                const { url: shareLink, accessCode } = cloud189Utils.parseCloudShare(msg.text);
                 await this.handleFolderSelection(chatId, shareLink, null, accessCode);
             } catch (error) {
                 console.log(error)
@@ -651,7 +651,7 @@ class TelegramBotService {
         // 解析链接
         try{
             const shareFolders = await this.taskService.parseShareFolderByShareLink(shareLink, this.currentAccountId, accessCode);
-            taskName = shareFolders[0];
+            taskName = shareFolders[0].name;
         }catch(e){
             await this.bot.sendMessage(chatId, `解析分享链接失败: ${e.message}`);
             return;

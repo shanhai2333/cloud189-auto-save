@@ -40,7 +40,7 @@ async function fetchAccounts(updateSelect = false) {
                 // n_打头的账号不显示在下拉列表中
                 if (!account.username.startsWith('n_')) {
                     select.innerHTML += `
-                    <option value="${account.id}" selected="${account.isDefault?true:false}">${account.username}</option>
+                    <option value="${account.id}" ${account.isDefault?"selected":''}>${account.username}</option>
                 `;
                 }
             }
