@@ -553,7 +553,7 @@ AppDataSource.initialize().then(async () => {
 =======
             let oldFilesName = files.map(file => path.join(folderName, file.oldName));
             for (const file of oldFilesName) {
-                strmService.delete(path.join(task.account.localStrmPrefix, file))
+                await strmService.delete(path.join(task.account.localStrmPrefix, file))
             }
         }
         const newFiles = files.map(file => ({id: file.fileId, name: file.destFileName}))
@@ -583,6 +583,7 @@ AppDataSource.initialize().then(async () => {
                     // 从realFolderName中获取文件夹名称 删除对应的本地文件
                     const oldFile = path.join(folderName, file.oldName);
 <<<<<<< HEAD
+<<<<<<< HEAD
                     await strmService.delete(path.join(task.account.localStrmPrefix, oldFile))
                 }
                 successFiles.push({id: file.fileId, name: file.destFileName})
@@ -591,6 +592,11 @@ AppDataSource.initialize().then(async () => {
                 }
                 successFiles.push(file)
 >>>>>>> 0538636 (feat: 多项功能优化)
+=======
+                    await strmService.delete(path.join(task.account.localStrmPrefix, oldFile))
+                }
+                successFiles.push({id: file.fileId, name: file.destFileName})
+>>>>>>> b174657 (feat: 添加OpenAI代理选项并优化验证码处理)
             }
         }
         // 重新生成STRM文件
@@ -614,6 +620,7 @@ AppDataSource.initialize().then(async () => {
     });
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
     // 删除任务文件
     app.delete('/api/tasks/files', async (req, res) => {
@@ -630,6 +637,8 @@ AppDataSource.initialize().then(async () => {
     })
     
 >>>>>>> 0538636 (feat: 多项功能优化)
+=======
+>>>>>>> b174657 (feat: 添加OpenAI代理选项并优化验证码处理)
     // 系统设置
     app.get('/api/settings', async (req, res) => {
         res.json({success: true, data: ConfigService.getConfig()})

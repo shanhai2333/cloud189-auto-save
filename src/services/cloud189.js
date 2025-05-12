@@ -290,6 +290,13 @@ class Cloud189Service {
     }
     async login(username, password, validateCode) {
         try {
+            if (!validateCode) {
+                return {
+                    success: false,
+                    code: 'NEED_CAPTCHA',
+                    data: "http://127.0.0.1:3000/favicon/apple-touch-icon.png" // 包含验证码图片和相关token信息
+                }
+            }
             const loginToken = await this.client.authClient.loginByPassword(username, password, validateCode)
             await this.client.tokenStore.update({
                 accessToken: loginToken.accessToken,

@@ -482,6 +482,7 @@
                                 PushPlus 推送
                             </label>
 <<<<<<< HEAD
+<<<<<<< HEAD
                             <label for="pushplusToken">Token</label>
                             <input type="text" id="pushplusToken" placeholder="PushPlus Token">
                             <label for="pushplusTopic">群组编码</label>
@@ -489,6 +490,9 @@
                             <label for="pushplusChannel">推送渠道</label>
 =======
                             <input type="text" id="pushplusToken" placeholder="PushPlus serverUrl">
+=======
+                            <input type="text" id="pushplusToken" placeholder="PushPlus Token">
+>>>>>>> b174657 (feat: 添加OpenAI代理选项并优化验证码处理)
                             <input type="text" id="pushplusTopic" placeholder="群组编码, 不填仅给自己发送">
 >>>>>>> 0538636 (feat: 多项功能优化)
                             <select id="pushplusChannel">
@@ -546,6 +550,7 @@
                     <div class="proxy-options" style="margin-top: 10px;">
                         <label style="display: block; margin-bottom: 5px;">启用代理的服务：</label>
 <<<<<<< HEAD
+<<<<<<< HEAD
                         <div class="proxy-services-container">
                             <label class="proxy-service-item">
                                 <input type="checkbox" id="proxyTelegram">
@@ -571,14 +576,23 @@
                         <div style="display: flex; gap: 30px; align-items: center;">
                             <label style="display: flex; align-items: center; cursor: pointer; min-width: 100px;">
                                 <input type="checkbox" id="proxyTelegram" style="margin-right: 5px;">
+=======
+                        <div class="proxy-services-container">
+                            <label class="proxy-service-item">
+                                <input type="checkbox" id="proxyTelegram">
+>>>>>>> b174657 (feat: 添加OpenAI代理选项并优化验证码处理)
                                 <span>Telegram</span>
                             </label>
-                            <label style="display: flex; align-items: center; cursor: pointer; min-width: 80px;">
-                                <input type="checkbox" id="proxyTmdb" style="margin-right: 5px;">
+                            <label class="proxy-service-item">
+                                <input type="checkbox" id="proxyTmdb">
                                 <span>TMDB</span>
                             </label>
-                            <label style="display: flex; align-items: center; cursor: pointer; min-width: 80px;">
-                                <input type="checkbox" id="proxyCloud189" style="margin-right: 5px;">
+                            <label class="proxy-service-item">
+                                <input type="checkbox" id="proxyOpenAI">
+                                <span>OpenAI</span>
+                            </label>
+                            <label class="proxy-service-item">
+                                <input type="checkbox" id="proxyCloud189">
                                 <span>天翼</span>
                             </label>
 >>>>>>> af4c8ef (refactor(proxy): 重构代理服务配置，支持按服务启用代理)
