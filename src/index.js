@@ -540,6 +540,7 @@ AppDataSource.initialize().then(async () => {
         const strmService = new StrmService();
         const strmEnabled = ConfigService.getConfigValue('strm.enable') && task.account.localStrmPrefix
         if (strmEnabled && task.enableSystemProxy){
+<<<<<<< HEAD
             throw new Error('系统代理模式已移除');
         }
         const newFiles = files.map(file => ({id: file.fileId, name: file.destFileName}))
@@ -549,6 +550,20 @@ AppDataSource.initialize().then(async () => {
 =======
             const proxyFiles = files.map(file => ({id: file.fileId, name: file.destFileName}))
             await proxyFileService.batchUpdateFiles(proxyFiles);
+=======
+            let oldFilesName = files.map(file => path.join(folderName, file.oldName));
+            for (const file of oldFilesName) {
+                strmService.delete(path.join(task.account.localStrmPrefix, file))
+            }
+        }
+        const newFiles = files.map(file => ({id: file.fileId, name: file.destFileName}))
+        if(task.enableSystemProxy) {
+            await proxyFileService.batchUpdateFiles(newFiles);
+            // 重新生成STRM文件
+            if (strmEnabled){
+                strmService.generate(task, newFiles, false, false)
+            }
+>>>>>>> 0538636 (feat: 多项功能优化)
             res.json({ success: true, data: [] });
             return;
 >>>>>>> da4b78e (feat: 新增默认账号功能及AI重命名支持)
@@ -567,9 +582,15 @@ AppDataSource.initialize().then(async () => {
                 if (strmEnabled){
                     // 从realFolderName中获取文件夹名称 删除对应的本地文件
                     const oldFile = path.join(folderName, file.oldName);
+<<<<<<< HEAD
                     await strmService.delete(path.join(task.account.localStrmPrefix, oldFile))
                 }
                 successFiles.push({id: file.fileId, name: file.destFileName})
+=======
+                    strmService.delete(path.join(task.account.localStrmPrefix, oldFile))
+                }
+                successFiles.push(file)
+>>>>>>> 0538636 (feat: 多项功能优化)
             }
         }
         // 重新生成STRM文件
@@ -592,6 +613,23 @@ AppDataSource.initialize().then(async () => {
         res.json({ success: true, data: null });
     });
 
+<<<<<<< HEAD
+=======
+    // 删除任务文件
+    app.delete('/api/tasks/files', async (req, res) => {
+        try{
+            const { taskId, files } = req.body;
+            if (!files || files.length === 0) {
+                throw new Error('未选择要删除的文件');
+            }
+            await taskService.deleteFiles(taskId, files);
+            res.json({ success: true, data: null });
+        }catch (error) {
+            res.json({ success: false, error: error.message });
+        }
+    })
+    
+>>>>>>> 0538636 (feat: 多项功能优化)
     // 系统设置
     app.get('/api/settings', async (req, res) => {
         res.json({success: true, data: ConfigService.getConfig()})

@@ -258,6 +258,65 @@ class Cloud189Service {
         }
         return null
     }
+<<<<<<< HEAD
+=======
+    // 获取网盘直链
+    async getDownloadLink(fileId, shareId = null) {
+        const type = shareId? 4: 2
+        const response = await this.request('/api/portal/getNewVlcVideoPlayUrl.action', {
+            method: 'GET',
+            searchParams: {
+                fileId,
+                shareId,
+                type,
+                dt: 1
+            },
+        })
+        if (!response || response.res_code != 0) {
+            throw new Error(response.res_msg)
+        }
+        const code = response.normal.code
+        if (code != 1) {
+            throw new Error(response.normal.message)
+        }
+        const url = response.normal.url
+        const res = await got(url, {
+            followRedirect: false,
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36 Edg/119.0.0.0'
+            }
+        })
+        return res.headers.location
+    }
+    async login(username, password, validateCode) {
+        try {
+            const loginToken = await this.client.authClient.loginByPassword(username, password, validateCode)
+            await this.client.tokenStore.update({
+                accessToken: loginToken.accessToken,
+                refreshToken: loginToken.refreshToken,
+                expiresIn: new Date(Date.now() + 6 * 24 * 60 * 60 * 1000).getTime()
+            })
+            return {
+                success: true
+            }
+        } catch (error) {
+            // 处理需要验证码的情况
+            if (error.code === 'NEED_CAPTCHA') {
+                return {
+                    success: false,
+                    code: 'NEED_CAPTCHA',
+                    data: error.data.image // 包含验证码图片和相关token信息
+                }
+            }
+            // 处理其他错误
+            return {
+                success: false,
+                code: 'LOGIN_ERROR',
+                message: error.message || '登录失败'
+            }
+        }
+    }
+>>>>>>> 0538636 (feat: 多项功能优化)
 }
 
 module.exports = { Cloud189Service };

@@ -154,9 +154,9 @@ class TMDBService {
                 if (currentEpisodes > current.lastEpisodeToAir.episode_number) {
                     score -= 3;
                 }
+                console.log(`匹配分析 - ${current.title}: 分数=${score}, 最近一次集数=${current.lastEpisodeToAir.episode_number}, 已有集数=${currentEpisodes}, 状态=${current.status}`);
             }
 
-            console.log(`匹配分析 - ${current.title}: 分数=${score}, 最近一次集数=${current.lastEpisodeToAir.episode_number}, 已有集数=${currentEpisodes}, 状态=${current.status}`);
             return (!best || score > best.score) ? {...current, score} : best;
         }, null);
 

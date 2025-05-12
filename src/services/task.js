@@ -79,6 +79,10 @@ class TaskService {
             sourceRegex: taskDto.sourceRegex,
             targetRegex: taskDto.targetRegex,
             enableTaskScraper: taskDto.enableTaskScraper,
+<<<<<<< HEAD
+=======
+            enableSystemProxy: taskDto.enableSystemProxy,
+>>>>>>> 0538636 (feat: 多项功能优化)
             isFolder: taskDto.isFolder
         };
     }
@@ -291,10 +295,16 @@ class TaskService {
             await this.deleteCloudFile(cloud189,await this.getRootFolder(task), 1);
             // 删除strm
             new StrmService().deleteDir(path.join(task.account.localStrmPrefix, folderName))
+<<<<<<< HEAD
             // 刷新Alist缓存
             await this.refreshAlistCache(task, true)
         }
         if (task.enableSystemProxy) {
+=======
+        }
+        if (task.enableSystemProxy) {
+            await this.proxyFileService.deleteFiles(task.id)
+>>>>>>> 0538636 (feat: 多项功能优化)
             // 删除strm
             new StrmService().deleteDir(path.join(task.account.localStrmPrefix, folderName))
         }
@@ -554,6 +564,7 @@ class TaskService {
                 task.lastFileUpdateTime = new Date();
                 task.currentEpisodes = existingMediaCount + fileCount;
                 task.retryCount = 0;
+<<<<<<< HEAD
                 process.nextTick(() => {
                     this.eventService.emit('taskComplete', new TaskCompleteEventDto({
                         task,
@@ -563,6 +574,15 @@ class TaskService {
                         firstExecution: firstExecution
                     }));
                 })
+=======
+                this.eventService.emit('taskComplete', new TaskCompleteEventDto({
+                    task,
+                    cloud189,
+                    fileList: newFiles,
+                    overwriteStrm: false,
+                    firstExecution: firstExecution
+                }));
+>>>>>>> 0538636 (feat: 多项功能优化)
             } else if (task.lastFileUpdateTime) {
                 // 检查是否超过3天没有新文件
                 const now = new Date();
@@ -1395,6 +1415,9 @@ class TaskService {
         return false
     }
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> 0538636 (feat: 多项功能优化)
 
     // 根据文件id批量删除文件
     async deleteFiles(taskId, files) {
@@ -1404,15 +1427,24 @@ class TaskService {
         }
         const strmService = new StrmService()
         const folderName = task.realFolderName.substring(task.realFolderName.indexOf('/') + 1);
+<<<<<<< HEAD
         let strmList = []
+=======
+        const strmList = []
+>>>>>>> 0538636 (feat: 多项功能优化)
         strmList = files.map(file => path.join(folderName, file.name));
         // 判断是否启用了系统代理
         if (task.enableSystemProxy) {
             // 代理文件
+<<<<<<< HEAD
+=======
+            await this.proxyFileService.batchDeleteFilesById(files.map(file => file.id));
+>>>>>>> 0538636 (feat: 多项功能优化)
         }else{
             // 删除网盘文件
             const cloud189 = Cloud189Service.getInstance(task.account);
             await this.deleteCloudFile(cloud189,files, 0);
+<<<<<<< HEAD
             await this.refreshAlistCache(task)
         }
         for (const strm of strmList) {
@@ -1460,6 +1492,15 @@ class TaskService {
     }
 =======
 >>>>>>> da4b78e (feat: 新增默认账号功能及AI重命名支持)
+=======
+        }
+        for (const strm of strmList) {
+            // 删除strm文件
+            strmService.delete(path.join(task.account.localStrmPrefix, strm));
+        }
+
+    }
+>>>>>>> 0538636 (feat: 多项功能优化)
 }
 
 module.exports = { TaskService };

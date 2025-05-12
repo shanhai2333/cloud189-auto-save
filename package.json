@@ -4,6 +4,7 @@
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
   "version": "2.2.40",
 =======
   "version": "2.2.23",
@@ -17,6 +18,9 @@
 =======
   "version": "2.2.26",
 >>>>>>> 4ceabf8 (fix: 修复tg机器人分享链接识别异常)
+=======
+  "version": "2.2.27",
+>>>>>>> 0538636 (feat: 多项功能优化)
   "description": "天翼云盘自动转存系统",
   "main": "src/index.js",
   "scripts": {

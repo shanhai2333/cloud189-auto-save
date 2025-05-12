@@ -183,6 +183,19 @@ export class Task {
     
     @Column({ nullable: true })
     enableTaskScraper!: boolean; // 是否启用刮削
+<<<<<<< HEAD
+=======
+
+    @Column({ nullable: true })
+    enableSystemProxy!: boolean; // 是否启用系统代理
+    // tmdb内容 json格式
+    @Column('text', { nullable: true })
+    tmdbContent!: string;
+
+    // 是否是文件夹
+    @Column('boolean', { nullable: true, default: true })
+    isFolder!: boolean;
+>>>>>>> 0538636 (feat: 多项功能优化)
 }
 
 // 常用目录表

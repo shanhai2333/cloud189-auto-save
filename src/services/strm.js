@@ -75,7 +75,12 @@ class StrmService {
                 // 将不在strmFiles中的文件删除
                 for (const file of strmFiles) {
                     if (!files.some(f => path.parse(f.name).name === path.parse(file.name).name)) {
+<<<<<<< HEAD
                         await this.delete(file.path);
+=======
+                        await fs.unlink(path.join(this.baseDir, file.path));
+                        logTaskEvent(`删除STRM文件成功: ${file.name}`);
+>>>>>>> 0538636 (feat: 多项功能优化)
                     }
                 }
             }
@@ -304,6 +309,7 @@ class StrmService {
         const nfoPath = path.join(this.baseDir, dirPath, `${fileNameWithoutExt}.nfo`);
         const thumbPath = path.join(this.baseDir, dirPath, `${fileNameWithoutExt}-thumb.jpg`);
         try {
+<<<<<<< HEAD
            // 删除 .strm 文件
            try {
                 await fs.access(strmPath);
@@ -336,6 +342,16 @@ class StrmService {
                     logTaskEvent(`尝试删除Thumb图片失败: ${thumbPath}, 错误: ${err.message}`);
                 }
             }
+=======
+            // 检查目录是否存在
+            try {
+                await fs.access(strmPath);
+            } catch (err) {
+                return;
+            }
+            await fs.unlink(strmPath);
+            logTaskEvent(`删除STRM文件成功: ${strmPath}`);
+>>>>>>> 0538636 (feat: 多项功能优化)
             
             // 尝试删除空目录
             const targetDir = path.join(this.baseDir, dirPath);

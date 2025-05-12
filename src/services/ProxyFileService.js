@@ -74,6 +74,12 @@ class ProxyFileService {
     async batchUpdateFiles(files) {
         return await this.proxyFileRepo.save(files);
     }
+    // 根据文件id批量删除文件
+    async batchDeleteFilesById(fileIds) {
+        await this.proxyFileRepo.delete({
+            id: In(fileIds) // 使用 In 操作符处理数组
+        });
+    }
 }
 
 module.exports = { ProxyFileService };

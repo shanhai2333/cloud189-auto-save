@@ -314,9 +314,13 @@ async function showFileListModal(taskId) {
                 <button class="batch-rename-btn" onclick="showBatchRenameOptions()">批量重命名</button>
                 <button class="ai-rename-btn" onclick="showAIRenameOptions()">AI重命名</button>
 <<<<<<< HEAD
+<<<<<<< HEAD
                 <button class="delete-files-btn btn-danger" onclick="deleteTaskFiles()">批量删除</button>
 =======
 >>>>>>> da4b78e (feat: 新增默认账号功能及AI重命名支持)
+=======
+                <button class="delete-files-btn btn-danger" onclick="deleteTaskFiles()">批量删除</button>
+>>>>>>> 0538636 (feat: 多项功能优化)
                 <div class='form-body'>
                 <table>
                     <thead>
@@ -570,6 +574,7 @@ async function submitRename(autoUpdate) {
         message.warning('重命名失败: ' + error.message);
     }finally {
         loading.hide();
+<<<<<<< HEAD
     }
 }
 
@@ -641,6 +646,8 @@ async function executeAIRename() {
         message.warning('操作失败：' + error.message);
     } finally {
         loading.hide();
+=======
+>>>>>>> 0538636 (feat: 多项功能优化)
     }
 }
 
@@ -1102,7 +1109,10 @@ async function deleteTaskFiles() {
         if (data.success) {
             message.success('删除成功');
             // 刷新文件列表
+<<<<<<< HEAD
             closeFileListModal()
+=======
+>>>>>>> 0538636 (feat: 多项功能优化)
             showFileListModal(chooseTask.id);
             fetchTasks()
         } else {
