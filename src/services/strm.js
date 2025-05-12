@@ -48,9 +48,10 @@ class StrmService {
      * 生成 STRM 文件
      * @param {Array} files - 文件列表，每个文件对象需包含 name 属性
      * @param {boolean} overwrite - 是否覆盖已存在的文件
+     * @param {boolean} compare - 是否比较文件名 默认比较
      * @returns {Promise<Array>} - 返回生成的文件列表
      */
-    async generate(task, files, overwrite = false) {
+    async generate(task, files, overwrite = false, compare = true) {
         if (!this.enable){
             logTaskEvent(`STRM生成未启用, 请启用后执行`);
             return;
@@ -68,6 +69,17 @@ class StrmService {
             taskName = taskName.replace(/^\/|\/$/g, '');
             // 构建完整的目标目录路径
             const targetDir = path.join(this.baseDir,task.account.localStrmPrefix, taskName);
+            if (compare) {
+                // 查询出所有目录下的.strm文件
+                const strmFiles = await this.listStrmFiles(path.join(task.account.localStrmPrefix, taskName));
+                // 将不在strmFiles中的文件删除
+                for (const file of strmFiles) {
+                    if (!files.some(f => path.parse(f.name).name === path.parse(file.name).name)) {
+                        await fs.unlink(path.join(this.baseDir, file.path));
+                        logTaskEvent(`删除STRM文件成功: ${file.name}`);
+                    }
+                }
+            }
             overwrite && await this._deleteDirAllStrm(targetDir)
             await this._ensureDirectoryExists(targetDir);
             for (const file of files) {
@@ -207,6 +219,7 @@ class StrmService {
                     stats.totalFiles++;
                     // 检查是否为媒体文件
                     if (!this._checkFileSuffix(file, mediaSuffixs)) {
+                        // console.log(`文件不是媒体文件，跳过: ${file.name}`);
                         stats.skipped++;
                         continue;
                     }
@@ -221,7 +234,8 @@ class StrmService {
                     try {
                         await fs.access(strmPath);
                         if (!overwrite) {
-                            skipped++
+                            // console.log(`STRM文件已存在，跳过: ${strmPath}`);
+                            stats.skipped++
                             continue;
                         }
                     } catch (err) {
@@ -265,20 +279,12 @@ class StrmService {
             for (const item of items) {
                 const fullPath = path.join(targetPath, item.name);
                 const relativePath = path.relative(this.baseDir, fullPath);
-                
-                if (item.isDirectory()) {
-                    results.push({
-                        id: item.name,
-                        name: item.name,
-                        path: relativePath,
-                    });
-                } else if (item.isFile() && !item.name.startsWith('.')) {
+                if (item.isFile() && !item.name.startsWith('.') && path.extname(item.name) === '.strm') {
                     // 读取STRM文件内容
                     results.push({
                         id: item.name,
                         name: item.name,
-                        path: relativePath,
-                        isFile: true
+                        path: relativePath
                     });
                 }
             }
@@ -301,6 +307,12 @@ class StrmService {
         const strmPath = path.join(this.baseDir, dirPath, `${fileNameWithoutExt}.strm`);
         
         try {
+            // 检查目录是否存在
+            try {
+                await fs.access(strmPath);
+            } catch (err) {
+                return;
+            }
             await fs.unlink(strmPath);
             logTaskEvent(`删除STRM文件成功: ${strmPath}`);
             
@@ -326,7 +338,7 @@ class StrmService {
                 await fs.access(targetDir);
             } catch (err) {
                 // 目录不存在，直接返回
-                logTaskEvent(`STRM目录不存在，跳过删除: ${targetDir}`);
+                // logTaskEvent(`STRM目录不存在，跳过删除: ${targetDir}`);
                 return;
             }
             await fs.rm(targetDir, { recursive: true });

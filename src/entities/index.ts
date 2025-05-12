@@ -189,6 +189,10 @@ export class Task {
     // tmdb内容 json格式
     @Column('text', { nullable: true })
     tmdbContent!: string;
+
+    // 是否是文件夹
+    @Column('boolean', { nullable: true, default: true })
+    isFolder!: boolean;
 }
 
 // 常用目录表

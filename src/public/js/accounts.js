@@ -1,4 +1,5 @@
 let accountsList = []
+let chooseAccount = null
 // 账号相关功能
 async function fetchAccounts(updateSelect = false) {
     const response = await fetch('/api/accounts');
@@ -20,11 +21,10 @@ async function fetchAccounts(updateSelect = false) {
         data.data.forEach(account => {
             tbody.innerHTML += `
                 <tr>
-                    <td>${account.cookies && !account.password ? 
-                        `<button class="btn-warning" onclick="updateCookie(${account.id})">修改Cookie</button>` 
-                        : ''}  <span class="default-star" onclick="setDefaultAccount(${account.id})" title="设为默认账号">
+                    <td><span class="default-star" onclick="setDefaultAccount(${account.id})" title="设为默认账号">
                             ${account.isDefault ? '★' : '☆'}
                         </span>
+                         <button class="btn-primary" onclick="editAccount(${account.id})">修改</button>
                         <button class="btn-danger" onclick="deleteAccount(${account.id})">删除</button>
                         </td>
                     <td data-label='账户名'>${account.username}</td>
@@ -64,55 +64,144 @@ async function deleteAccount(id) {
     }
 }
 
-// 更新 cookie
-async function updateCookie(id) {
-    const newCookie = prompt('请输入新的Cookie');
-    if (!newCookie) return;
-    loading.show()
-    const response = await fetch(`/api/accounts/${id}/cookie`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ cookie: newCookie })
-    });
-    loading.hide()
-    const data = await response.json();
-    if (data.success) {
-        message.success('Cookie更新成功');
-        fetchAccounts();
-    } else {
-        message.warning('Cookie更新失败: ' + data.error);
-    }
-}
 // 添加账号表单处理
 function initAccountForm() {
     document.getElementById('accountForm').addEventListener('submit', async (e) => {
         e.preventDefault();
-        const username = document.getElementById('username').value;
-        const password = document.getElementById('password').value;
-        const cookies  = document.getElementById('cookie').value;
-        const alias = document.getElementById('alias').value;
-        if (!username ) {
-            message.warning('用户名不能为空');
-            return;
+        await createAccount();
+    });
+}
+
+function openAddAccountModal() {
+    chooseAccount = null
+    const modal = document.getElementById('addAccountModal');
+    modal.style.display = 'block';
+}
+
+function closeAddAccountModal() {
+    const modal = document.getElementById('addAccountModal');
+    modal.style.display = 'none';
+    modalTitle.textContent = '添加账号';
+    const submitBtn = modal.querySelector('button[type="submit"]');
+    submitBtn.textContent = '添加';
+    document.getElementById('username').removeAttribute('readonly')
+    // 清空表单
+    document.getElementById('accountForm').reset();
+    // 移除可能存在的验证码容器
+    const captchaContainer = document.querySelector('.captcha-container');
+    if (captchaContainer) {
+        captchaContainer.remove();
+    }
+    chooseAccount = null
+}
+
+async function editAccount(id) {
+    // 获取账号信息
+    chooseAccount = accountsList.find(acc => acc.id === id);
+    if (!chooseAccount) {
+        message.warning('账号不存在');
+        return;
+    }
+
+    // 打开模态框
+    const modal = document.getElementById('addAccountModal');
+    modal.style.display = 'block';
+
+    // 修改标题
+    const modalTitle = modal.querySelector('h3');
+    modalTitle.textContent = '修改账号';
+
+    // 填充表单数据
+    document.getElementById('username').value = chooseAccount.username;
+    document.getElementById('password').value = chooseAccount.password; // 出于安全考虑，不填充密码
+    document.getElementById('cookie').value = chooseAccount.cookies || '';
+    document.getElementById('alias').value = chooseAccount.alias || '';
+    document.getElementById('cloudStrmPrefix').value = chooseAccount.cloudStrmPrefix || '';
+    document.getElementById('localStrmPrefix').value = chooseAccount.localStrmPrefix || '';
+    document.getElementById('embyPathReplace').value = chooseAccount.embyPathReplace || '';
+    // 账号不允许修改
+    document.getElementById('username').setAttribute('readonly', true )
+    // 修改提交按钮文本
+    const submitBtn = modal.querySelector('button[type="submit"]');
+    submitBtn.textContent = '修改';
+}
+
+async function createAccount() {
+    let username = document.getElementById('username').value;
+    const password = document.getElementById('password').value;
+    const cookies  = document.getElementById('cookie').value;
+    const alias = document.getElementById('alias').value;
+    const validateCodeDom = document.getElementById('validateCode')
+    const cloudStrmPrefix = document.getElementById('cloudStrmPrefix').value;
+    const localStrmPrefix = document.getElementById('localStrmPrefix').value;
+    const embyPathReplace = document.getElementById('embyPathReplace').value;
+    let validateCode = "";
+    if (validateCodeDom) {
+        validateCode = validateCodeDom.value;
+    }
+    if (!username ) {
+        message.warning('用户名不能为空');
+        return;
+    }
+    if (!password && !cookies) {
+        message.warning('密码和Cookie不能同时为空');
+        return;
+    }
+    if (chooseAccount?.id) {
+        username = chooseAccount.original_username
+    }
+    const response = await fetch('/api/accounts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: chooseAccount?.id, username, password, cookies, alias, validateCode, cloudStrmPrefix, localStrmPrefix, embyPathReplace })
+    });
+    const data = await response.json();
+    if (data.success) {
+        message.success('成功');
+        document.getElementById('accountForm').reset();
+        if (validateCodeDom) {
+            // 移除验证码容器
+            const captchaContainer = document.querySelector('.captcha-container');
+            if (captchaContainer) {
+                captchaContainer.remove();
+            }
         }
-        if (!password && !cookies) {
-            message.warning('密码和Cookie不能同时为空');
-            return;
-        }
-        const response = await fetch('/api/accounts', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username, password, cookies, alias })
-        });
-        const data = await response.json();
-        if (data.success) {
-            message.success('账号添加成功');
-            document.getElementById('accountForm').reset();
-            fetchAccounts();
-        } else {
+        closeAddAccountModal();
+        fetchAccounts();
+    } else {
+        // 如果返回的code是NEED_CAPTCHA, 则展示二维码和输入框, 允许用户输入验证码后重新提交
+        if (data.code === 'NEED_CAPTCHA') {
+            // 展示二维码
+            // 创建验证码容器
+            const captchaContainer = document.createElement('div');
+            captchaContainer.className = 'captcha-container';
+            captchaContainer.style.marginTop = '10px';
+            
+            // 添加验证码图片
+            const captchaImg = document.createElement('img');
+            captchaImg.src = data.data.captchaUrl;
+            captchaImg.alt = '验证码';
+            captchaImg.style.maxWidth = '200px';  // 限制最大宽
+            captchaImg.style.height = 'auto';  // 保持宽高比
+            captchaImg.style.marginBottom = '10px';
+            captchaContainer.appendChild(captchaImg);
+            
+            // 添加验证码输入框
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.id = 'validateCode';
+            input.placeholder = '请输入验证码';
+            input.style.width = '100%';
+            input.style.marginBottom = '10px';
+            captchaContainer.appendChild(input);
+            // 将验证码容器添加到表单中
+            const form = document.getElementById('accountForm');
+            form.insertBefore(captchaContainer, form.querySelector('.form-actions'));
+            message.warning('请输入验证码后重新提交');
+        }else{
             message.warning('账号添加失败: ' + data.error);
         }
-    });
+    }
 }
 function formatBytes(bytes) {
     if (!bytes || isNaN(bytes)) return '0B';

@@ -315,6 +315,7 @@ async function showFileListModal(taskId) {
             <div class='modal-body'>
                 <button class="batch-rename-btn" onclick="showBatchRenameOptions()">批量重命名</button>
                 <button class="ai-rename-btn" onclick="showAIRenameOptions()">AI重命名</button>
+                <button class="delete-files-btn btn-danger" onclick="deleteTaskFiles()">批量删除</button>
                 <div class='form-body'>
                 <table>
                     <thead>
@@ -520,6 +521,7 @@ function showRenamePreview(newNames, autoUpdate) {
 async function submitRename(autoUpdate) {
     const files = Array.from(document.querySelectorAll('.preview-rename-modal tr[data-file-id]')).map(row => ({
         fileId: row.dataset.fileId,
+        oldName: row.querySelector('td:first-child').textContent,
         destFileName: row.querySelector('td:last-child').textContent
     }));
     if (files.length == 0) {
@@ -546,9 +548,9 @@ async function submitRename(autoUpdate) {
         const data = await response.json();
         if (data.success) {
             if (data.data && data.data.length > 0) {
-                message.info('部分文件重命名失败:'+ data.data.join(', '));
+                message.warning('部分文件重命名失败:'+ data.data.join(', '));
             }else{
-                message.warning('重命名成功');
+                message.info('重命名成功');
             }
             closeRenamePreviewModal();
             closeRenameOptionsModal();
@@ -563,6 +565,8 @@ async function submitRename(autoUpdate) {
         }
     } catch (error) {
         message.warning('重命名失败: ' + error.message);
+    }finally {
+        loading.hide();
     }
 }
 
@@ -996,4 +1000,35 @@ function parseCloudShare(shareText) {
         url: url,
         accessCode: accessCode
     };
+}
+async function deleteTaskFiles() {
+    const selectedFiles = Array.from(document.querySelectorAll('.file-checkbox:checked')).map(cb => ({id: cb.dataset.id, name: cb.dataset.filename}));
+    if (selectedFiles.length === 0) {
+        message.warning('请选择要删除的文件');
+        return;
+    }
+    if (!confirm('确定要删除选中的文件吗？如果有STRM会同步删除STRM')) return;
+    try{
+        loading.show()
+        const reasponse = await fetch(`/api/tasks/files`, {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({taskId: chooseTask.id,files: selectedFiles})
+        })
+        loading.hide()
+        const data = await reasponse.json();
+        if (data.success) {
+            message.success('删除成功');
+            // 刷新文件列表
+            showFileListModal(chooseTask.id);
+            fetchTasks()
+        } else {
+            message.warning('删除失败:'+ data.error);
+        }
+    }catch (error) {
+        message.warning('操作失败:'+ error.message);
+    }finally {
+        loading.hide();
+    }
+
 }

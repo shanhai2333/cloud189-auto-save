@@ -61,12 +61,20 @@ class TaskEventHandler {
             if (ConfigService.getConfigValue('alist.enable') && !task.enableSystemProxy && task.account.cloudStrmPrefix) {
                 const pathParts = task.realFolderName.split('/');
                 let alistPath = pathParts.slice(1, -1).join('/');
-                alistPath = path.join(path.basename(task.account.cloudStrmPrefix), alistPath)
-                logTaskEvent(`刷新alist上级目录缓存: ${alistPath}`);
+                let currentPath = path.basename(task.account.cloudStrmPrefix);
+                let refreshPath = "";
+                // 首次执行任务需要刷新所有目录缓存
+                if (taskCompleteEventDto.firstExecution) {
+                    const taskName = task.resourceName;
+                    // 替换alistPath中的taskName为空, 然后去掉最后一个/
+                    alistPath = alistPath.replace(taskName, '').replace(/\/$/, '');
+                    refreshPath = path.join(currentPath, alistPath);
+                } else {
+                    // 非首次只刷新当前目录
+                    refreshPath = path.join(currentPath, alistPath);
+                }
+                logTaskEvent(`刷新alist目录缓存: ${alistPath}`);
                 await alistService.listFiles(alistPath);
-                const currentPath = path.join(alistPath, path.basename(task.realFolderName))
-                logTaskEvent(`刷新alist当前目录缓存: ${currentPath}`);
-                await alistService.listFiles(currentPath);
             }
         } catch (error) {
             console.error(error);

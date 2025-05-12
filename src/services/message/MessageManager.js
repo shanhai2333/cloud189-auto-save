@@ -2,6 +2,7 @@ const WeworkService = require('./WeworkService');
 const TelegramService = require('./TelegramService');
 const WxPusherService = require('./WxPusherService');
 const BarkService = require('./BarkService');
+const PushPlusService = require('./PushPlusService');
 
 class MessageManager {
     constructor() {
@@ -54,6 +55,13 @@ class MessageManager {
             });
             barkService.initialize();
             this.services.push(barkService);
+        }
+
+        // PushPlus配置
+        if (config.pushplus?.enabled) {
+            const pushPlusService = new PushPlusService(config.pushplus);
+            pushPlusService.initialize();
+            this.services.push(pushPlusService);
         }
     }
 

@@ -6,6 +6,7 @@ class TaskCompleteEventDto  {
         this.overwriteStrm = data?.overwriteStrm;
         this.taskService = data?.taskService;
         this.taskRepo = data?.taskRepo;
+        this.firstExecution = data?.firstExecution;
     }
 }
 

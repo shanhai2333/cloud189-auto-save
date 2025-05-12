@@ -69,31 +69,64 @@
         </div>
 
         <div id="accountTab" class="tab-content">
-            <form id="accountForm">
-                <div class="form-group">
-                    <label for="username">用户名</label>
-                    <input type="text" id="username" required>
+            <div class="form-header">
+                <div class="task-operations">
+                    <div class="operation-group">
+                        <div class="button-group">
+                            <button type="button" onclick="openAddAccountModal()" class="btn-primary">添加账号</button>
+                            <button type="button" onclick="clearRecycleBin()" class="btn-warning">清空回收站</button>
+                        </div>
+                    </div>
                 </div>
-                <div class="form-group">
-                    <label for="password">密码</label>
-                    <input type="password" id="password">
+            </div>
+            <div id="addAccountModal" class="modal">
+                <div class="modal-content">
+                    <h3>添加账号</h3>
+                    <form id="accountForm">
+                        <div class="form-body">
+                            <div class="form-group">
+                                <label for="username">用户名</label>
+                                <input type="text" id="username" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="password">密码</label>
+                                <input type="password" id="password">
+                            </div>
+                            <div class="form-group">
+                                <label for="cookie">Cookie</label>
+                                <input type="cookie" id="cookie">
+                            </div>
+                            <div class="form-group">
+                            <small class="form-text">密码和Cookie至少填写一个, 如果都填写, 则只有账号密码生效</small>
+                            </div>
+                            <div class="form-group">
+                                <label for="alias">别名(可选)</label>
+                                <input type="text" id="alias">
+                            </div>
+                            <div class="form-group">
+                                <label for="alias">媒体目录(可选)</label>
+                                <input type="text" id="cloudStrmPrefix" placeholder="http://alist:5244/d/天翼云盘">
+                                <small class="form-text">STRM文件内容前缀, 详情查看<a href='https://github.com/1307super/cloud189-auto-save/wiki/3.STRM%E4%B8%8EEmby' target="_blank">wiki</a></small>
+                            </div>
+                            <div class="form-group">
+                                <label for="alias">本地目录(可选)</label>
+                                <input type="text" id="localStrmPrefix" placeholder="/天翼1">
+                                <small class="form-text">保存STRM文件的目录前缀, 详情查看<a href='https://github.com/1307super/cloud189-auto-save/wiki/3.STRM%E4%B8%8EEmby' target="_blank">wiki</a></small>
+                            </div>
+                            <div class="form-group">
+                                <label for="alias">Emby替换路径(可选)</label>
+                                <input type="text" id="embyPathReplace" placeholder="/影视剧:/cloud/天翼云盘">
+                                <small class="form-text">通知Emby扫库的替换逻辑, 详情查看<a href='https://github.com/1307super/cloud189-auto-save/wiki/3.STRM%E4%B8%8EEmby' target="_blank">wiki</a></small>
+                            </div>
+                        </div>
+                        <div class="form-actions">
+                            <button type="submit">添加</button>
+                            <button type="button" class="btn-default" onclick="closeAddAccountModal()">取消</button>
+                        </div>
+                    </form>
                 </div>
-                <div class="form-group">
-                    <label for="cookie">Cookie</label>
-                    <input type="cookie" id="cookie">
-                </div>
-                <div class="form-group">
-                <small class="form-text">密码和Cookie至少填写一个, 如果都填写, 则只有账号密码生效</small>
-                </div>
-                <div class="form-group">
-                    <label for="alias">别名(可选)</label>
-                    <input type="text" id="alias">
-                </div>
-                <div class="form-actions" style="justify-content: flex-start;">
-                    <button type="submit">添加账号</button>
-                    <button type="button" onclick="clearRecycleBin()" class="btn-warning">清空回收站</button>
-                </div>
-            </form>
+            </div>
+
             <div class="table-container">
                 <table id="accountTable">
                     <thead>
@@ -384,6 +417,22 @@
                             </label>
                             <input type="text" id="barkServerUrl" placeholder="Bark serverUrl">
                             <input type="text" id="barkKey" placeholder="Bark key">
+
+                            <label>
+                                <input type="checkbox" id="enablePushPlus">
+                                PushPlus 推送
+                            </label>
+                            <input type="text" id="pushplusToken" placeholder="PushPlus serverUrl">
+                            <input type="text" id="pushplusTopic" placeholder="群组编码, 不填仅给自己发送">
+                            <select id="pushplusChannel">
+                                <option value="wechat">微信公众号</option>
+                                <option value="webhook">WebHook</option>
+                                <option value="cp">企业微信</option>
+                                <option value="sms">短信</option>
+                                <option value="mail">邮件</option>
+                            </select>
+                            <input type="text" id="pushplusWebhook" placeholder="仅在选择 WebHook 渠道时需要填写">
+                            <input type="text" id="pushplusTo" placeholder="好友令牌">
                         </div>
                     </div>
                 </div>
@@ -813,7 +862,7 @@
                 <div class="help-text-container">
                     <button type="button" class="toggle-help-text" onclick="toggleHelpText(this)">显示帮助</button>
                     <small class="form-text">
-                        <p>此功能依赖Alist，将根据选中账号的媒体目录（cloudStrmPrefix配置项）最后一个/后的目录名称递归生成STRM文件。</p>
+                        <p>此功能依赖Alist，将根据选中账号的媒体目录最后一个/后的目录名称递归生成STRM文件。</p>
                         <p style="margin-top: 5px; font-size: 0.9em;">例如：配置项为 /我的云盘/媒体库，则会以"媒体库"为根目录遍历alist对应"媒体库"目录生成STRM文件。</p>
                     </small>
                 </div>

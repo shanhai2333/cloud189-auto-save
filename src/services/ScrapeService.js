@@ -402,7 +402,9 @@ class ScrapeService {
     _parseStrmPath(strmPath) {
         const parsed = path.parse(strmPath);
         const seasonDir = path.dirname(strmPath);
-        const showDir = path.dirname(seasonDir);
+        // 判断是否是季目录
+        const isSeasonDir = /(Season|第[\d一二三四五六七八九十]+季)/i.test(path.basename(seasonDir));
+        const showDir = isSeasonDir ? path.dirname(seasonDir) : seasonDir;
         // logTaskEvent('原始路径:' + strmPath);
         return {
             strmFile: parsed.base,

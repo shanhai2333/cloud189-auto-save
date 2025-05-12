@@ -166,13 +166,9 @@ AppDataSource.initialize().then(async () => {
                     account.capacity.familyCapacityInfo = capacity.familyCapacityInfo;
                 }
             }
+            account.original_username = account.username;
             // username脱敏
             account.username = account.username.replace(/(.{3}).*(.{4})/, '$1****$2');
-            // 去掉cookies和密码
-            if (account.cookies && !account.password) {
-                account.cookies = 'true';
-            }
-            account.password = '';
         }
         res.json({ success: true, data: accounts });
     });
@@ -180,8 +176,28 @@ AppDataSource.initialize().then(async () => {
     app.post('/api/accounts', async (req, res) => {
         try {
             const account = accountRepo.create(req.body);
+            // 尝试登录, 登录成功写入store, 如果需要验证码, 则返回用户验证码图片
+            if (!account.username.startsWith('n_') && account.password) {
+                // 尝试登录
+                const cloud189 = Cloud189Service.getInstance(account);
+                const loginResult = await cloud189.login(account.username, account.password, req.body.validateCode);
+                if (!loginResult.success) {
+                    if (loginResult.code == "NEED_CAPTCHA") {
+                        res.json({
+                            success: false,
+                            code: "NEED_CAPTCHA",
+                            data: {
+                                captchaUrl: loginResult.data
+                            }
+                        });
+                        return;
+                    }
+                    res.json({ success: false, error: loginResult.message });
+                    return;
+                }
+            }
             await accountRepo.save(account);
-            res.json({ success: true, data: account });
+            res.json({ success: true, data: null });
         } catch (error) {
             res.json({ success: false, error: error.message });
         }
@@ -207,21 +223,6 @@ AppDataSource.initialize().then(async () => {
             res.json({ success: false, error: error.message });
         }
     });
-
-    // 修改账号cookie
-    app.put('/api/accounts/:id/cookie', async (req, res) => {
-        try {
-            const accountId = parseInt(req.params.id);
-            const { cookie } = req.body;
-            const account = await accountRepo.findOneBy({ id: accountId });
-            if (!account) throw new Error('账号不存在');
-            account.cookies = cookie;
-            await accountRepo.save(account);
-            res.json({ success: true });
-        } catch (error) {
-            res.json({ success: false, error: error.message });
-        }
-    })
     app.put('/api/accounts/:id/strm-prefix', async (req, res) => {
         try {
             const accountId = parseInt(req.params.id);
@@ -499,18 +500,33 @@ AppDataSource.initialize().then(async () => {
         if (!account) {
             throw new Error('账号不存在');
         }
-        const task = await taskRepo.findOneBy({ id: taskId });
+        const task = await taskService.getTaskById(taskId);
         if (!task) {
             throw new Error('任务不存在');
         }
+        // 从realFolderName中获取文件夹名称 删除对应的本地文件
+        const folderName = task.realFolderName.substring(task.realFolderName.indexOf('/') + 1);
+        const strmService = new StrmService();
+        const strmEnabled = ConfigService.getConfigValue('strm.enable') && task.account.localStrmPrefix
+        if (strmEnabled && task.enableSystemProxy){
+            let oldFilesName = files.map(file => path.join(folderName, file.oldName));
+            for (const file of oldFilesName) {
+                strmService.delete(path.join(task.account.localStrmPrefix, file))
+            }
+        }
+        const newFiles = files.map(file => ({id: file.fileId, name: file.destFileName}))
         if(task.enableSystemProxy) {
-            const proxyFiles = files.map(file => ({id: file.fileId, name: file.destFileName}))
-            await proxyFileService.batchUpdateFiles(proxyFiles);
+            await proxyFileService.batchUpdateFiles(newFiles);
+            // 重新生成STRM文件
+            if (strmEnabled){
+                strmService.generate(task, newFiles, false, false)
+            }
             res.json({ success: true, data: [] });
             return;
         }
         const cloud189 = Cloud189Service.getInstance(account);
         const result = []
+        const successFiles = []
         for (const file of files) {
             const renameResult = await cloud189.renameFile(file.fileId, file.destFileName);
             if (!renameResult) {
@@ -518,7 +534,18 @@ AppDataSource.initialize().then(async () => {
             }
             if (renameResult.res_code != 0) {
                 result.push(`文件${file.destFileName} ${renameResult.res_msg}`)
+            }else{
+                if (strmEnabled){
+                    // 从realFolderName中获取文件夹名称 删除对应的本地文件
+                    const oldFile = path.join(folderName, file.oldName);
+                    strmService.delete(path.join(task.account.localStrmPrefix, oldFile))
+                }
+                successFiles.push(file)
             }
+        }
+        // 重新生成STRM文件
+        if (strmEnabled){
+            strmService.generate(task, successFiles, false, false)
         }
         if (sourceRegex && targetRegex) {
             task.sourceRegex = sourceRegex
@@ -535,6 +562,20 @@ AppDataSource.initialize().then(async () => {
         taskService.processAllTasks(true);
         res.json({ success: true, data: null });
     });
+
+    // 删除任务文件
+    app.delete('/api/tasks/files', async (req, res) => {
+        try{
+            const { taskId, files } = req.body;
+            if (!files || files.length === 0) {
+                throw new Error('未选择要删除的文件');
+            }
+            await taskService.deleteFiles(taskId, files);
+            res.json({ success: true, data: null });
+        }catch (error) {
+            res.json({ success: false, error: error.message });
+        }
+    })
     
     // 系统设置
     app.get('/api/settings', async (req, res) => {
@@ -554,6 +595,7 @@ AppDataSource.initialize().then(async () => {
         Cloud189Service.setProxy()
         res.json({success: true, data: null})
     })
+
 
     // 保存媒体配置
     app.post('/api/settings/media', async (req, res) => {

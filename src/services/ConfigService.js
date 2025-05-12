@@ -53,10 +53,18 @@ class ConfigService {
         serverUrl: '', 
         key: ''
       },
+      pushplus: {
+        enable: false,           // 是否启用推送
+        token: '',              // PushPlus token
+        topic: '',              // 群组编码，不填仅发送给自己
+        channel: 'wechat',      // 发送渠道：wechat/webhook/cp/sms/mail
+        webhook: '',            // webhook编码，仅在channel为webhook时需要
+        to: ''                  // 好友令牌，用于指定接收消息的用户
+    },
       system: {
         username: 'admin',
         password: 'admin',
-        baseUrl: 'http://127.0.0.1:3000',
+        baseUrl: '',
         apiKey: ''
       },
       strm: {

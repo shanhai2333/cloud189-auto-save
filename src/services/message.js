@@ -36,6 +36,14 @@ class MessageUtil {
                 enabled: settings.bark?.enable || false,
                 serverUrl: settings.bark?.serverUrl || '',
                 key: settings.bark?.key || '',
+            },
+            pushplus:{
+                enabled: settings.pushplus?.enable || false,
+                token: settings.pushplus?.token || '',
+                topic: settings.pushplus?.topic || '',
+                channel: settings.pushplus?.channel || '',
+                webhook: settings.pushplus?.webhook || '',
+                to: settings.pushplus?.to || '',
             }
         });
     }

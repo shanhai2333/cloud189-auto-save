@@ -74,6 +74,7 @@ class TaskService {
             targetRegex: taskDto.targetRegex,
             enableTaskScraper: taskDto.enableTaskScraper,
             enableSystemProxy: taskDto.enableSystemProxy,
+            isFolder: taskDto.isFolder
         };
     }
 
@@ -113,7 +114,7 @@ class TaskService {
                 const rootTask = this.taskRepo.create(
                     this._createTaskConfig(
                         taskDto,
-                        shareInfo, rootFolder, `${shareInfo.fileName}(根)`, rootFiles.length
+                        shareInfo, rootFolder, `${shareInfo.fileName}(根)`, 0
                     )
                 );
                 tasks.push(await this.taskRepo.save(rootTask));
@@ -187,7 +188,7 @@ class TaskService {
         const task = this.taskRepo.create(
             this._createTaskConfig(
                 taskDto,
-                shareInfo, rootFolder, shareInfo.fileName, shareFiles.length
+                shareInfo, rootFolder, shareInfo.fileName, 0
             )
         );
         tasks.push(await this.taskRepo.save(task));
@@ -262,6 +263,7 @@ class TaskService {
         if (taskDto.taskName && taskDto.taskName != shareInfo.fileName) {
             shareInfo.fileName = taskDto.taskName;
         }
+        taskDto.isFolder = true
 
         // 检查并创建目标目录
         const rootFolder = await this._validateAndCreateTargetFolder(cloud189, taskDto, shareInfo);
@@ -273,6 +275,7 @@ class TaskService {
 
          // 处理单文件
          if (!shareInfo.isFolder) {
+            taskDto.isFolder = false
             await this._handleSingleShare(cloud189, shareInfo, taskDto, rootFolder, tasks);
         }
         if (taskDto.enableCron) {
@@ -285,16 +288,21 @@ class TaskService {
 
     // 删除任务
     async deleteTask(taskId, deleteCloud) {
-        const task = await this.taskRepo.findOneBy({ id: taskId });
+        const task = await this.getTaskById(taskId);
         if (!task) throw new Error('任务不存在');
+        const folderName = task.realFolderName.substring(task.realFolderName.indexOf('/') + 1);
         if (!task.enableSystemProxy && deleteCloud) {
             const account = await this.accountRepo.findOneBy({ id: task.accountId });
             if (!account) throw new Error('账号不存在');
             const cloud189 = Cloud189Service.getInstance(account);
             await this.deleteCloudFile(cloud189,await this.getRootFolder(task), 1);
+            // 删除strm
+            new StrmService().deleteDir(path.join(task.account.localStrmPrefix, folderName))
         }
         if (task.enableSystemProxy) {
             await this.proxyFileService.deleteFiles(task.id)
+            // 删除strm
+            new StrmService().deleteDir(path.join(task.account.localStrmPrefix, folderName))
         }
         // 删除定时任务
         if (task.enableCron) {
@@ -505,7 +513,7 @@ class TaskService {
             task.account = account;
             const cloud189 = Cloud189Service.getInstance(account);
              // 获取分享文件列表并进行增量转存
-             const shareDir = await cloud189.listShareDir(task.shareId, task.shareFolderId, task.shareMode,task.accessCode);
+             const shareDir = await cloud189.listShareDir(task.shareId, task.shareFolderId, task.shareMode,task.accessCode, task.isFolder);
              if(shareDir.res_code == "ShareAuditWaiting") {
                 logTaskEvent("分享链接审核中, 等待下次执行")
                 return ''
@@ -556,6 +564,7 @@ class TaskService {
                 const { fileNameList, fileCount } = await this._handleNewFiles(task, newFiles, cloud189, mediaSuffixs);
                 const resourceName = task.shareFolderName? `${task.resourceName}/${task.shareFolderName}` : task.resourceName;
                 saveResults.push(`${resourceName}追更${fileCount}集: \n${fileNameList.join('\n')}`);
+                const firstExecution = !task.lastFileUpdateTime;
                 task.status = 'processing';
                 task.lastFileUpdateTime = new Date();
                 task.currentEpisodes = existingMediaCount + fileCount;
@@ -564,7 +573,8 @@ class TaskService {
                     task,
                     cloud189,
                     fileList: newFiles,
-                    overwriteStrm: false
+                    overwriteStrm: false,
+                    firstExecution: firstExecution
                 }));
             } else if (task.lastFileUpdateTime) {
                 // 检查是否超过3天没有新文件
@@ -1159,11 +1169,24 @@ class TaskService {
     async deleteCloudFile(cloud189, file, isFolder) {
         if (!file) return;
         const taskInfos = []
-        taskInfos.push({
-            fileId: file.id,
-            fileName: file.name,
-            isFolder: isFolder
-        })
+        // 如果file是数组, 则遍历删除
+        if (Array.isArray(file)) {
+            for (const f of file) {
+                taskInfos.push({
+                    fileId: f.id,
+                    fileName: f.name,
+                    isFolder: isFolder
+                })
+            }
+        }else{
+            taskInfos.push({
+                fileId: file.id,
+                fileName: file.name,
+                isFolder: isFolder
+            })
+        }
+        console.log(taskInfos)
+        
         const batchTaskDto = new BatchTaskDto({
             taskInfos: JSON.stringify(taskInfos),
             type: 'DELETE',
@@ -1348,6 +1371,32 @@ class TaskService {
             return true;
         }    
         return false
+    }
+
+    // 根据文件id批量删除文件
+    async deleteFiles(taskId, files) {
+        const task = await this.getTaskById(taskId)
+        if (!task) {
+            throw new Error('任务不存在')
+        }
+        const strmService = new StrmService()
+        const folderName = task.realFolderName.substring(task.realFolderName.indexOf('/') + 1);
+        const strmList = []
+        strmList = files.map(file => path.join(folderName, file.name));
+        // 判断是否启用了系统代理
+        if (task.enableSystemProxy) {
+            // 代理文件
+            await this.proxyFileService.batchDeleteFilesById(files.map(file => file.id));
+        }else{
+            // 删除网盘文件
+            const cloud189 = Cloud189Service.getInstance(task.account);
+            await this.deleteCloudFile(cloud189,files, 0);
+        }
+        for (const strm of strmList) {
+            // 删除strm文件
+            strmService.delete(path.join(task.account.localStrmPrefix, strm));
+        }
+
     }
 }
 

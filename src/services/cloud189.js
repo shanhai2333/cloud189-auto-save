@@ -286,6 +286,34 @@ class Cloud189Service {
         })
         return res.headers.location
     }
+    async login(username, password, validateCode) {
+        try {
+            const loginToken = await this.client.authClient.loginByPassword(username, password, validateCode)
+            await this.client.tokenStore.update({
+                accessToken: loginToken.accessToken,
+                refreshToken: loginToken.refreshToken,
+                expiresIn: new Date(Date.now() + 6 * 24 * 60 * 60 * 1000).getTime()
+            })
+            return {
+                success: true
+            }
+        } catch (error) {
+            // 处理需要验证码的情况
+            if (error.code === 'NEED_CAPTCHA') {
+                return {
+                    success: false,
+                    code: 'NEED_CAPTCHA',
+                    data: error.data.image // 包含验证码图片和相关token信息
+                }
+            }
+            // 处理其他错误
+            return {
+                success: false,
+                code: 'LOGIN_ERROR',
+                message: error.message || '登录失败'
+            }
+        }
+    }
 }
 
 module.exports = { Cloud189Service };

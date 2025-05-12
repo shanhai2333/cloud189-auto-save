@@ -84,6 +84,14 @@ async function loadSettings() {
             document.getElementById('enableAlist').checked = settings.alist?.enable || false;
             document.getElementById('alistServer').value = settings.alist?.baseUrl || '';
             document.getElementById('alistApiKey').value = settings.alist?.apiKey || '';
+
+            // pushplus
+            document.getElementById('enablePushPlus').checked = settings.pushplus?.enable || false;
+            document.getElementById('pushplusToken').value = settings.pushplus?.token || '';
+            document.getElementById('pushplusTopic').value = settings.pushplus?.topic || '';
+            document.getElementById('pushplusChannel').value = settings.pushplus?.channel || '';
+            document.getElementById('pushplusWebhook').value = settings.pushplus?.webhook || '';
+            document.getElementById('pushplusTo').value = settings.pushplus?.to || '';
         }
     } catch (error) {
         console.error('加载设置失败:', error);
@@ -144,7 +152,15 @@ document.getElementById('settingsForm').addEventListener('submit', async (e) => 
             password: document.getElementById('systemPassword').value,
             baseUrl: document.getElementById('projectDomain').value,
             apiKey: document.getElementById('systemApiKey').value
-        }
+        },
+        pushplus: {
+            enable: document.getElementById('enablePushPlus').checked,
+            token: document.getElementById('pushplusToken').value,
+            topic: document.getElementById('pushplusTopic').value,
+            channel: document.getElementById('pushplusChannel').value,
+            webhook: document.getElementById('pushplusWebhook').value,
+            to: document.getElementById('pushplusTo').value
+        },
     };
     // taskRetryInterval不能少于60秒
     if (settings.task.taskRetryInterval < 60) {
