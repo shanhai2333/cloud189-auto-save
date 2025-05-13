@@ -1375,10 +1375,14 @@ class TaskService {
     async handleAiRename(files, resourceInfo) {
         const template = resourceInfo.type === 'movie' 
 <<<<<<< HEAD
+<<<<<<< HEAD
         ? ConfigService.getConfigValue('openai.rename.movieTemplate') || '{name} ({year}){ext}'  // 电影模板
 =======
         ? '{name} ({year}){ext}'  // 电影模板
 >>>>>>> da4b78e (feat: 新增默认账号功能及AI重命名支持)
+=======
+        ? ConfigService.getConfigValue('openai.rename.movieTemplate') || '{name} ({year}){ext}'  // 电影模板
+>>>>>>> 7556791 (feat: 添加电影命名模板并优化错误日志)
         : ConfigService.getConfigValue('openai.rename.template') || '{name} - {se}{ext}';  // 剧集模板
         const aiNames = resourceInfo.episode
         const newFiles = [];

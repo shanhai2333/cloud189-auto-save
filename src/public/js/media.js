@@ -37,6 +37,7 @@ async function saveMediaSettings() {
             model: document.getElementById('openaiModel').value,
             rename: {
                 template: document.getElementById('openaiTemplate').value,
+                movieTemplate: document.getElementById('openaiMovieTemplate').value,
             }
         },
         alist: {
