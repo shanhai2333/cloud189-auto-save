@@ -1110,9 +1110,13 @@ async function deleteTaskFiles() {
             message.success('删除成功');
             // 刷新文件列表
 <<<<<<< HEAD
+<<<<<<< HEAD
             closeFileListModal()
 =======
 >>>>>>> 0538636 (feat: 多项功能优化)
+=======
+            closeFileListModal()
+>>>>>>> 63e35b0 (feat: 新增自定义推送功能并优化相关代码)
             showFileListModal(chooseTask.id);
             fetchTasks()
         } else {

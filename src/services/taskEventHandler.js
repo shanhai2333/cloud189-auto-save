@@ -58,6 +58,7 @@ class TaskEventHandler {
     async _handleAlistCache(taskCompleteEventDto) {
         try {
 <<<<<<< HEAD
+<<<<<<< HEAD
             const {task, taskService, firstExecution} = taskCompleteEventDto;
             await taskService.refreshAlistCache(task, firstExecution)
 =======
@@ -81,6 +82,10 @@ class TaskEventHandler {
                 await alistService.listFiles(alistPath);
             }
 >>>>>>> 0538636 (feat: 多项功能优化)
+=======
+            const {task, taskService, firstExecution} = taskCompleteEventDto;
+            await taskService.refreshAlistCache(task, firstExecution)
+>>>>>>> 63e35b0 (feat: 新增自定义推送功能并优化相关代码)
         } catch (error) {
             console.error(error);
             logTaskEvent(`刷新Alist缓存失败: ${error.message}`);

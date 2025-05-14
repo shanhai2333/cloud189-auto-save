@@ -18,11 +18,14 @@ const harmonizedFilter = require('../utils/BloomFilter');
 <<<<<<< HEAD
 const cloud189Utils = require('../utils/Cloud189Utils');
 const alistService = require('./alistService');
+<<<<<<< HEAD
 =======
 >>>>>>> da4b78e (feat: 新增默认账号功能及AI重命名支持)
 =======
 const cloud189Utils = require('../utils/Cloud189Utils');
 >>>>>>> 3f47691 (refactor(utils): 将解析云盘分享链接的逻辑提取到Cloud189Utils模块)
+=======
+>>>>>>> 63e35b0 (feat: 新增自定义推送功能并优化相关代码)
 
 class TaskService {
     constructor(taskRepo, accountRepo) {
@@ -296,11 +299,16 @@ class TaskService {
             // 删除strm
             new StrmService().deleteDir(path.join(task.account.localStrmPrefix, folderName))
 <<<<<<< HEAD
+<<<<<<< HEAD
             // 刷新Alist缓存
             await this.refreshAlistCache(task, true)
         }
         if (task.enableSystemProxy) {
 =======
+=======
+            // 刷新Alist缓存
+            await this.refreshAlistCache(task, true)
+>>>>>>> 63e35b0 (feat: 新增自定义推送功能并优化相关代码)
         }
         if (task.enableSystemProxy) {
             await this.proxyFileService.deleteFiles(task.id)
@@ -1453,6 +1461,7 @@ class TaskService {
             const cloud189 = Cloud189Service.getInstance(task.account);
             await this.deleteCloudFile(cloud189,files, 0);
 <<<<<<< HEAD
+<<<<<<< HEAD
             await this.refreshAlistCache(task)
         }
         for (const strm of strmList) {
@@ -1501,12 +1510,51 @@ class TaskService {
 =======
 >>>>>>> da4b78e (feat: 新增默认账号功能及AI重命名支持)
 =======
+=======
+            await this.refreshAlistCache(task)
+>>>>>>> 63e35b0 (feat: 新增自定义推送功能并优化相关代码)
         }
         for (const strm of strmList) {
             // 删除strm文件
             await strmService.delete(path.join(task.account.localStrmPrefix, strm));
         }
+    }
 
+    // 根据任务刷新Alist缓存
+    async refreshAlistCache(task, firstExecution = false) {
+        try{
+            if (ConfigService.getConfigValue('alist.enable') && !task.enableSystemProxy && task.account.cloudStrmPrefix) {
+                const pathParts = task.realFolderName.split('/');
+                let alistPath = pathParts.slice(1).join('/');
+                let currentPath = path.basename(task.account.cloudStrmPrefix);
+                let refreshPath = "";
+                // 首次执行任务需要刷新所有目录缓存
+                if (firstExecution) {
+                    alistPath = pathParts.slice(1, -1).join('/');
+                    const taskName = task.resourceName;
+                    // 替换alistPath中的taskName为空, 然后去掉最后一个/
+                    alistPath = alistPath.replace(taskName, '').replace(/\/$/, '');
+                    refreshPath = path.join(currentPath, alistPath);
+                } else {
+                    // 非首次只刷新当前目录
+                    refreshPath = path.join(currentPath, alistPath);
+                }
+                logTaskEvent(`刷新alist目录缓存: ${refreshPath}`);
+                await alistService.listFiles(refreshPath);
+            }
+        }catch (error) {
+            logTaskEvent(`刷新Alist缓存失败: ${error.message}`);
+        }
+    }
+
+    // 根据task获取文件列表
+    async getFilesByTask(task) {
+        if (task.enableSystemProxy) {
+            // 代理文件
+            return await this.proxyFileService.getFilesByTaskId(task.id);
+        }
+        const cloud189 = Cloud189Service.getInstance(task.account);
+        return await this.getAllFolderFiles(cloud189, task)
     }
 >>>>>>> 0538636 (feat: 多项功能优化)
 }

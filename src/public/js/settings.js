@@ -1,3 +1,4 @@
+let customPushConfigs = []
 async function loadSettings() {
     try {
         const response = await fetch('/api/settings');
@@ -39,7 +40,7 @@ async function loadSettings() {
             document.getElementById('proxyTmdb').checked = settings.proxy?.services?.tmdb || false;
             document.getElementById('proxyOpenAI').checked = settings.proxy?.services?.openai || false;
             document.getElementById('proxyCloud189').checked = settings.proxy?.services?.cloud189 || false;
-
+            document.getElementById('proxyCustomPush').checked = settings.proxy?.services?.customPush || false;
             // Bark 设置
             document.getElementById('enableBark').checked = settings.bark?.enable || false;
             document.getElementById('barkServerUrl').value = settings.bark?.serverUrl || '';
@@ -95,7 +96,12 @@ async function loadSettings() {
             document.getElementById('pushplusChannel').value = settings.pushplus?.channel || '';
             document.getElementById('pushplusWebhook').value = settings.pushplus?.webhook || '';
             document.getElementById('pushplusTo').value = settings.pushplus?.to || '';
+<<<<<<< HEAD
 >>>>>>> 0538636 (feat: 多项功能优化)
+=======
+
+            customPushConfigs = settings.customPush || [];
+>>>>>>> 63e35b0 (feat: 新增自定义推送功能并优化相关代码)
         }
     } catch (error) {
         console.error('加载设置失败:', error);
@@ -104,6 +110,10 @@ async function loadSettings() {
 
 document.getElementById('settingsForm').addEventListener('submit', async (e) => {
     e.preventDefault();
+    saveSettings()
+});
+
+async function saveSettings() {
     const settings = {
         task: {
             taskExpireDays: parseInt(document.getElementById('taskExpireDays').value) || 3,
@@ -144,7 +154,8 @@ document.getElementById('settingsForm').addEventListener('submit', async (e) => 
                 telegram: document.getElementById('proxyTelegram').checked,
                 tmdb: document.getElementById('proxyTmdb').checked,
                 openai: document.getElementById('proxyOpenAI').checked,
-                cloud189: document.getElementById('proxyCloud189').checked
+                cloud189: document.getElementById('proxyCloud189').checked,
+                customPush: document.getElementById('proxyCustomPush').checked
             }
         },
         bark: {
@@ -170,7 +181,11 @@ document.getElementById('settingsForm').addEventListener('submit', async (e) => 
             webhook: document.getElementById('pushplusWebhook').value,
             to: document.getElementById('pushplusTo').value
         },
+<<<<<<< HEAD
 >>>>>>> 0538636 (feat: 多项功能优化)
+=======
+        customPush: customPushConfigs
+>>>>>>> 63e35b0 (feat: 新增自定义推送功能并优化相关代码)
     };
     // taskRetryInterval不能少于60秒
     if (settings.task.taskRetryInterval < 60) {
@@ -186,14 +201,14 @@ document.getElementById('settingsForm').addEventListener('submit', async (e) => 
         });
         const data = await response.json();
         if (data.success) {
-            message.success('设置保存成功');
+            message.success('保存成功');
         } else {
-            message.warning('设置保存失败: ' + data.error);
+            message.warning('保存失败: ' + data.error);
         }
     } catch (error) {
-        message.warning('设置保存失败: ' + error.message);
+        message.warning('保存失败: ' + error.message);
     }
-});
+}
 
 // 在页面加载时初始化设置
 document.addEventListener('DOMContentLoaded', loadSettings);

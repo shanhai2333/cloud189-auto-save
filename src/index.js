@@ -823,6 +823,9 @@ AppDataSource.initialize().then(async () => {
         }
     })
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> 63e35b0 (feat: 新增自定义推送功能并优化相关代码)
 
     app.post('/api/custom-push/test', async (req, res) => {
         try{
@@ -837,8 +840,11 @@ AppDataSource.initialize().then(async () => {
             res.json({ success: false, error: error.message });
         }
     })
+<<<<<<< HEAD
 =======
 >>>>>>> da4b78e (feat: 新增默认账号功能及AI重命名支持)
+=======
+>>>>>>> 63e35b0 (feat: 新增自定义推送功能并优化相关代码)
     
     // 全局错误处理中间件
     app.use((err, req, res, next) => {
