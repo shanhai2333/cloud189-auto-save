@@ -150,6 +150,7 @@ async function createAccount() {
     if (chooseAccount?.id) {
         username = chooseAccount.original_username
     }
+    loading.show()
     const response = await fetch('/api/accounts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -157,6 +158,7 @@ async function createAccount() {
     });
     const data = await response.json();
     if (data.success) {
+        loading.hide()
         message.success('成功');
         document.getElementById('accountForm').reset();
         if (validateCodeDom) {
@@ -167,6 +169,7 @@ async function createAccount() {
         closeAddAccountModal();
         fetchAccounts();
     } else {
+        loading.hide()
         // 如果返回的code是NEED_CAPTCHA, 则展示二维码和输入框, 允许用户输入验证码后重新提交
         if (data.code === 'NEED_CAPTCHA') {
             // 展示二维码
