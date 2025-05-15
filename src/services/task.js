@@ -1408,7 +1408,9 @@ class TaskService {
             if (ConfigService.getConfigValue('alist.enable') && !task.enableSystemProxy && task.account.cloudStrmPrefix) {
                 const pathParts = task.realFolderName.split('/');
                 let alistPath = pathParts.slice(1).join('/');
-                let currentPath = path.basename(task.account.cloudStrmPrefix);
+                let currentPath = task.account.cloudStrmPrefix.includes('/d/') 
+                    ? task.account.cloudStrmPrefix.split('/d/')[1] 
+                    : path.basename(task.account.cloudStrmPrefix);
                 let refreshPath = "";
                 // 首次执行任务需要刷新所有目录缓存
                 if (firstExecution) {
