@@ -573,6 +573,9 @@ class TaskService {
                 task.currentEpisodes = existingMediaCount + fileCount;
                 task.retryCount = 0;
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> c0f251a (fix: 优化日志显示和任务完成事件触发)
                 process.nextTick(() => {
                     this.eventService.emit('taskComplete', new TaskCompleteEventDto({
                         task,
@@ -582,6 +585,7 @@ class TaskService {
                         firstExecution: firstExecution
                     }));
                 })
+<<<<<<< HEAD
 =======
                 this.eventService.emit('taskComplete', new TaskCompleteEventDto({
                     task,
@@ -591,6 +595,8 @@ class TaskService {
                     firstExecution: firstExecution
                 }));
 >>>>>>> 0538636 (feat: 多项功能优化)
+=======
+>>>>>>> c0f251a (fix: 优化日志显示和任务完成事件触发)
             } else if (task.lastFileUpdateTime) {
                 // 检查是否超过3天没有新文件
                 const now = new Date();
