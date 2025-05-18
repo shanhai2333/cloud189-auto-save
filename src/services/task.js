@@ -572,13 +572,15 @@ class TaskService {
                 task.lastFileUpdateTime = new Date();
                 task.currentEpisodes = existingMediaCount + fileCount;
                 task.retryCount = 0;
-                this.eventService.emit('taskComplete', new TaskCompleteEventDto({
-                    task,
-                    cloud189,
-                    fileList: newFiles,
-                    overwriteStrm: false,
-                    firstExecution: firstExecution
-                }));
+                process.nextTick(() => {
+                    this.eventService.emit('taskComplete', new TaskCompleteEventDto({
+                        task,
+                        cloud189,
+                        fileList: newFiles,
+                        overwriteStrm: false,
+                        firstExecution: firstExecution
+                    }));
+                })
             } else if (task.lastFileUpdateTime) {
                 // 检查是否超过3天没有新文件
                 const now = new Date();
