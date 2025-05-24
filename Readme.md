@@ -110,6 +110,9 @@ docker run -d \
 
 ## 使用说明
 
+<details>
+<summary>点击展开使用说明</summary>
+    
 ### 1. 账号管理
 - 支持账号密码登录和 Cookie 登录两种方式
 - Cookie 登录步骤：
@@ -264,6 +267,8 @@ docker run -d \
 - Emby 通知需要配置正确的服务器地址和 API Key
 - 如需使用TG机器人创建任务, 如果是老版本系统, 请取消常用目录所有后重新添加
 
+</details>
+    
 ## 📸 界面预览
 
 <details>
