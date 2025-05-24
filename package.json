@@ -11,6 +11,7 @@
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
   "version": "2.2.40",
 =======
   "version": "2.2.23",
@@ -45,6 +46,9 @@
 =======
   "version": "2.2.33",
 >>>>>>> c0f251a (fix: 优化日志显示和任务完成事件触发)
+=======
+  "version": "2.2.34",
+>>>>>>> 9e60c11 (feat(telegram): 添加chatId支持以增强机器人安全性)
   "description": "天翼云盘自动转存系统",
   "main": "src/index.js",
   "scripts": {

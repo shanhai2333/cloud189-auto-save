@@ -61,7 +61,7 @@ async function loadSettings() {
             // tg机器人设置
             document.getElementById('enableTgBot').checked = settings.telegram?.bot?.enable || false;
             document.getElementById('tgBotToken').value = settings.telegram?.bot?.botToken || '';
-
+            document.getElementById('tgBotChatId').value = settings.telegram?.bot?.chatId || '';
             // cloudSaver设置
             document.getElementById('cloudSaverUrl').value = settings.cloudSaver?.baseUrl || '';
             document.getElementById('cloudSaverUsername').value = settings.cloudSaver?.username || '';
@@ -138,7 +138,8 @@ async function saveSettings() {
             chatId: document.getElementById('telegramChatId').value,
             bot: {
                 enable: document.getElementById('enableTgBot').checked,
-                botToken: document.getElementById('tgBotToken').value
+                botToken: document.getElementById('tgBotToken').value,
+                chatId: document.getElementById('tgBotChatId').value
             }
         },
         wxpusher: {

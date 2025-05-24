@@ -81,6 +81,7 @@ function openAddAccountModal() {
 function closeAddAccountModal() {
     const modal = document.getElementById('addAccountModal');
     modal.style.display = 'none';
+    const modalTitle = modal.querySelector('h3');
     modalTitle.textContent = '添加账号';
     const submitBtn = modal.querySelector('button[type="submit"]');
     submitBtn.textContent = '添加';

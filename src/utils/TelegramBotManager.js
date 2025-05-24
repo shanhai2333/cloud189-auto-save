@@ -12,18 +12,18 @@ class TelegramBotManager {
         return TelegramBotManager.instance;
     }
 
-    async handleBotStatus(botToken, enable) {
-        const shouldEnableBot = enable && botToken;
+    async handleBotStatus(botToken, chatId, enable) {
+        const shouldEnableBot = enable && botToken && chatId;
         const botTokenChanged = TelegramBotManager.bot?.token !== botToken;
-
-        if (TelegramBotManager.bot && (!shouldEnableBot || botTokenChanged)) {
+        const chatIdChanged = TelegramBotManager.bot?.chatId!== chatId;
+        if (TelegramBotManager.bot && (!shouldEnableBot || botTokenChanged || chatIdChanged)) {
             TelegramBotManager.bot.stop();
             TelegramBotManager.bot = null;
             logTaskEvent(`Telegram机器人已停用`);
         }
 
-        if (shouldEnableBot && (!TelegramBotManager.bot || botTokenChanged)) {
-            TelegramBotManager.bot = new TelegramBotService(botToken);
+        if (shouldEnableBot && (!TelegramBotManager.bot || botTokenChanged || chatIdChanged)) {
+            TelegramBotManager.bot = new TelegramBotService(botToken, chatId);
             TelegramBotManager.bot.start()
             .then(() => {
                 logTaskEvent(`Telegram机器人已启动`);
