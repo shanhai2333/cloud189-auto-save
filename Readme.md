@@ -23,7 +23,7 @@
 - ~~[Telegram 群组](https://t.me/cloud189_auto_save) - 加入官方群组获取帮助和分享经验~~ 因不知名原因, 账号被封禁
 - ~~请加[Telegram 临时群组](https://t.me/cloud189_auto_save2)~~ 也没了
 - [Telegram 3群](https://t.me/cloud189_auto_save3) 且加且珍惜
-- <h3>遇到问题请先查看 [Wiki 文档](https://github.com/1307super/cloud189-auto-save/wiki)</h3>
+- ## 遇到问题请先查看 [Wiki 文档](https://github.com/1307super/cloud189-auto-save/wiki)
 
 ## ⚠️ 安全警告
 
