@@ -249,8 +249,8 @@ class TaskService {
         if (!shareInfo.shareId) {
             throw new Error('获取分享信息失败');
         }
-        // 如果启用了 AI 分析
-        if (AIService.isEnabled()) {
+        // 如果启用了 AI 分析 如果任务名和分享名相同, 则使用AI分析结果更新任务名称
+        if (AIService.isEnabled() && taskDto.taskName == shareInfo.fileName) {
             try {
                 const resourceInfo = await this._analyzeResourceInfo(shareInfo.fileName, [], 'folder');
                 // 使用 AI 分析结果更新任务名称
@@ -731,8 +731,8 @@ class TaskService {
         // 过滤掉文件夹
         files = files.filter(file => !file.isFolder);
 
-        // 使用 AI 重命名或正则重命名
-        if (AIService.isEnabled()) {
+        // 使用 AI 重命名或正则重命名  如果写了正则, 那么优先使用正则
+        if (AIService.isEnabled() && (!task.sourceRegex || !task.targetRegex)) {
             logTaskEvent(` ${task.resourceName} 开始使用 AI 重命名`);
             try {
                 const resourceInfo = await this._analyzeResourceInfo(
