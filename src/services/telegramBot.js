@@ -1058,7 +1058,7 @@ class TelegramBotService {
     }
     // 校验是否是当前chatId
     _checkChatId(chatId) {
-        if (chatId !== this.chatId) return false;
+        if (chatId != this.chatId) return false;
         return true;
     }
     // 获取当前已脱敏的用户名
