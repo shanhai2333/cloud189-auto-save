@@ -4,6 +4,7 @@ const { logTaskEvent } = require('./logUtils');
 class TelegramBotManager {
     static instance = null;
     static bot = null;
+    static chatId = null;
 
     static getInstance() {
         if (!TelegramBotManager.instance) {
