@@ -5,6 +5,11 @@ async function loadSettings() {
         const data = await response.json();
         if (data.success) {
             const settings = data.data;
+<<<<<<< HEAD
+=======
+            // 系统apiKey
+            document.getElementById('systemApiKey').value = settings.system?.apiKey || '';
+>>>>>>> 7aedbe7 (fix: 修复设置页面和任务列表的UI问题)
             // 任务设置
             document.getElementById('taskExpireDays').value = settings.task?.taskExpireDays || 3;
             document.getElementById('taskCheckCron').value = settings.task?.taskCheckCron || '0 19-23 * * *';
@@ -171,7 +176,6 @@ async function saveSettings() {
         }
 =======
             password: document.getElementById('systemPassword').value,
-            baseUrl: document.getElementById('projectDomain').value,
             apiKey: document.getElementById('systemApiKey').value
         },
         pushplus: {
