@@ -205,15 +205,6 @@
                                 <select id="accountId" required></select>
                             </div>
                             <div class="form-group">
-                                <div class="push-item">
-                                    <label>
-                                        <input type="checkbox" id="enableSystemProxy">
-                                        使用系统代理 (不转存到网盘)
-                                    </label>
-                                    <small class="form-text">开启后文件不会转存到网盘，通过系统代理访问分享链接中的文件</small>
-                                </div>
-                            </div>
-                            <div class="form-group">
                                 <label for="shareLink">分享链接</label>
                                 <div class="share-input-group" style="display: flex; gap: 10px;">
                                     <input type="text" id="shareLink" required style="flex: 2;" data-share-input placeholder="可自动解析带访问码的链接">
@@ -332,12 +323,6 @@
 
         <div id="settingsTab" class="tab-content">
             <form id="settingsForm">
-                <!--项目域名-->
-                <div class="form-group">
-                    <label for="projectDomain">项目域名(实验特性)</label>
-                    <input type="text" id="projectDomain" placeholder="http://192.168.1.1:3000">
-                    <small class="form-text">用于系统代理模式下生成可访问的分享链接，填写当前浏览器访问地址即可（如：http://192.168.1.1:3000）。开启系统代理的任务必须填写此项，否则无法访问文件。</small>
-                </div>
                 <div class="form-group">
                     <label for="systemApiKey">系统apiKey</label>
                     <div style="display: flex; gap: 10px; align-items: center;">

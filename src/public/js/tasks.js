@@ -60,7 +60,6 @@ async function fetchTasks() {
             const progressRing = task.totalEpisodes ? createProgressRing(task.currentEpisodes || 0, task.totalEpisodes) : '';
             const taskName = task.shareFolderName?(task.resourceName + '/' + task.shareFolderName): task.resourceName || '未知'
             const cronIcon = task.enableCron ? '<span class="cron-icon" title="已开启自定义定时任务">⏰</span>' : '';
-            const proxyIcon = task.enableSystemProxy ? '<img src="/icons/cloudflare.svg" class="proxy-icon" title="已开启系统代理" style="width: 32px; height: 32px; vertical-align: middle;">' : '';
             tbody.innerHTML += `
                 <tr data-status='${task.status}' data-task-id='${task.id}' data-name='${taskName}'>
                     <td>
@@ -204,7 +203,6 @@ function initTaskForm() {
         const targetRegex = document.getElementById('ctTargetRegex').value;
         const taskName = document.getElementById('taskName').value.trim();
         const enableTaskScraper = document.getElementById('enableTaskScraper').checked;
-        const enableSystemProxy = document.getElementById('enableSystemProxy').checked;
         if (!taskName) {
             message.warning('任务名称不能为空');
             return;
@@ -230,7 +228,7 @@ function initTaskForm() {
             message.warning('至少选择一个分享目录');
             return;
         }
-        const body = { accountId, shareLink, totalEpisodes, targetFolderId, accessCode, matchPattern, matchOperator, matchValue, overwriteFolder: 0, remark, enableCron, cronExpression, targetFolder, selectedFolders, sourceRegex, targetRegex, taskName, enableTaskScraper, enableSystemProxy };
+        const body = { accountId, shareLink, totalEpisodes, targetFolderId, accessCode, matchPattern, matchOperator, matchValue, overwriteFolder: 0, remark, enableCron, cronExpression, targetFolder, selectedFolders, sourceRegex, targetRegex, taskName, enableTaskScraper };
         await createTask(e,body)
             
     });

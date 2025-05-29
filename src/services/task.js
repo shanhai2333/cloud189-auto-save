@@ -74,7 +74,6 @@ class TaskService {
             sourceRegex: taskDto.sourceRegex,
             targetRegex: taskDto.targetRegex,
             enableTaskScraper: taskDto.enableTaskScraper,
-            enableSystemProxy: taskDto.enableSystemProxy,
             isFolder: taskDto.isFolder
         };
     }
@@ -83,10 +82,6 @@ class TaskService {
      async _validateAndCreateTargetFolder(cloud189, taskDto, shareInfo) {
         if (!this.checkFolderInList(taskDto, '-1')) {
             return {id: taskDto.targetFolderId, name: '', oldFolder: true}
-        }
-        if (taskDto.enableSystemProxy) {
-            // 不创建文件夹
-            return {id: taskDto.targetFolderId, name: shareInfo.fileName}
         }
         // 检查目标文件夹是否存在
         await this.checkFolderExists(cloud189, taskDto.targetFolderId, shareInfo.fileName, taskDto.overwriteFolder);
@@ -156,20 +151,12 @@ class TaskService {
                     continue; // 跳到下一个子文件夹
                 }
                 let realFolder;
-                if (taskDto.enableSystemProxy) {
-                    // 系统代理模式下不创建实际目录
-                    realFolder = {
-                        id: folder.id,
-                        name: path.join(rootFolder.name, folder.name)
-                    };
-                } else {
-                    // 检查目标文件夹是否存在
-                    await this.checkFolderExists(cloud189, rootFolder.id, folder.fileName, taskDto.overwriteFolder);
-                    realFolder = await cloud189.createFolder(folder.name, rootFolder.id);
-                    if (!realFolder?.id) throw new Error('创建目录失败');
-                    rootFolder?.oldFolder && (taskDto.realRootFolderId = realFolder.id);
-                    realFolder.name = path.join(rootFolder.name, realFolder.name);
-                }
+                // 检查目标文件夹是否存在
+                await this.checkFolderExists(cloud189, rootFolder.id, folder.fileName, taskDto.overwriteFolder);
+                realFolder = await cloud189.createFolder(folder.name, rootFolder.id);
+                if (!realFolder?.id) throw new Error('创建目录失败');
+                rootFolder?.oldFolder && (taskDto.realRootFolderId = realFolder.id);
+                realFolder.name = path.join(rootFolder.name, realFolder.name);
                 const subTask = this.taskRepo.create(
                     this._createTaskConfig(
                         taskDto,
@@ -328,7 +315,7 @@ class TaskService {
     // 获取文件夹下的所有文件
     async getAllFolderFiles(cloud189, task) {
         if (task.enableSystemProxy) {
-            return await this.proxyFileService.getFilesByTaskId(task.id);
+            throw new Error('系统代理模式已移除');
         }
         const folderId = task.realFolderId
         const folderInfo = await cloud189.listFiles(folderId);
@@ -399,15 +386,7 @@ class TaskService {
 
         for (const file of newFiles) {
             if (task.enableSystemProxy) {
-                // 系统代理模式：保存到代理文件表
-                taskInfoList.push({
-                    id: file.id,
-                    taskId: task.id,
-                    name: file.name,
-                    md5: file.md5,
-                    size: file.size,
-                    lastOpTime: file.lastOpTime
-                })
+                throw new Error('系统代理模式已移除');
             } else {
                 // 普通模式：添加到转存任务
                 taskInfoList.push({
@@ -435,8 +414,7 @@ class TaskService {
                 });
                 await this.createBatchTask(cloud189, batchTaskDto);
             }else{
-                // 系统代理模式：保存到代理文件表
-                await this.proxyFileService.batchCreateFiles(taskInfoList);
+                throw new Error('系统代理模式已移除');
             }
         }
         // 修改省略号的显示格式
@@ -720,7 +698,7 @@ class TaskService {
         let files = [];
 
         if (task.enableSystemProxy) {
-            files = await this.proxyFileService.getFilesByTaskId(task.id);
+            throw new Error('系统代理模式已移除');
         } else {
             const folderInfo = await cloud189.listFiles(task.realFolderId);
             if (!folderInfo || !folderInfo.fileListAO) return [];
@@ -763,7 +741,7 @@ class TaskService {
             message[message.length - 1] = lastMessage.replace('├─', '└─');
         }
         if (task.enableSystemProxy && newFiles.length > 0) {
-            await this.proxyFileService.batchUpdateFiles(newFiles);
+            throw new Error('系统代理模式已移除');
         }
         // 修改省略号的显示格式
         if (message.length > 20) {
@@ -855,7 +833,7 @@ class TaskService {
     async _renameFile(cloud189, task, file, newName, message, newFiles) {
         let renameResult;
         if (task.enableSystemProxy) {
-            renameResult = { id: file.id, name: newName };
+            throw new Error('系统代理模式已移除');
         } else {
             renameResult = await cloud189.renameFile(file.id, newName);
         }
@@ -1436,8 +1414,7 @@ class TaskService {
     // 根据task获取文件列表
     async getFilesByTask(task) {
         if (task.enableSystemProxy) {
-            // 代理文件
-            return await this.proxyFileService.getFilesByTaskId(task.id);
+            throw new Error('系统代理模式已移除');
         }
         const cloud189 = Cloud189Service.getInstance(task.account);
         return await this.getAllFolderFiles(cloud189, task)

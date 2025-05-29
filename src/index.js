@@ -528,20 +528,11 @@ AppDataSource.initialize().then(async () => {
         const strmService = new StrmService();
         const strmEnabled = ConfigService.getConfigValue('strm.enable') && task.account.localStrmPrefix
         if (strmEnabled && task.enableSystemProxy){
-            let oldFilesName = files.map(file => path.join(folderName, file.oldName));
-            for (const file of oldFilesName) {
-                await strmService.delete(path.join(task.account.localStrmPrefix, file))
-            }
+            throw new Error('系统代理模式已移除');
         }
         const newFiles = files.map(file => ({id: file.fileId, name: file.destFileName}))
         if(task.enableSystemProxy) {
-            await proxyFileService.batchUpdateFiles(newFiles);
-            // 重新生成STRM文件
-            if (strmEnabled){
-                strmService.generate(task, newFiles, false, false)
-            }
-            res.json({ success: true, data: [] });
-            return;
+            throw new Error('系统代理模式已移除');
         }
         const cloud189 = Cloud189Service.getInstance(account);
         const result = []
@@ -676,42 +667,11 @@ AppDataSource.initialize().then(async () => {
             res.status(500).json({ success: false, error: error.message });
         }
     })
-    // 获取直链
-    app.get('/api/files/direct-link', async (req, res) => {
-        try{
-            const fileId = req.query.fileId;
-            const taskId = req.query.taskId;
-            const task = await taskRepo.findOneBy({ id: taskId });
-            if (!task) {
-                throw new Error('任务不存在');
-            }
-            const account = await accountRepo.findOneBy({ id: task.accountId });
-            if (!account) {
-                throw new Error('账号不存在');
-            }
-            const cloud189 = Cloud189Service.getInstance(account);
-            const link = await cloud189.getDownloadLink(fileId, task.enableSystemProxy?task.shareId:undefined);
-            res.json({ success: true, data: link });
-        }catch (error) {
-            res.status(500).json({ success: false, error: error.message });
-        }
-    })
     
     // 获取直链
     app.get('/proxy/:code', async(req, res) => {
         try {
-            const { taskId, fileId } = CryptoUtils.decryptIds(req.params.code);
-            const task = await taskRepo.findOneBy({ id: taskId });
-            if (!task || !task.enableSystemProxy) {
-                return res.status(404).send('Not found');
-            }
-            const account = await accountRepo.findOneBy({ id: task.accountId });
-            if (!account) {
-                return res.status(404).send('Not found');
-            }
-            const cloud189 = await Cloud189Service.getInstance(account);
-            const downloadUrl = await cloud189.getDownloadLink(fileId, task.shareId);
-            res.redirect(downloadUrl);
+            throw new Error('系统代理模式已移除');
         } catch (error) {
             res.status(500).send('Error');
         }
