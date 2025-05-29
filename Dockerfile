@@ -34,15 +34,16 @@ COPY --from=builder /home/src/public ./dist/public
 # 复制cloud189-sdk编译后的代码到./vender/cloud189-sdk/dist
 COPY --from=builder /home/vender/cloud189-sdk/dist ./vender/cloud189-sdk/dist
 
+# 安装必要的依赖项
+RUN apk update && \
+    apk add --no-cache ca-certificates tzdata
+    
+
 # 设置时区
 ENV TZ=Asia/Shanghai
 RUN ln -sf /usr/share/zoneinfo/$TZ /etc/localtime && \
     echo $TZ > /etc/timezone
     
-# 安装必要的依赖项
-RUN apk update && \
-    apk add --no-cache ca-certificates
-
 # 创建数据目录
 RUN mkdir -p /home/data
 

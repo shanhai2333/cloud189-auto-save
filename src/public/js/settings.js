@@ -5,8 +5,6 @@ async function loadSettings() {
         const data = await response.json();
         if (data.success) {
             const settings = data.data;
-            // 项目域名
-            document.getElementById('projectDomain').value = settings.system?.baseUrl || '';
             // 系统apiKey
             document.getElementById('systemApiKey').value = settings.system?.apiKey || '';
             // 任务设置
@@ -162,7 +160,6 @@ async function saveSettings() {
         system: {
             username: document.getElementById('systemUserName').value,
             password: document.getElementById('systemPassword').value,
-            baseUrl: document.getElementById('projectDomain').value,
             apiKey: document.getElementById('systemApiKey').value
         },
         pushplus: {

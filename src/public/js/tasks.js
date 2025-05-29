@@ -67,7 +67,7 @@ async function fetchTasks() {
                         <button class="btn-warning" onclick="executeTask(${task.id})">执行</button>
                         <button onclick="showEditTaskModal(${task.id})">修改</button>
                     </td>
-                    <td data-label="资源名称">${cronIcon}${proxyIcon}<a href="${task.shareLink}" target="_blank" class='ellipsis' title="${taskName}">${taskName}</a></td>
+                    <td data-label="资源名称">${cronIcon}<a href="${task.shareLink}" target="_blank" class='ellipsis' title="${taskName}">${taskName}</a></td>
                     <td data-label="账号">${task.account.username}</td>
                     <!--<td data-label="首次保存目录"><a href="https://cloud.189.cn/web/main/file/folder/${task.targetFolderId}" target="_blank">${task.targetFolderId}</a></td>-->
                      <td data-label="更新目录"><a href="javascript:void(0)" onclick="showFileListModal('${task.id}')" class='ellipsis'>${task.realFolderName || task.realFolderId}</a></td>
