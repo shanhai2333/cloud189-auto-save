@@ -14,6 +14,7 @@
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
   "version": "2.2.40",
 =======
   "version": "2.2.23",
@@ -57,6 +58,9 @@
 =======
   "version": "2.2.37",
 >>>>>>> 7aedbe7 (fix: 修复设置页面和任务列表的UI问题)
+=======
+  "version": "2.2.38",
+>>>>>>> 8829e80 (chore: 更新版本号至2.2.38)
   "description": "天翼云盘自动转存系统",
   "main": "src/index.js",
   "scripts": {
