@@ -309,18 +309,7 @@ docker run -d \
 
 </details>
 
-## ❤️ 支持项目
 
-如果觉得这个项目对你有帮助，你可以通过以下方式支持我：
-
-1. ⭐ 给项目点个 Star，让更多的人看到
-2. 📢 分享给更多有需要的朋友
-3. ☕ 请作者喝杯冰阔乐，赞赏后请务必联系我哦~
-
-<div align="center">
-<img src="img/wechat.JPG" alt="微信" height="300">
-    <img src="img/ali.png" alt="支付宝" height="300" style="margin-right: 20px">
-</div>
 
 ## ⚠️ 特别声明
 
