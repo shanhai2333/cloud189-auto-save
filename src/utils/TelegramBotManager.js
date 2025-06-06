@@ -25,7 +25,7 @@ class TelegramBotManager {
 
         if (shouldEnableBot && (!TelegramBotManager.bot || botTokenChanged || chatIdChanged)) {
             TelegramBotManager.bot = new TelegramBotService(botToken, chatId);
-            await TelegramBotManager.bot.start()
+            TelegramBotManager.bot.start()
             .then(() => {
                 logTaskEvent(`Telegram机器人已启动`);
             })
