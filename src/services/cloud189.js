@@ -3,6 +3,7 @@ const { logTaskEvent } = require('../utils/logUtils');
 const crypto = require('crypto');
 const got = require('got');
 const ProxyUtil = require('../utils/ProxyUtil');
+
 class Cloud189Service {
     static instances = new Map();
 
@@ -260,8 +261,6 @@ class Cloud189Service {
         }
         return null
     }
-<<<<<<< HEAD
-=======
     // 获取网盘直链
     async getDownloadLink(fileId, shareId = null) {
         const type = shareId? 4: 2
@@ -319,7 +318,6 @@ class Cloud189Service {
             }
         }
     }
->>>>>>> 0538636 (feat: 多项功能优化)
 }
 
 module.exports = { Cloud189Service };

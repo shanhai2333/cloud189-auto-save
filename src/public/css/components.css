@@ -539,14 +539,12 @@
 .refresh-icon {
     width: 16px;
     height: 16px;
-    filter: invert(0.5);
     transition: transform 0.3s ease;
+    filter: invert(0.5);
 }
 
 .btn-icon:hover .refresh-icon {
     transform: rotate(180deg);
-<<<<<<< HEAD
-=======
 }
 
 .help-text-container .form-text {
@@ -592,9 +590,6 @@
 #strmModal span {
     flex: 1;
     font-size: 14px;
-<<<<<<< HEAD
->>>>>>> 75adc9a (feat: 添加账号别名功能并优化STRM生成器界面)
-=======
 }
 
 .default-star {
@@ -607,9 +602,6 @@
 
 .default-star:hover {
     opacity: 0.8;
-<<<<<<< HEAD
->>>>>>> da4b78e (feat: 新增默认账号功能及AI重命名支持)
-=======
 }
 
 .proxy-services-container {
@@ -648,10 +640,6 @@
     .proxy-service-item {
         flex: 0 0 100%; /* 在超小屏幕上每行显示一个选项 */
     }
-<<<<<<< HEAD
->>>>>>> b174657 (feat: 添加OpenAI代理选项并优化验证码处理)
-}
-=======
 }
 
 /* 1. 固定自定义推送弹窗高度, 超出高度出现滚动条 */
@@ -697,4 +685,3 @@ label[for="customPushEnabled"] {
     margin-right: 6px; 
     flex: 0;
   }
->>>>>>> 63e35b0 (feat: 新增自定义推送功能并优化相关代码)

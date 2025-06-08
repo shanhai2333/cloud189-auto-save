@@ -127,14 +127,9 @@ class FolderSelector {
                         <div id="${this.treeId}" class="folder-tree"></div>
                     </div>
                     <div class="form-actions">
-<<<<<<< HEAD
-                        <button class="modal-btn modal-btn-default" data-action="cancel">取消</button>
-                        <button class="modal-btn modal-btn-primary" data-action="confirm">确定</button>
-=======
                     ${this.buttons.map(btn => `
                         <button class="${btn.class}" data-action="${btn.action}">${btn.text}</button>
                     `).join('')}
->>>>>>> 02c29e2 (feat: 添加转存后刷新Alist缓存和全量生成STRM)
                     </div>
                 </div>
             </div>

@@ -16,12 +16,7 @@ const TelegramBotManager = require('./utils/TelegramBotManager');
 const fs = require('fs').promises;
 const path = require('path');
 const { setupCloudSaverRoutes, clearCloudSaverToken } = require('./sdk/cloudsaver');
-<<<<<<< HEAD
 const { Like, Not, IsNull, In, Or } = require('typeorm');
-=======
-const { Like, Not, IsNull, In } = require('typeorm');
-const CryptoUtils = require('./utils/cryptoUtils');
->>>>>>> 75adc9a (feat: 添加账号别名功能并优化STRM生成器界面)
 const cors = require('cors'); 
 const { EmbyService } = require('./services/emby');
 const { StrmService } = require('./services/strm');
@@ -139,7 +134,6 @@ AppDataSource.initialize().then(async () => {
     const taskService = new TaskService(taskRepo, accountRepo);
     const embyService = new EmbyService(taskService)
     const messageUtil = new MessageUtil();
-    const proxyFileService = new ProxyFileService(proxyFileRepo);
     // 机器人管理
     const botManager = TelegramBotManager.getInstance();
     // 初始化机器人
@@ -265,10 +259,6 @@ AppDataSource.initialize().then(async () => {
             res.json({ success: false, error: error.message });
         }
     })
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> da4b78e (feat: 新增默认账号功能及AI重命名支持)
     app.put('/api/accounts/:id/default', async (req, res) => {
         try {
             const accountId = parseInt(req.params.id);
@@ -281,12 +271,6 @@ AppDataSource.initialize().then(async () => {
             res.json({ success: false, error: error.message });
         }
     })
-<<<<<<< HEAD
-=======
-    
->>>>>>> 75adc9a (feat: 添加账号别名功能并优化STRM生成器界面)
-=======
->>>>>>> da4b78e (feat: 新增默认账号功能及AI重命名支持)
     // 任务相关API
     app.get('/api/tasks', async (req, res) => {
         const { status, search } = req.query;
@@ -540,33 +524,11 @@ AppDataSource.initialize().then(async () => {
         const strmService = new StrmService();
         const strmEnabled = ConfigService.getConfigValue('strm.enable') && task.account.localStrmPrefix
         if (strmEnabled && task.enableSystemProxy){
-<<<<<<< HEAD
             throw new Error('系统代理模式已移除');
         }
         const newFiles = files.map(file => ({id: file.fileId, name: file.destFileName}))
         if(task.enableSystemProxy) {
-<<<<<<< HEAD
             throw new Error('系统代理模式已移除');
-=======
-            const proxyFiles = files.map(file => ({id: file.fileId, name: file.destFileName}))
-            await proxyFileService.batchUpdateFiles(proxyFiles);
-=======
-            let oldFilesName = files.map(file => path.join(folderName, file.oldName));
-            for (const file of oldFilesName) {
-                await strmService.delete(path.join(task.account.localStrmPrefix, file))
-            }
-        }
-        const newFiles = files.map(file => ({id: file.fileId, name: file.destFileName}))
-        if(task.enableSystemProxy) {
-            await proxyFileService.batchUpdateFiles(newFiles);
-            // 重新生成STRM文件
-            if (strmEnabled){
-                strmService.generate(task, newFiles, false, false)
-            }
->>>>>>> 0538636 (feat: 多项功能优化)
-            res.json({ success: true, data: [] });
-            return;
->>>>>>> da4b78e (feat: 新增默认账号功能及AI重命名支持)
         }
         const cloud189 = Cloud189Service.getInstance(account);
         const result = []
@@ -582,21 +544,9 @@ AppDataSource.initialize().then(async () => {
                 if (strmEnabled){
                     // 从realFolderName中获取文件夹名称 删除对应的本地文件
                     const oldFile = path.join(folderName, file.oldName);
-<<<<<<< HEAD
-<<<<<<< HEAD
                     await strmService.delete(path.join(task.account.localStrmPrefix, oldFile))
                 }
                 successFiles.push({id: file.fileId, name: file.destFileName})
-=======
-                    strmService.delete(path.join(task.account.localStrmPrefix, oldFile))
-                }
-                successFiles.push(file)
->>>>>>> 0538636 (feat: 多项功能优化)
-=======
-                    await strmService.delete(path.join(task.account.localStrmPrefix, oldFile))
-                }
-                successFiles.push({id: file.fileId, name: file.destFileName})
->>>>>>> b174657 (feat: 添加OpenAI代理选项并优化验证码处理)
             }
         }
         // 重新生成STRM文件
@@ -619,26 +569,6 @@ AppDataSource.initialize().then(async () => {
         res.json({ success: true, data: null });
     });
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
-    // 删除任务文件
-    app.delete('/api/tasks/files', async (req, res) => {
-        try{
-            const { taskId, files } = req.body;
-            if (!files || files.length === 0) {
-                throw new Error('未选择要删除的文件');
-            }
-            await taskService.deleteFiles(taskId, files);
-            res.json({ success: true, data: null });
-        }catch (error) {
-            res.json({ success: false, error: error.message });
-        }
-    })
-    
->>>>>>> 0538636 (feat: 多项功能优化)
-=======
->>>>>>> b174657 (feat: 添加OpenAI代理选项并优化验证码处理)
     // 系统设置
     app.get('/api/settings', async (req, res) => {
         res.json({success: true, data: ConfigService.getConfig()})
@@ -822,10 +752,6 @@ AppDataSource.initialize().then(async () => {
             res.json({ success: false, error: error.message });
         }
     })
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> 63e35b0 (feat: 新增自定义推送功能并优化相关代码)
 
     app.post('/api/custom-push/test', async (req, res) => {
         try{
@@ -840,11 +766,6 @@ AppDataSource.initialize().then(async () => {
             res.json({ success: false, error: error.message });
         }
     })
-<<<<<<< HEAD
-=======
->>>>>>> da4b78e (feat: 新增默认账号功能及AI重命名支持)
-=======
->>>>>>> 63e35b0 (feat: 新增自定义推送功能并优化相关代码)
     
     // 全局错误处理中间件
     app.use((err, req, res, next) => {

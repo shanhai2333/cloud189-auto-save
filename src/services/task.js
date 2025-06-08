@@ -14,18 +14,8 @@ const { EventService } = require('./eventService');
 const { TaskEventHandler } = require('./taskEventHandler');
 const AIService = require('./ai');
 const harmonizedFilter = require('../utils/BloomFilter');
-<<<<<<< HEAD
-<<<<<<< HEAD
 const cloud189Utils = require('../utils/Cloud189Utils');
 const alistService = require('./alistService');
-<<<<<<< HEAD
-=======
->>>>>>> da4b78e (feat: 新增默认账号功能及AI重命名支持)
-=======
-const cloud189Utils = require('../utils/Cloud189Utils');
->>>>>>> 3f47691 (refactor(utils): 将解析云盘分享链接的逻辑提取到Cloud189Utils模块)
-=======
->>>>>>> 63e35b0 (feat: 新增自定义推送功能并优化相关代码)
 
 class TaskService {
     constructor(taskRepo, accountRepo) {
@@ -82,10 +72,6 @@ class TaskService {
             sourceRegex: taskDto.sourceRegex,
             targetRegex: taskDto.targetRegex,
             enableTaskScraper: taskDto.enableTaskScraper,
-<<<<<<< HEAD
-=======
-            enableSystemProxy: taskDto.enableSystemProxy,
->>>>>>> 0538636 (feat: 多项功能优化)
             isFolder: taskDto.isFolder
         };
     }
@@ -298,21 +284,10 @@ class TaskService {
             await this.deleteCloudFile(cloud189,await this.getRootFolder(task), 1);
             // 删除strm
             new StrmService().deleteDir(path.join(task.account.localStrmPrefix, folderName))
-<<<<<<< HEAD
-<<<<<<< HEAD
             // 刷新Alist缓存
             await this.refreshAlistCache(task, true)
         }
         if (task.enableSystemProxy) {
-=======
-=======
-            // 刷新Alist缓存
-            await this.refreshAlistCache(task, true)
->>>>>>> 63e35b0 (feat: 新增自定义推送功能并优化相关代码)
-        }
-        if (task.enableSystemProxy) {
-            await this.proxyFileService.deleteFiles(task.id)
->>>>>>> 0538636 (feat: 多项功能优化)
             // 删除strm
             new StrmService().deleteDir(path.join(task.account.localStrmPrefix, folderName))
         }
@@ -572,10 +547,6 @@ class TaskService {
                 task.lastFileUpdateTime = new Date();
                 task.currentEpisodes = existingMediaCount + fileCount;
                 task.retryCount = 0;
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> c0f251a (fix: 优化日志显示和任务完成事件触发)
                 process.nextTick(() => {
                     this.eventService.emit('taskComplete', new TaskCompleteEventDto({
                         task,
@@ -585,18 +556,6 @@ class TaskService {
                         firstExecution: firstExecution
                     }));
                 })
-<<<<<<< HEAD
-=======
-                this.eventService.emit('taskComplete', new TaskCompleteEventDto({
-                    task,
-                    cloud189,
-                    fileList: newFiles,
-                    overwriteStrm: false,
-                    firstExecution: firstExecution
-                }));
->>>>>>> 0538636 (feat: 多项功能优化)
-=======
->>>>>>> c0f251a (fix: 优化日志显示和任务完成事件触发)
             } else if (task.lastFileUpdateTime) {
                 // 检查是否超过3天没有新文件
                 const now = new Date();
@@ -830,35 +789,7 @@ class TaskService {
                     newFiles.push(file);
                     continue;
                 }
-<<<<<<< HEAD
-<<<<<<< HEAD
                 const newName = this._generateFileName(file, aiFile, resourceInfo, template);
-=======
-                // 构建文件名替换映射
-                const replaceMap = {
-                    '{name}': aiFile.name || task.resourceName,
-                    '{year}': resourceInfo.year || '',
-                    '{s}': aiFile.season?.padStart(2, '0') || '01',
-                    '{e}': aiFile.episode?.padStart(2, '0') || '01',
-                    '{sn}': parseInt(aiFile.season) || '1',                    // 不补零的季数
-                    '{en}': parseInt(aiFile.episode) || '1',                   // 不补零的集数
-                    '{ext}': aiFile.extension || path.extname(file.name),
-                    '{se}': `S${aiFile.season?.padStart(2, '0') || '01'}E${aiFile.episode?.padStart(2, '0') || '01'}`
-                };
-                // 替换模板中的占位符
-                let newName = template;
-                for (const [key, value] of Object.entries(replaceMap)) {
-                    newName = newName.replace(new RegExp(key, 'g'), value);
-                }
-<<<<<<< HEAD
->>>>>>> 75adc9a (feat: 添加账号别名功能并优化STRM生成器界面)
-=======
-                // 清理文件名中的非法字符
-                newName = this._sanitizeFileName(newName);
->>>>>>> 49dcd38 (fix: 修复重命名中同名文件判断异常)
-=======
-                const newName = this._generateFileName(file, aiFile, resourceInfo, template);
->>>>>>> da4b78e (feat: 新增默认账号功能及AI重命名支持)
                 // 判断文件名是否已存在
                 if (file.name === newName) {
                     newFiles.push(file);
@@ -1388,15 +1319,7 @@ class TaskService {
     // ai命名处理
     async handleAiRename(files, resourceInfo) {
         const template = resourceInfo.type === 'movie' 
-<<<<<<< HEAD
-<<<<<<< HEAD
         ? ConfigService.getConfigValue('openai.rename.movieTemplate') || '{name} ({year}){ext}'  // 电影模板
-=======
-        ? '{name} ({year}){ext}'  // 电影模板
->>>>>>> da4b78e (feat: 新增默认账号功能及AI重命名支持)
-=======
-        ? ConfigService.getConfigValue('openai.rename.movieTemplate') || '{name} ({year}){ext}'  // 电影模板
->>>>>>> 7556791 (feat: 添加电影命名模板并优化错误日志)
         : ConfigService.getConfigValue('openai.rename.template') || '{name} - {se}{ext}';  // 剧集模板
         const aiNames = resourceInfo.episode
         const newFiles = [];
@@ -1432,10 +1355,6 @@ class TaskService {
         }    
         return false
     }
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> 0538636 (feat: 多项功能优化)
 
     // 根据文件id批量删除文件
     async deleteFiles(taskId, files) {
@@ -1445,29 +1364,15 @@ class TaskService {
         }
         const strmService = new StrmService()
         const folderName = task.realFolderName.substring(task.realFolderName.indexOf('/') + 1);
-<<<<<<< HEAD
-<<<<<<< HEAD
         let strmList = []
-=======
-        const strmList = []
->>>>>>> 0538636 (feat: 多项功能优化)
-=======
-        let strmList = []
->>>>>>> b174657 (feat: 添加OpenAI代理选项并优化验证码处理)
         strmList = files.map(file => path.join(folderName, file.name));
         // 判断是否启用了系统代理
         if (task.enableSystemProxy) {
             // 代理文件
-<<<<<<< HEAD
-=======
-            await this.proxyFileService.batchDeleteFilesById(files.map(file => file.id));
->>>>>>> 0538636 (feat: 多项功能优化)
         }else{
             // 删除网盘文件
             const cloud189 = Cloud189Service.getInstance(task.account);
             await this.deleteCloudFile(cloud189,files, 0);
-<<<<<<< HEAD
-<<<<<<< HEAD
             await this.refreshAlistCache(task)
         }
         for (const strm of strmList) {
@@ -1513,58 +1418,6 @@ class TaskService {
         const cloud189 = Cloud189Service.getInstance(task.account);
         return await this.getAllFolderFiles(cloud189, task)
     }
-=======
->>>>>>> da4b78e (feat: 新增默认账号功能及AI重命名支持)
-=======
-=======
-            await this.refreshAlistCache(task)
->>>>>>> 63e35b0 (feat: 新增自定义推送功能并优化相关代码)
-        }
-        for (const strm of strmList) {
-            // 删除strm文件
-            await strmService.delete(path.join(task.account.localStrmPrefix, strm));
-        }
-    }
-
-    // 根据任务刷新Alist缓存
-    async refreshAlistCache(task, firstExecution = false) {
-        try{
-            if (ConfigService.getConfigValue('alist.enable') && !task.enableSystemProxy && task.account.cloudStrmPrefix) {
-                const pathParts = task.realFolderName.split('/');
-                let alistPath = pathParts.slice(1).join('/');
-                let currentPath = task.account.cloudStrmPrefix.includes('/d/') 
-                    ? task.account.cloudStrmPrefix.split('/d/')[1] 
-                    : path.basename(task.account.cloudStrmPrefix);
-                let refreshPath = "";
-                // 首次执行任务需要刷新所有目录缓存
-                if (firstExecution) {
-                    alistPath = pathParts.slice(1, -1).join('/');
-                    const taskName = task.resourceName;
-                    // 替换alistPath中的taskName为空, 然后去掉最后一个/
-                    alistPath = alistPath.replace(taskName, '').replace(/\/$/, '');
-                    refreshPath = path.join(currentPath, alistPath);
-                } else {
-                    // 非首次只刷新当前目录
-                    refreshPath = path.join(currentPath, alistPath);
-                }
-                logTaskEvent(`刷新alist目录缓存: ${refreshPath}`);
-                await alistService.listFiles(refreshPath);
-            }
-        }catch (error) {
-            logTaskEvent(`刷新Alist缓存失败: ${error.message}`);
-        }
-    }
-
-    // 根据task获取文件列表
-    async getFilesByTask(task) {
-        if (task.enableSystemProxy) {
-            // 代理文件
-            return await this.proxyFileService.getFilesByTaskId(task.id);
-        }
-        const cloud189 = Cloud189Service.getInstance(task.account);
-        return await this.getAllFolderFiles(cloud189, task)
-    }
->>>>>>> 0538636 (feat: 多项功能优化)
 }
 
 module.exports = { TaskService };

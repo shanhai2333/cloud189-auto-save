@@ -5,11 +5,8 @@ async function loadSettings() {
         const data = await response.json();
         if (data.success) {
             const settings = data.data;
-<<<<<<< HEAD
-=======
             // 系统apiKey
             document.getElementById('systemApiKey').value = settings.system?.apiKey || '';
->>>>>>> 7aedbe7 (fix: 修复设置页面和任务列表的UI问题)
             // 任务设置
             document.getElementById('taskExpireDays').value = settings.task?.taskExpireDays || 3;
             document.getElementById('taskCheckCron').value = settings.task?.taskCheckCron || '0 19-23 * * *';
@@ -75,8 +72,6 @@ async function loadSettings() {
             document.getElementById('enableScraper').checked = settings.tmdb?.enableScraper || false;
             // tmdbkey
             document.getElementById('tmdbApiKey').value = settings.tmdb?.tmdbApiKey || '';
-<<<<<<< HEAD
-=======
 
             // openai配置
             document.getElementById('enableOpenAI').checked = settings.openai?.enable || false;
@@ -90,9 +85,6 @@ async function loadSettings() {
             document.getElementById('enableAlist').checked = settings.alist?.enable || false;
             document.getElementById('alistServer').value = settings.alist?.baseUrl || '';
             document.getElementById('alistApiKey').value = settings.alist?.apiKey || '';
-<<<<<<< HEAD
->>>>>>> 02c29e2 (feat: 添加转存后刷新Alist缓存和全量生成STRM)
-=======
 
             // pushplus
             document.getElementById('enablePushPlus').checked = settings.pushplus?.enable || false;
@@ -101,12 +93,8 @@ async function loadSettings() {
             document.getElementById('pushplusChannel').value = settings.pushplus?.channel || '';
             document.getElementById('pushplusWebhook').value = settings.pushplus?.webhook || '';
             document.getElementById('pushplusTo').value = settings.pushplus?.to || '';
-<<<<<<< HEAD
->>>>>>> 0538636 (feat: 多项功能优化)
-=======
 
             customPushConfigs = settings.customPush || [];
->>>>>>> 63e35b0 (feat: 新增自定义推送功能并优化相关代码)
         }
     } catch (error) {
         console.error('加载设置失败:', error);
@@ -171,10 +159,6 @@ async function saveSettings() {
         },
         system: {
             username: document.getElementById('systemUserName').value,
-<<<<<<< HEAD
-            password: document.getElementById('systemPassword').value
-        }
-=======
             password: document.getElementById('systemPassword').value,
             apiKey: document.getElementById('systemApiKey').value
         },
@@ -186,11 +170,7 @@ async function saveSettings() {
             webhook: document.getElementById('pushplusWebhook').value,
             to: document.getElementById('pushplusTo').value
         },
-<<<<<<< HEAD
->>>>>>> 0538636 (feat: 多项功能优化)
-=======
         customPush: customPushConfigs
->>>>>>> 63e35b0 (feat: 新增自定义推送功能并优化相关代码)
     };
     // taskRetryInterval不能少于60秒
     if (settings.task.taskRetryInterval < 60) {
@@ -217,3 +197,12 @@ async function saveSettings() {
 
 // 在页面加载时初始化设置
 document.addEventListener('DOMContentLoaded', loadSettings);
+
+function generateApiKey() {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    let apiKey = '';
+    for (let i = 0; i < 32; i++) {
+        apiKey += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    document.getElementById('systemApiKey').value = apiKey;
+}

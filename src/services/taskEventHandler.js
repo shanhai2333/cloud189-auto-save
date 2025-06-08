@@ -57,35 +57,8 @@ class TaskEventHandler {
 
     async _handleAlistCache(taskCompleteEventDto) {
         try {
-<<<<<<< HEAD
-<<<<<<< HEAD
             const {task, taskService, firstExecution} = taskCompleteEventDto;
             await taskService.refreshAlistCache(task, firstExecution)
-=======
-            const {task} = taskCompleteEventDto;
-            if (ConfigService.getConfigValue('alist.enable') && !task.enableSystemProxy && task.account.cloudStrmPrefix) {
-                const pathParts = task.realFolderName.split('/');
-                let alistPath = pathParts.slice(1, -1).join('/');
-                let currentPath = path.basename(task.account.cloudStrmPrefix);
-                let refreshPath = "";
-                // 首次执行任务需要刷新所有目录缓存
-                if (taskCompleteEventDto.firstExecution) {
-                    const taskName = task.resourceName;
-                    // 替换alistPath中的taskName为空, 然后去掉最后一个/
-                    alistPath = alistPath.replace(taskName, '').replace(/\/$/, '');
-                    refreshPath = path.join(currentPath, alistPath);
-                } else {
-                    // 非首次只刷新当前目录
-                    refreshPath = path.join(currentPath, alistPath);
-                }
-                logTaskEvent(`刷新alist目录缓存: ${alistPath}`);
-                await alistService.listFiles(alistPath);
-            }
->>>>>>> 0538636 (feat: 多项功能优化)
-=======
-            const {task, taskService, firstExecution} = taskCompleteEventDto;
-            await taskService.refreshAlistCache(task, firstExecution)
->>>>>>> 63e35b0 (feat: 新增自定义推送功能并优化相关代码)
         } catch (error) {
             console.error(error);
             logTaskEvent(`刷新Alist缓存失败: ${error.message}`);

@@ -27,8 +27,6 @@ async function saveMediaSettings() {
         tmdb: {
             enableScraper: document.getElementById('enableScraper').checked,
             tmdbApiKey: document.getElementById('tmdbApiKey').value
-<<<<<<< HEAD
-=======
         },
         openai: {
             enable: document.getElementById('enableOpenAI').checked,
@@ -44,7 +42,6 @@ async function saveMediaSettings() {
             enable: document.getElementById('enableAlist').checked,
             baseUrl: document.getElementById('alistServer').value,
             apiKey: document.getElementById('alistApiKey').value
->>>>>>> 02c29e2 (feat: 添加转存后刷新Alist缓存和全量生成STRM)
         }
     };
 
