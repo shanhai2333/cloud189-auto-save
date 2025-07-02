@@ -3,7 +3,6 @@ const { logTaskEvent } = require('../utils/logUtils');
 const crypto = require('crypto');
 const got = require('got');
 const ProxyUtil = require('../utils/ProxyUtil');
-
 class Cloud189Service {
     static instances = new Map();
 

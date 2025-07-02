@@ -18,7 +18,7 @@ const cloud189Utils = require('../utils/Cloud189Utils');
 const alistService = require('./alistService');
 
 class TaskService {
-    constructor(taskRepo, accountRepo) {
+    constructor(taskRepo, accountRepo, proxyFileRepo) {
         this.taskRepo = taskRepo;
         this.accountRepo = accountRepo;
         this.messageUtil = new MessageUtil();
