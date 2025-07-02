@@ -19,6 +19,11 @@
 </div>
 
 
+## 💬 Pro版震撼上线
+**天翼自动转存Pro版上线**！永久买断制，支持网盘文件一键预览、1000+任务批量创建、「玄鲸极速」播放加速、TG机器人批量任务管理，集成反代+直链解析实现0门槛部署，点击查看[详细文档](https://1307super.github.io/Cloud189AutoSaveProDoc/)了解更多。
+
+
+
 ## 💬 社区交流
 - ~~[Telegram 群组](https://t.me/cloud189_auto_save) - 加入官方群组获取帮助和分享经验~~ 因不知名原因, 账号被封禁
 - ~~请加[Telegram 临时群组](https://t.me/cloud189_auto_save2)~~ 也没了
@@ -324,6 +329,18 @@ docker run -d \
 
 </details>
 
+## ❤️ 支持项目
+
+如果觉得这个项目对你有帮助，你可以通过以下方式支持我：
+
+1. ⭐ 给项目点个 Star，让更多的人看到
+2. 📢 分享给更多有需要的朋友
+3. ☕ 请作者喝杯冰阔乐~
+
+<div align="center">
+<img src="img/wechat.JPG" alt="微信" height="300">
+    <img src="img/ali.png" alt="支付宝" height="300" style="margin-right: 20px">
+</div>
 
 
 ## ⚠️ 特别声明
@@ -338,3 +355,10 @@ docker run -d \
 ## License
 
 MIT
+
+## 赞助商
+
+本项目 CDN 加速及安全防护由 Tencent EdgeOne 赞助
+
+<a href="https://edgeone.ai/?from=github" target="_blank"><img title="亚洲最佳CDN、边缘和安全解决方案 - Tencent EdgeOne" src="https://edgeone.ai/media/34fe3a45-492d-4ea4-ae5d-ea1087ca7b4b.png" width="300"></a>
+
