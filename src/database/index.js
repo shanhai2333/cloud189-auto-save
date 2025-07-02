@@ -1,5 +1,5 @@
 const { DataSource } = require('typeorm');
-const { Account, Task, CommonFolder, ProxyFile } = require('../entities');
+const { Account, Task, CommonFolder } = require('../entities');
 const path = require('path');
 const dotenv = require('dotenv');
 
@@ -13,7 +13,7 @@ const AppDataSource = new DataSource({
     maxQueryExecutionTime: 1000, // 查询超时设置
     enableWAL: true,   // 启用 WAL 模式提升性能
     busyTimeout: 3000, // 设置超时时间
-    entities: [Account, Task, CommonFolder, ProxyFile],
+    entities: [Account, Task, CommonFolder],
     subscribers: [],
     migrations: [],
     timezone: '+08:00',  // 添加时区设置

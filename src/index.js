@@ -1,12 +1,11 @@
 require('dotenv').config();
 const express = require('express');
 const { AppDataSource } = require('./database');
-const { Account, Task, CommonFolder, ProxyFile } = require('./entities');
+const { Account, Task, CommonFolder } = require('./entities');
 const { TaskService } = require('./services/task');
 const { Cloud189Service } = require('./services/cloud189');
 const { MessageUtil } = require('./services/message');
 const { CacheManager } = require('./services/CacheManager')
-const { ProxyFileService } = require('./services/ProxyFileService');
 const ConfigService = require('./services/ConfigService');
 const packageJson = require('../package.json');
 const session = require('express-session');
@@ -135,7 +134,6 @@ AppDataSource.initialize().then(async () => {
     const taskService = new TaskService(taskRepo, accountRepo);
     const embyService = new EmbyService(taskService)
     const messageUtil = new MessageUtil();
-    const proxyFileService = new ProxyFileService(proxyFileRepo);
     // 机器人管理
     const botManager = TelegramBotManager.getInstance();
     // 初始化机器人
