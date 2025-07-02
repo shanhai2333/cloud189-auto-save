@@ -289,6 +289,19 @@ class Cloud189Service {
         })
         return res.headers.location
     }
+    // 记录转存量
+    async increaseShareFileAccessCount(shareId) {
+        const response = await this.request('https://cloud.189.cn/api/portal//share/increaseShareFileAccessCount.action', {
+            method: 'GET',
+            searchParams: {
+                shareId,
+                view: false,
+                download: false,
+                dump: true
+            },
+        })
+        return response
+    }
     async login(username, password, validateCode) {
         try {
             const loginToken = await this.client.authClient.loginByPassword(username, password, validateCode)

@@ -250,7 +250,7 @@ class TaskService {
             shareInfo.fileName = taskDto.taskName;
         }
         taskDto.isFolder = true
-
+        await this.increaseShareFileAccessCount(cloud189, shareInfo.shareId)
         // 检查并创建目标目录
         const rootFolder = await this._validateAndCreateTargetFolder(cloud189, taskDto, shareInfo);
         const tasks = [];
@@ -271,7 +271,9 @@ class TaskService {
         }
         return tasks;
     }
-
+    async increaseShareFileAccessCount(cloud189, shareId ) {
+        await cloud189.increaseShareFileAccessCount(shareId)
+    }
     // 删除任务
     async deleteTask(taskId, deleteCloud) {
         const task = await this.getTaskById(taskId);
