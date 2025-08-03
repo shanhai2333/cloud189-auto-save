@@ -333,7 +333,7 @@ class TelegramBotService {
         });
 
         // 删除常用目录
-        this.bot.onText(/\/df_(\d+)/, async (msg, match) => {
+        this.bot.onText(/\/df_(-?\d+)/, async (msg, match) => {
             const chatId = msg.chat.id;
             const folderId = match[1];
             if (!this._checkChatId(chatId)) return

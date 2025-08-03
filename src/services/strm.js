@@ -164,7 +164,10 @@ class StrmService {
                 };
                 // 获取媒体文件后缀列表
                 const mediaSuffixs = ConfigService.getConfigValue('task.mediaSuffix').split(';').map(suffix => suffix.toLowerCase());
-                
+                 // 如果覆盖 则直接删除currentPath
+                if (overwrite) {
+                    this.deleteDir(path.join(account.localStrmPrefix, startPath), true)
+                }
                 await this._processDirectory(startPath, account, stats, mediaSuffixs, overwrite);
                 const userrname = account.username.replace(/(.{3}).*(.{4})/, '$1****$2');
                 // 生成最终统计信息
@@ -225,7 +228,7 @@ class StrmService {
                     const targetDir = path.join(this.baseDir, account.localStrmPrefix, relativePath);
                     const parsedPath = path.parse(file.name);
                     const strmPath = path.join(targetDir, `${parsedPath.name}.strm`);
-                    overwrite && await this._deleteDirAllStrm(targetDir)
+                    // overwrite && await this._deleteDirAllStrm(targetDir)
                     // 检查文件是否存在
                     try {
                         await fs.access(strmPath);
