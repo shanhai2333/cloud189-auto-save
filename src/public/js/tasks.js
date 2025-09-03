@@ -309,7 +309,9 @@ async function showFileListModal(taskId) {
     modal.className = 'modal files-list-modal'; 
     modal.innerHTML = `
         <div class="modal-content">
-            <h3>文件列表</h3>
+            <div class="modal-header">
+                <h3>文件列表</h3>
+            </div>
             <div class='modal-body'>
                 <button class="batch-rename-btn" onclick="showBatchRenameOptions()">批量重命名</button>
                 <button class="ai-rename-btn" onclick="showAIRenameOptions()">AI重命名</button>
@@ -374,7 +376,9 @@ function showBatchRenameOptions() {
     modal.className = 'modal rename-options-modal';
     modal.innerHTML = `
         <div class="modal-content">
-            <h3>批量重命名</h3>
+            <div class="modal-header">
+                <h3>批量重命名</h3>
+            </div>
             <div class="form-body">
                 <div class="rename-type-selector">
                     <label class="radio-label">
@@ -489,7 +493,9 @@ function showRenamePreview(newNames, autoUpdate) {
     modal.className = 'modal preview-rename-modal';
     modal.innerHTML = `
         <div class="modal-content">
-            <h3>重命名预览</h3>
+            <div class="modal-header">
+                <h3>重命名预览</h3>
+            </div>
             <div class="form-body">
                 <table>
                     <thead>
@@ -583,7 +589,9 @@ async function showAIRenameOptions() {
     modal.className = 'modal rename-options-modal';
     modal.innerHTML = `
         <div class="modal-content">
-            <h3>AI重命名</h3>
+            <div class="modal-header">
+                <h3>AI重命名</h3>
+            </div>
             <div class="form-body">
                 <div class="rename-description">
                     AI将分析文件名并提供智能重命名建议。处理速度取决于文件数量和大模型负载，请耐心等待。

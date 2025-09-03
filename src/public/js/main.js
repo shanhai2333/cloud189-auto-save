@@ -18,6 +18,36 @@ function debounce(func, wait) {
 
 // 主入口文件
 document.addEventListener('DOMContentLoaded', () => {
+     // 初始化macos样式
+    const appTitle = document.getElementById('appTitle');
+    if (appTitle) {
+        if(localStorage.getItem('_currentTheme') === 'macos') {
+            // 插入新的css
+            const newCss = document.createElement('link');
+            newCss.rel = 'stylesheet';
+            newCss.href = '/css/macos.css';
+            document.head.appendChild(newCss);
+        }
+        appTitle.addEventListener('click', (e) => {
+            e.preventDefault();
+           const currentTheme = localStorage.getItem('_currentTheme')
+           if(currentTheme === 'macos') {
+            localStorage.setItem('_currentTheme', '')
+            // 移除macos样式
+            const macosCss = document.querySelector('link[href="/css/macos.css"]');
+            if (macosCss) {
+                document.head.removeChild(macosCss);
+            }
+           } else {
+            localStorage.setItem('_currentTheme', 'macos')
+            // 插入新的css
+           const newCss = document.createElement('link');
+           newCss.rel = 'stylesheet';
+           newCss.href = '/css/macos.css';
+           document.head.appendChild(newCss);
+           }
+        });
+    }
     // 加载版本号
     loadVersion();
     // 初始化所有功能
