@@ -32,7 +32,7 @@
 </head>
 <body>
     <div class="header">
-        <h1>天翼自动转存</h1>
+        <h1 id="appTitle">天翼自动转存</h1>
         <div class="header-meta">
             <a href="https://github.com/1307super/cloud189-auto-save" target="_blank" title="GitHub">
                 <span class="github-icon"></span>
@@ -81,7 +81,9 @@
             </div>
             <div id="addAccountModal" class="modal">
                 <div class="modal-content">
+                    <div class="modal-header">
                     <h3>添加账号</h3>
+                    </div>
                     <form id="accountForm">
                         <div class="form-body">
                             <div class="form-group">
@@ -168,7 +170,7 @@
                             </div>
                         </div>
                         <div class="search-bar">
-                            <div class="search-input">
+                            <div class="filter-dropdown">
                                 <select id="taskFilter">
                                     <option value="all" selected>全部任务</option>
                                     <option value="processing">追剧中</option>
@@ -176,6 +178,8 @@
                                     <option value="failed">失败</option>
                                     <option value="pending">等待中</option>
                                 </select>
+                            </div>
+                            <div class="search-input">
                                 <input type="text" id="taskSearch" placeholder="搜索资源名称/账号/备注">
                                 <button type="button" onclick="fetchTasks()" class="btn-icon" title="刷新任务列表">
                                     <img src="/icons/refresh.svg" alt="刷新" class="refresh-icon">
@@ -197,7 +201,9 @@
             </div>
             <div id="createTaskModal" class="modal">
                 <div class="modal-content">
-                    <h3>创建任务</h3>
+                    <div class="modal-header">
+                        <h3>创建任务</h3>
+                    </div>
                     <form id="taskForm">
                         <div class="form-body">
                             <div class="form-group">
@@ -326,8 +332,8 @@
                 <div class="form-group">
                     <label for="systemApiKey">系统apiKey</label>
                     <div style="display: flex; gap: 10px; align-items: center;">
-                        <input type="text" id="systemApiKey" placeholder="系统apiKey" style="flex: 1; height: 32px;">
-                        <button type="button" onclick="generateApiKey()" class="btn-default" style="height: 32px;margin-top: unset;">生成Key</button>
+                        <input type="text" id="systemApiKey" placeholder="系统apiKey" style="flex: 1;">
+                        <button type="button" onclick="generateApiKey()" class="btn-default" style="margin-top: unset;">生成Key</button>
                     </div>
                     <small class="form-text">系统apiKey, 可用于第三方调用接口使用。生成后请及时保存设置。</small>
                 </div>
@@ -668,7 +674,9 @@
 <!-- 修改任务弹窗 -->
 <div id="editTaskModal" class="modal">
     <div class="modal-content">
-        <h3>修改任务</h3>
+        <div class="modal-header">
+            <h3>修改任务</h3>
+        </div>
         <form id="editTaskForm">
             <div class="form-body">
                 <input type="hidden" id="editTaskId">
@@ -855,7 +863,7 @@
 <!-- AI聊天窗口 -->
 <div id="aiChatModal" class="modal">
     <div class="modal-content" style="width: 80%; max-width: 800px; height: 80vh;">
-        <div class="chat-header">
+        <div class="chat-header modal-header">
             <h3>AI助手</h3>
             <button onclick="closeAIChat()" class="close-btn">&times;</button>
         </div>
@@ -869,7 +877,9 @@
 <!-- STRM弹窗 -->
 <div id="strmModal" class="modal">
     <div class="modal-content">
-        <h3>生成STRM文件</h3>        
+        <div class="modal-header">
+            <h3>生成STRM文件</h3>
+        </div>
         <form id="strmForm">
             <div class="form-body">
                 <div class="form-group">
