@@ -193,6 +193,9 @@ export class Task {
     // 是否是文件夹
     @Column('boolean', { nullable: true, default: true })
     isFolder!: boolean;
+
+    @Column('integer', { nullable: true })
+    taskExpireDays!: number;
 }
 
 // 常用目录表

@@ -72,7 +72,8 @@ class TaskService {
             sourceRegex: taskDto.sourceRegex,
             targetRegex: taskDto.targetRegex,
             enableTaskScraper: taskDto.enableTaskScraper,
-            isFolder: taskDto.isFolder
+            isFolder: taskDto.isFolder,
+            taskExpireDays: taskDto.taskExpireDays
         };
     }
 
@@ -543,7 +544,9 @@ class TaskService {
             if (newFiles.length > 0) {
                 const { fileNameList, fileCount } = await this._handleNewFiles(task, newFiles, cloud189, mediaSuffixs);
                 const resourceName = task.shareFolderName? `${task.resourceName}/${task.shareFolderName}` : task.resourceName;
-                saveResults.push(`${resourceName}追更${fileCount}集: \n${fileNameList.join('\n')}`);
+                saveResults.push(`${resourceName}追更${fileCount}集: 
+${fileNameList.join('
+')}`);
                 const firstExecution = !task.lastFileUpdateTime;
                 task.status = 'processing';
                 task.lastFileUpdateTime = new Date();
@@ -563,7 +566,8 @@ class TaskService {
                 const now = new Date();
                 const lastUpdate = new Date(task.lastFileUpdateTime);
                 const daysDiff = (now.getTime() - lastUpdate.getTime()) / (1000 * 60 * 60 * 24);
-                if (daysDiff >= ConfigService.getConfigValue('task.taskExpireDays')) {
+                const expireDays = task.taskExpireDays || ConfigService.getConfigValue('task.taskExpireDays');
+                if (daysDiff >= expireDays) {
                     task.status = 'completed';
                 }
                 task.currentEpisodes = existingMediaCount;
@@ -577,7 +581,8 @@ class TaskService {
 
             task.lastCheckTime = new Date();
             await this.taskRepo.save(task);
-            return saveResults.join('\n');
+            return saveResults.join('
+');
         } catch (error) {
             return await this._handleTaskFailure(task, error);
         }
@@ -653,7 +658,7 @@ class TaskService {
             new StrmService().deleteDir(path.join(task.account.localStrmPrefix, folderName))
         }
         // 只允许更新特定字段
-        const allowedFields = ['resourceName', 'realFolderId', 'currentEpisodes', 'totalEpisodes', 'status','realFolderName', 'shareFolderName', 'shareFolderId', 'matchPattern','matchOperator','matchValue','remark', 'enableCron', 'cronExpression', 'enableTaskScraper'];
+        const allowedFields = ['resourceName', 'realFolderId', 'currentEpisodes', 'totalEpisodes', 'status','realFolderName', 'shareFolderName', 'shareFolderId', 'matchPattern','matchOperator','matchValue','remark', 'enableCron', 'cronExpression', 'enableTaskScraper', 'taskExpireDays'];
         for (const field of allowedFields) {
             if (updates[field] !== undefined) {
                 task[field] = updates[field];
@@ -748,8 +753,12 @@ class TaskService {
         if (message.length > 20) {
             message.splice(5, message.length - 10, '├─ ...');
         }
-        message.length > 0 && logTaskEvent(`${task.resourceName}自动重命名完成: \n${message.join('\n')}`)
-        message.length > 0 && this.messageUtil.sendMessage(`${task.resourceName}自动重命名: \n${message.join('\n')}`);
+        message.length > 0 && logTaskEvent(`${task.resourceName}自动重命名完成: 
+${message.join('
+')}`)
+        message.length > 0 && this.messageUtil.sendMessage(`${task.resourceName}自动重命名: 
+${message.join('
+')}`);
     }
 
     // 根据AI分析结果生成新文件名
@@ -808,7 +817,7 @@ class TaskService {
     // 清理文件名中的非法字符
     _sanitizeFileName(fileName) {
         // 移除文件名中的非法字符
-        return fileName.replace(/[<>:"/\\|?*]/g, '')
+        return fileName.replace(/[<>:"/\|?*]/g, '')
             .replace(/\s+/g, ' ')  // 合并多个空格
             .trim();
     }
@@ -1398,7 +1407,7 @@ class TaskService {
                     alistPath = pathParts.slice(1, -1).join('/');
                     const taskName = task.resourceName;
                     // 替换alistPath中的taskName为空, 然后去掉最后一个/
-                    alistPath = alistPath.replace(taskName, '').replace(/\/$/, '');
+                    alistPath = alistPath.replace(taskName, '').replace(///$/, '');
                     refreshPath = path.join(currentPath, alistPath);
                 } else {
                     // 非首次只刷新当前目录

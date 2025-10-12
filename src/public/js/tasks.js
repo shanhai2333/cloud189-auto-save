@@ -197,6 +197,7 @@ function initTaskForm() {
         const matchOperator = document.getElementById('matchOperator').value;
         const matchValue = document.getElementById('matchValue').value;
         const remark = document.getElementById('remark').value;
+        const taskExpireDays = document.getElementById('taskExpireDays').value;
         const enableCron = document.getElementById('enableCron').checked;
         const cronExpression = document.getElementById('cronExpression').value;
         const sourceRegex = document.getElementById('ctSourceRegex').value;
@@ -228,7 +229,7 @@ function initTaskForm() {
             message.warning('至少选择一个分享目录');
             return;
         }
-        const body = { accountId, shareLink, totalEpisodes, targetFolderId, accessCode, matchPattern, matchOperator, matchValue, overwriteFolder: 0, remark, enableCron, cronExpression, targetFolder, selectedFolders, sourceRegex, targetRegex, taskName, enableTaskScraper };
+        const body = { accountId, shareLink, totalEpisodes, targetFolderId, accessCode, matchPattern, matchOperator, matchValue, overwriteFolder: 0, remark, enableCron, cronExpression, targetFolder, selectedFolders, sourceRegex, targetRegex, taskName, enableTaskScraper, taskExpireDays: taskExpireDays ? parseInt(taskExpireDays) : null, };
         await createTask(e,body)
             
     });

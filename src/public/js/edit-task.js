@@ -34,6 +34,7 @@ function showEditTaskModal(id) {
     document.getElementById('editMatchOperator').value = task.matchOperator;
     document.getElementById('editMatchValue').value = task.matchValue;
     document.getElementById('editRemark').value = task.remark;
+    document.getElementById('editTaskExpireDays').value = task.taskExpireDays;
     document.getElementById('editTaskModal').style.display = 'block';
     document.getElementById('editEnableCron').checked = task.enableCron;
     document.getElementById('editCronExpression').value = task.cronExpression;
@@ -89,7 +90,8 @@ function initEditTaskForm() {
         const matchPattern = document.getElementById('editMatchPattern').value
         const matchOperator = document.getElementById('editMatchOperator').value
         const matchValue = document.getElementById('editMatchValue').value
-        const remark = document.getElementById('editRemark').value
+        const remark = document.getElementById('editRemark').value;
+        const taskExpireDays = document.getElementById('editTaskExpireDays').value;
 
         const enableCron = document.getElementById('editEnableCron').checked;
         const cronExpression = document.getElementById('editCronExpression').value;
@@ -113,6 +115,7 @@ function initEditTaskForm() {
                     matchOperator,
                     matchValue,
                     remark,
+                    taskExpireDays: taskExpireDays ? parseInt(taskExpireDays) : null,
                     enableCron,
                     cronExpression,
                     enableTaskScraper
