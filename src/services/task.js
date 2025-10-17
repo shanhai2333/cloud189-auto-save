@@ -1407,7 +1407,7 @@ ${message.join('
                     alistPath = pathParts.slice(1, -1).join('/');
                     const taskName = task.resourceName;
                     // 替换alistPath中的taskName为空, 然后去掉最后一个/
-                    alistPath = alistPath.replace(taskName, '').replace(///$/, '');
+                    alistPath = alistPath.replace(taskName, '').replace(/\/$/, '');
                     refreshPath = path.join(currentPath, alistPath);
                 } else {
                     // 非首次只刷新当前目录
