@@ -545,8 +545,7 @@ class TaskService {
                 const { fileNameList, fileCount } = await this._handleNewFiles(task, newFiles, cloud189, mediaSuffixs);
                 const resourceName = task.shareFolderName? `${task.resourceName}/${task.shareFolderName}` : task.resourceName;
                 saveResults.push(`${resourceName}追更${fileCount}集: 
-${fileNameList.join('
-')}`);
+${fileNameList.join('\n')}`);
                 const firstExecution = !task.lastFileUpdateTime;
                 task.status = 'processing';
                 task.lastFileUpdateTime = new Date();
@@ -581,8 +580,7 @@ ${fileNameList.join('
 
             task.lastCheckTime = new Date();
             await this.taskRepo.save(task);
-            return saveResults.join('
-');
+            return saveResults.join('\n');
         } catch (error) {
             return await this._handleTaskFailure(task, error);
         }
@@ -754,11 +752,9 @@ ${fileNameList.join('
             message.splice(5, message.length - 10, '├─ ...');
         }
         message.length > 0 && logTaskEvent(`${task.resourceName}自动重命名完成: 
-${message.join('
-')}`)
+${message.join('\n')}`)
         message.length > 0 && this.messageUtil.sendMessage(`${task.resourceName}自动重命名: 
-${message.join('
-')}`);
+${message.join('\n')}`);
     }
 
     // 根据AI分析结果生成新文件名
@@ -817,7 +813,7 @@ ${message.join('
     // 清理文件名中的非法字符
     _sanitizeFileName(fileName) {
         // 移除文件名中的非法字符
-        return fileName.replace(/[<>:"/\|?*]/g, '')
+        return fileName.replace(/[<>:"/\\|?*]/g, '')
             .replace(/\s+/g, ' ')  // 合并多个空格
             .trim();
     }
